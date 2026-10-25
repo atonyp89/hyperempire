@@ -111,6 +111,55 @@ code { font-family: var(--mono); color: var(--gold); }
   .tree-sprite, .wind, .leaf { animation: none !important; }
 }
 
+/* Time of day (components/TimeOfDay.tsx): morning wash, evening = the scene as painted, night tint + lights */
+.tod { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.tod > * { position: absolute; opacity: 0; transition: opacity 1.4s ease; }
+/* Morning: a soft-light grade keeps the pixel contrast (screen washed it out), plus sunbeams and motes. */
+.tod-wash-morning { inset: 0; background: linear-gradient(155deg, rgba(255, 206, 130, 0.55), rgba(255, 220, 160, 0.25) 45%, rgba(255, 230, 190, 0) 80%); mix-blend-mode: soft-light; }
+.tod-rays { inset: -10% -20%; mix-blend-mode: screen;
+  background: repeating-linear-gradient(118deg, rgba(255, 238, 190, 0) 0 5%, rgba(255, 238, 190, 0.11) 6% 9%, rgba(255, 238, 190, 0) 10% 15%, rgba(255, 238, 190, 0.06) 16% 17%, rgba(255, 238, 190, 0) 18% 26%);
+  -webkit-mask-image: linear-gradient(150deg, #000 0%, rgba(0, 0, 0, 0.55) 35%, transparent 65%);
+  mask-image: linear-gradient(150deg, #000 0%, rgba(0, 0, 0, 0.55) 35%, transparent 65%); }
+.tod-sun { left: -6%; top: -14%; width: 26%; height: 46%; border-radius: 50%; mix-blend-mode: screen; background: radial-gradient(circle, rgba(255, 244, 210, 0.5), rgba(255, 226, 160, 0.18) 40%, rgba(255, 226, 160, 0) 70%); }
+.mote { border-radius: 50%; background: #fff3c8; box-shadow: 0 0 4px 1px rgba(255, 236, 180, 0.7); }
+.tod-wash-night { inset: 0; background: radial-gradient(140% 120% at 50% 45%, #46579a, #283463); mix-blend-mode: multiply; }
+.tod-lights { inset: 0; width: 100%; height: 100%; image-rendering: pixelated; filter: drop-shadow(0 0 3px rgba(255, 214, 107, 0.9)); }
+.tod-glow { border-radius: 50%; mix-blend-mode: screen; background: radial-gradient(circle, rgba(255, 214, 120, 0.6) 0%, rgba(255, 186, 90, 0.24) 38%, rgba(255, 186, 90, 0) 70%); }
+.tod-glow.window { background: radial-gradient(circle, rgba(255, 214, 120, 0.45) 0%, rgba(255, 186, 90, 0) 70%); }
+.firefly { border-radius: 50%; background: #e4ff9a; box-shadow: 0 0 6px 2px rgba(214, 255, 130, 0.75); }
+
+.tod-morning .tod-wash-morning, .tod-morning .tod-sun { opacity: 1; }
+.tod-morning .tod-rays { opacity: 1; animation: rays 14s ease-in-out infinite alternate; }
+.tod-morning .mote { animation: mote 9s linear infinite; }
+@keyframes rays { from { transform: translateX(-2%); opacity: 0.75; } to { transform: translateX(2%); opacity: 1; } }
+@keyframes mote {
+  0% { opacity: 0; transform: translate(0, 0); }
+  15% { opacity: 0.9; }
+  85% { opacity: 0.7; }
+  100% { opacity: 0; transform: translate(900%, 700%); }
+}
+.tod-night .tod-wash-night { opacity: 0.8; }
+.tod-night .tod-lights { opacity: 1; }
+.tod-night .tod-glow { opacity: 1; }
+.tod-night .tod-glow.lamp { animation: lamp-flicker 4s steps(8) infinite; }
+.tod-night .firefly { animation: firefly 5s ease-in-out infinite; }
+@keyframes lamp-flicker { 0%, 100% { opacity: 1; } 30% { opacity: 0.86; } 55% { opacity: 0.97; } 80% { opacity: 0.9; } }
+@keyframes firefly {
+  0%, 100% { opacity: 0; transform: translate(0, 0); }
+  20% { opacity: 1; }
+  50% { opacity: 0.2; transform: translate(260%, -340%); }
+  75% { opacity: 1; transform: translate(-180%, -120%); }
+}
+/* Leaves and wind read as moonlit at night; hover highlights stay a little dimmer than daylight. */
+.phase-night .wind { filter: brightness(0.7); }
+.phase-night .hotspot.has-sprite:hover .hl-sprite, .phase-night .hotspot.has-sprite:focus-visible .hl-sprite { filter: brightness(0.85) drop-shadow(2px 0 0 var(--gold)) drop-shadow(-2px 0 0 var(--gold)) drop-shadow(0 2px 0 var(--gold)) drop-shadow(0 -2px 0 var(--gold)); }
+.chip-icon { font-family: system-ui, sans-serif; font-size: 13px; color: var(--gold); }
+.time-chip { cursor: pointer; font-family: var(--pixel); font-size: 11px; letter-spacing: 1px; color: var(--text); }
+@media (prefers-reduced-motion: reduce) {
+  .tod > * { transition: none; }
+  .tod-night .tod-glow.lamp, .tod-night .firefly, .tod-morning .tod-rays, .tod-morning .mote { animation: none; }
+}
+
 /* ---------------------------------------------------------- Exchange modal */
 .modal-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(2, 2, 2, 0.62); }
 .modal { width: min(1440px, 100%); height: min(900px, 100%); display: flex; flex-direction: column; background: var(--slate-900); border: 3px solid var(--ink); box-shadow: inset 0 0 0 3px var(--wood-600), inset 0 0 0 5px var(--ink), 6px 6px 0 rgba(2, 2, 2, 0.5); }

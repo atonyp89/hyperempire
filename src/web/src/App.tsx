@@ -12,6 +12,7 @@ import { useMarkets } from './hooks/useMarkets';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useFills } from './hooks/useTraderData';
 import { useTownhall } from './hooks/useTownhall';
+import { useDayPhase } from './hooks/useDayPhase';
 import { captureReferral } from './lib/referral';
 
 /** Building screens open from the scene and deep-link by hash (`#exchange`, `#townhall`). */
@@ -45,11 +46,12 @@ export function App() {
   const market = useMemo(() => markets.data?.find((m) => m.name === coin) ?? markets.data?.[0], [markets.data, coin]);
   const auraEarned = useMemo(() => (fills.data ?? []).reduce((sum, f) => sum + f.aura, 0), [fills.data]);
   const townhall = useTownhall(address, auraEarned);
+  const day = useDayPhase();
 
   return (
     <div className="app">
-      <Header auraEarned={address ? auraEarned : null} referral={referral} onOpen={open} />
-      <EmpireScene onOpen={open} />
+      <Header auraEarned={address ? auraEarned : null} referral={referral} onOpen={open} day={day} />
+      <EmpireScene onOpen={open} phase={day.phase} />
 
       <TownhallModal open={screen === 'townhall'} onClose={close} townhall={townhall} />
 

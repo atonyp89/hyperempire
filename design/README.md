@@ -23,6 +23,7 @@
 | `scene/empire-scene.png`, `scene/empire-scene-1x.png` | The hand-drawn generator's scene at 1280×720 and at native 320×180 |
 | `scene/cutout.py` | Cuts one building out of the scene as a transparent PNG for shape-following hover highlights: `python3 cutout.py townhall-pixellab-1x.png ../../src/web/public/empire/exchange.png 248 11 308 81` |
 | `scene/cutout.py … --tree` | Tree mode: floods from the crop edges through everything except dark outline pixels, keeping what the outline encloses (used for `src/web/public/empire/trees/`) |
+| `scene/night_lights.py` | Builds the night lights layer (`src/web/public/empire/night-lights.png`): lit windows, doorways, clock and lanterns from fixed boxes in the scene (update the boxes if the scene is regenerated) |
 | `scene/remove_sprites.py` | Paints cut-outs out of the scene with neighbouring ground, so animated copies move without a ghost: makes `src/web/public/empire/town-base.png` |
 | `scene/townhall-pixellab.png`, `scene/townhall-pixellab-1x.png` | **Current main scene**, generated with PixelLab (Create Image Pro, 320×180, style ref = the town reference), at 4× and native size |
 | `sprites/knight-front.txt` | Current knight sprite as a character grid (palette in `sprites/render.py`) |

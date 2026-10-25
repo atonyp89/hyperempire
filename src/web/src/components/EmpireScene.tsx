@@ -1,6 +1,8 @@
 // The empire's main scene. Buildings are hotspots over the town image; the Exchange opens trading.
 
 import { Ambient } from './Ambient';
+import { TimeOfDay } from './TimeOfDay';
+import type { Phase } from '../hooks/useDayPhase';
 
 export type BuildingId = 'townhall' | 'tavern' | 'exchange' | 'garden';
 
@@ -32,16 +34,17 @@ const BUILDINGS: Building[] = [
   { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS · PHASE 3', box: { left: 0, top: 63, width: 24, height: 37 }, ready: false },
 ];
 
-export function EmpireScene({ onOpen }: { onOpen: (id: BuildingId) => void }) {
+export function EmpireScene({ onOpen, phase }: { onOpen: (id: BuildingId) => void; phase: Phase }) {
   return (
     <div className="scene-wrap">
-      <div className="scene">
+      <div className={`scene phase-${phase}`}>
         <img
           className="scene-img"
           src="/empire/town-base.png"
           alt="Your empire: the Townhall at the center behind a plaza with statue pools, the Tavern on the left, the Exchange on the right and the Garden fields at the bottom left"
         />
         <Ambient />
+        <TimeOfDay phase={phase} />
         {BUILDINGS.map((b) => (
           <button
             key={b.id}

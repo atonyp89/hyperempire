@@ -1,10 +1,13 @@
 import { useConnect, useConnection, useConnectors, useDisconnect } from 'wagmi';
 import { NETWORK } from '../config';
 import { fmtAura, shortAddr } from '../lib/format';
+import type { useDayPhase } from '../hooks/useDayPhase';
 
-type Props = { auraEarned: number | null; referral: string | null; onOpen: (id: 'exchange' | 'townhall') => void };
+type Props = { auraEarned: number | null; referral: string | null; onOpen: (id: 'exchange' | 'townhall') => void; day: ReturnType<typeof useDayPhase> };
 
-export function Header({ auraEarned, referral, onOpen }: Props) {
+const PHASE_LABEL = { morning: ['☀', 'MORNING'], evening: ['◐', 'EVENING'], night: ['☾', 'NIGHT'] } as const;
+
+export function Header({ auraEarned, referral, onOpen, day }: Props) {
   return (
     <header className="header">
       <div className="brand">HYPEREMPIRE</div>
@@ -15,6 +18,15 @@ export function Header({ auraEarned, referral, onOpen }: Props) {
         <span className="soon">LEADERBOARD · SOON</span>
       </nav>
       <div className="header-right">
+        <button
+          type="button"
+          className="chip time-chip"
+          onClick={day.cycle}
+          title="Time of day follows your clock. Click to preview morning, evening or night."
+          aria-label={`Time of day: ${day.phase}${day.mode === 'auto' ? ', following your clock' : ', preview'}. Click to change.`}
+        >
+          <span className="chip-icon" aria-hidden="true">{PHASE_LABEL[day.phase][0]}</span> {PHASE_LABEL[day.phase][1]} <span className="muted">{day.mode === 'auto' ? 'AUTO' : 'PREVIEW'}</span>
+        </button>
         {referral && <span className="chip muted" title="Referral code captured from your link">REF {referral}</span>}
         <span className={`chip ${NETWORK === 'testnet' ? 'warn' : ''}`}>{NETWORK.toUpperCase()}</span>
         {auraEarned !== null && (
