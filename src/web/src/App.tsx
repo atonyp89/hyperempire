@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useConnection } from 'wagmi';
 import { Header } from './components/Header';
-import { EmpireScene } from './components/EmpireScene';
+import { EmpireScene, type BuildingId } from './components/EmpireScene';
 import { ExchangeModal } from './components/ExchangeModal';
+import { TownhallModal } from './components/TownhallModal';
 import { MarketList } from './components/MarketList';
 import { MarketHeader } from './components/MarketHeader';
 import { OrderPanel } from './components/OrderPanel';
@@ -10,9 +11,12 @@ import { AccountTabs } from './components/AccountTabs';
 import { useMarkets } from './hooks/useMarkets';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useFills } from './hooks/useTraderData';
+import { useTownhall } from './hooks/useTownhall';
 import { captureReferral } from './lib/referral';
 
-const EXCHANGE_HASH = '#exchange';
+/** Building screens open from the scene and deep-link by hash (`#exchange`, `#townhall`). */
+type Screen = Extract<BuildingId, 'exchange' | 'townhall'> | null;
+const screenFromHash = (): Screen => (window.location.hash === '#exchange' ? 'exchange' : window.location.hash === '#townhall' ? 'townhall' : null);
 
 export function App() {
   const { address } = useConnection();
@@ -21,32 +25,35 @@ export function App() {
   const fills = useFills(address);
   const [coin, setCoin] = useState('BTC');
   const [referral] = useState(captureReferral);
-  // `#exchange` deep-links straight into trading for players who only trade.
-  const [exchangeOpen, setExchangeOpen] = useState(() => window.location.hash === EXCHANGE_HASH);
+  const [screen, setScreen] = useState<Screen>(screenFromHash);
 
-  const openExchange = useCallback(() => {
-    setExchangeOpen(true);
-    history.replaceState(null, '', EXCHANGE_HASH);
+  const open = useCallback((id: BuildingId) => {
+    if (id !== 'exchange' && id !== 'townhall') return;
+    setScreen(id);
+    history.replaceState(null, '', `#${id}`);
   }, []);
-  const closeExchange = useCallback(() => {
-    setExchangeOpen(false);
+  const close = useCallback(() => {
+    setScreen(null);
     history.replaceState(null, '', window.location.pathname + window.location.search);
   }, []);
   useEffect(() => {
-    const onHash = () => setExchangeOpen(window.location.hash === EXCHANGE_HASH);
+    const onHash = () => setScreen(screenFromHash());
     window.addEventListener('hashchange', onHash);
     return () => window.removeEventListener('hashchange', onHash);
   }, []);
 
   const market = useMemo(() => markets.data?.find((m) => m.name === coin) ?? markets.data?.[0], [markets.data, coin]);
   const auraEarned = useMemo(() => (fills.data ?? []).reduce((sum, f) => sum + f.aura, 0), [fills.data]);
+  const townhall = useTownhall(address, auraEarned);
 
   return (
     <div className="app">
-      <Header auraEarned={address ? auraEarned : null} referral={referral} onOpenExchange={openExchange} />
-      <EmpireScene onOpenExchange={openExchange} />
+      <Header auraEarned={address ? auraEarned : null} referral={referral} onOpen={open} />
+      <EmpireScene onOpen={open} />
 
-      <ExchangeModal open={exchangeOpen} onClose={closeExchange}>
+      <TownhallModal open={screen === 'townhall'} onClose={close} townhall={townhall} />
+
+      <ExchangeModal open={screen === 'exchange'} onClose={close}>
         <div className="layout">
           <aside className="panel markets">
             <MarketList markets={markets.data ?? []} loading={markets.isLoading} selected={market?.name} onSelect={setCoin} />

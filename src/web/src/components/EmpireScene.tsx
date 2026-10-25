@@ -1,7 +1,9 @@
 // The empire's main scene. Buildings are hotspots over the town image; the Exchange opens trading.
 
+export type BuildingId = 'townhall' | 'tavern' | 'exchange' | 'garden';
+
 type Building = {
-  id: 'townhall' | 'tavern' | 'exchange' | 'garden';
+  id: BuildingId;
   name: string;
   detail: string;
   /** Hotspot box as percentages of the 320x180 scene. */
@@ -22,13 +24,13 @@ const fromCrop = (x: number, y: number, w: number, h: number) => ({
 });
 
 const BUILDINGS: Building[] = [
-  { id: 'townhall', name: 'TOWNHALL', detail: 'UPGRADES · SOON', box: fromCrop(106, 9, 100, 73), ready: false, sprite: '/empire/townhall.png' },
+  { id: 'townhall', name: 'TOWNHALL', detail: 'LEVEL UP · PERKS', box: fromCrop(106, 9, 100, 73), ready: true, sprite: '/empire/townhall.png' },
   { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES · PHASE 2', box: fromCrop(1, 18, 71, 66), ready: false, sprite: '/empire/tavern.png' },
   { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', box: fromCrop(248, 11, 60, 70), ready: true, sprite: '/empire/exchange.png' },
   { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS · PHASE 3', box: { left: 0, top: 63, width: 24, height: 37 }, ready: false },
 ];
 
-export function EmpireScene({ onOpenExchange }: { onOpenExchange: () => void }) {
+export function EmpireScene({ onOpen }: { onOpen: (id: BuildingId) => void }) {
   return (
     <div className="scene-wrap">
       <div className="scene">
@@ -43,7 +45,7 @@ export function EmpireScene({ onOpenExchange }: { onOpenExchange: () => void }) 
             type="button"
             className={`hotspot ${b.ready ? 'ready' : 'locked'} ${b.sprite ? 'has-sprite' : ''}`}
             style={{ left: `${b.box.left}%`, top: `${b.box.top}%`, width: `${b.box.width}%`, height: `${b.box.height}%` }}
-            onClick={b.ready ? onOpenExchange : undefined}
+            onClick={b.ready ? () => onOpen(b.id) : undefined}
             aria-disabled={!b.ready}
             aria-label={`${b.name}: ${b.detail}${b.ready ? '' : ' (not available yet)'}`}
           >

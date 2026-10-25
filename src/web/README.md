@@ -19,6 +19,7 @@ Copy `.env.example` to `.env.local` and set `VITE_BUILDER_ADDRESS`. Until it is 
 ## Screens
 
 - **Empire scene** (`/`): the town from `design/scene/townhall-pixellab.png` (copied to `public/empire/town.png`). Buildings are hotspots; the **Exchange** opens trading, the others show what's coming.
+- **Townhall modal** (`/#townhall`): level, $aura progress, risky upgrade (pay 10–100% of the cost for that chance), the three-branch perk tree (Trader live; Fighter and Crafter bank points for Phases 2–3), respec and building caps. Rules live in `src/lib/empire.ts`. Until the Townhall contract ships, progress is saved in the browser per wallet (`useTownhall`), and the $aura balance is 5,000 starter + estimated $aura from fills − Townhall spending. Perk icons in `public/empire/icons/` were generated with PixelLab (Pixflux, scene palette).
 - **Exchange modal** (`/#exchange`, also the header's EXCHANGE link): the trading UI. `#exchange` deep-links straight in for players who only trade; Escape or ✕ closes it.
 
 The theme in `src/styles.css` uses colours sampled from the Empire scene (slate, wood, parchment, gold, teal, grass, roof red), so the modal matches the town.

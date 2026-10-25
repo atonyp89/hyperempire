@@ -2,14 +2,15 @@ import { useConnect, useConnection, useConnectors, useDisconnect } from 'wagmi';
 import { NETWORK } from '../config';
 import { fmtAura, shortAddr } from '../lib/format';
 
-type Props = { auraEarned: number | null; referral: string | null; onOpenExchange: () => void };
+type Props = { auraEarned: number | null; referral: string | null; onOpen: (id: 'exchange' | 'townhall') => void };
 
-export function Header({ auraEarned, referral, onOpenExchange }: Props) {
+export function Header({ auraEarned, referral, onOpen }: Props) {
   return (
     <header className="header">
       <div className="brand">DEGEN EMPIRE</div>
       <nav className="nav" aria-label="Sections">
-        <button type="button" className="nav-link" onClick={onOpenExchange}>EXCHANGE</button>
+        <button type="button" className="nav-link" onClick={() => onOpen('townhall')}>TOWNHALL</button>
+        <button type="button" className="nav-link" onClick={() => onOpen('exchange')}>EXCHANGE</button>
         <span className="soon">TAVERN · SOON</span>
         <span className="soon">LEADERBOARD · SOON</span>
       </nav>
