@@ -81,6 +81,36 @@ code { font-family: var(--mono); color: var(--gold); }
 .hotspot[aria-label^='TAVERN'] .plate, .hotspot[aria-label^='GARDEN'] .plate { bottom: auto; top: 6px; transform: translate(-50%, 0); }
 .hotspot[aria-label^='TOWNHALL'] .plate { bottom: auto; top: -6px; transform: translate(-50%, -100%); }
 
+/* Ambient life: swaying trees, wind streaks, gust leaves (components/Ambient.tsx) */
+.ambient { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.tree-sprite { position: absolute; image-rendering: pixelated; transform-origin: 50% 100%; animation: sway var(--dur) ease-in-out var(--delay) infinite alternate; }
+.ambient.gust .tree-sprite { animation-name: sway-gust; animation-duration: 0.9s; }
+.ambient.still .tree-sprite { animation: none; }
+@keyframes sway { from { transform: skewX(-1.6deg); } to { transform: skewX(1.6deg); } }
+@keyframes sway-gust { from { transform: skewX(1deg); } to { transform: skewX(5deg); } }
+.wind { position: absolute; left: -12%; height: calc(100% / 180); background: linear-gradient(90deg, transparent, rgba(239, 229, 202, 0.55) 30%, rgba(239, 229, 202, 0.55) 70%, transparent); opacity: 0; animation: wind var(--dur) linear var(--delay) infinite; }
+.ambient.gust .wind { animation-duration: calc(var(--dur) / 2.5); }
+@keyframes wind {
+  0% { transform: translateX(0); opacity: 0; }
+  15% { opacity: 0.8; }
+  70% { opacity: 0.6; }
+  100% { transform: translateX(var(--cross)); opacity: 0; }
+}
+.leaf { position: absolute; left: -2%; image-rendering: pixelated; animation: leaf-fly var(--dur) linear var(--delay) forwards; opacity: 0; }
+.leaf-shade { position: absolute; right: 0; bottom: 0; width: 50%; height: 50%; background: rgba(2, 2, 2, 0.35); }
+@keyframes leaf-fly {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 0; }
+  8% { opacity: 1; }
+  25% { transform: translate(calc(var(--cross) * 0.25), calc(var(--drift) * 0.25 + var(--bob))) rotate(90deg); }
+  50% { transform: translate(calc(var(--cross) * 0.5), calc(var(--drift) * 0.5 - var(--bob))) rotate(200deg); }
+  75% { transform: translate(calc(var(--cross) * 0.75), calc(var(--drift) * 0.75 + var(--bob))) rotate(290deg); }
+  92% { opacity: 1; }
+  100% { transform: translate(var(--cross), var(--drift)) rotate(400deg); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tree-sprite, .wind, .leaf { animation: none !important; }
+}
+
 /* ---------------------------------------------------------- Exchange modal */
 .modal-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(2, 2, 2, 0.62); }
 .modal { width: min(1440px, 100%); height: min(900px, 100%); display: flex; flex-direction: column; background: var(--slate-900); border: 3px solid var(--ink); box-shadow: inset 0 0 0 3px var(--wood-600), inset 0 0 0 5px var(--ink), 6px 6px 0 rgba(2, 2, 2, 0.5); }

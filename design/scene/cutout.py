@@ -3,6 +3,8 @@
 Usage: python3 cutout.py scene.png out.png x0 y0 x1 y1 [--erase ex0,ey0,ex1,ey1 ...]
 
 --erase clears extra boxes (crop-relative coords, exclusive ends) for stray bits the fill keeps.
+--tree floods from the crop edges through everything except dark outline pixels instead, keeping what the
+outline encloses (tree canopies are green like the grass, so the ground-colour fill would erase them).
 
 Crops the box (native-pixel coords, x1/y1 exclusive), then flood-fills from the crop's edges through
 "ground" colours (grass, dirt, path, shadow) and makes them transparent. What is left is the building.
@@ -44,6 +46,11 @@ def is_ground(rgb):
     return green or dirt
 
 
+def is_open(rgb):
+    """Anything that is not a dark outline pixel: the tree-mode fill passes through it."""
+    return colorsys.rgb_to_hls(*[v / 255 for v in rgb])[1] >= 0.16
+
+
 def write_png(path, w, h, rows):
     raw = b''.join(b'\x00' + bytes(v for p in row for v in p) for row in rows)
 
@@ -59,7 +66,8 @@ def write_png(path, w, h, rows):
 def main():
     src, dst = sys.argv[1], sys.argv[2]
     x0, y0, x1, y1 = map(int, sys.argv[3:7])
-    erase = [tuple(map(int, a.split(','))) for a in sys.argv[8::2]] if '--erase' in sys.argv else []
+    args = [a for a in sys.argv[7:] if a != '--tree']
+    erase = [tuple(map(int, a.split(','))) for a in args[1::2]] if '--erase' in args else []
     img = read_rgb(src)
     crop = [row[x0:x1] for row in img[y0:y1]]
     h, w = len(crop), len(crop[0])
@@ -69,9 +77,11 @@ def main():
             for x in range(max(0, ex0), min(w, ex1)):
                 clear[y][x] = True
     stack = [(x, y) for x in range(w) for y in (0, h - 1)] + [(x, y) for y in range(h) for x in (0, w - 1)]
+    tree = '--tree' in sys.argv
+    passable = is_open if tree else is_ground
     while stack:
         x, y = stack.pop()
-        if not (0 <= x < w and 0 <= y < h) or clear[y][x] or not is_ground(crop[y][x]):
+        if not (0 <= x < w and 0 <= y < h) or clear[y][x] or not passable(crop[y][x]):
             continue
         clear[y][x] = True
         stack += [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]

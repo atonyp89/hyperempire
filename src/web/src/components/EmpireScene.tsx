@@ -1,5 +1,7 @@
 // The empire's main scene. Buildings are hotspots over the town image; the Exchange opens trading.
 
+import { Ambient } from './Ambient';
+
 export type BuildingId = 'townhall' | 'tavern' | 'exchange' | 'garden';
 
 type Building = {
@@ -36,9 +38,10 @@ export function EmpireScene({ onOpen }: { onOpen: (id: BuildingId) => void }) {
       <div className="scene">
         <img
           className="scene-img"
-          src="/empire/town.png"
+          src="/empire/town-base.png"
           alt="Your empire: the Townhall at the center behind a plaza with statue pools, the Tavern on the left, the Exchange on the right and the Garden fields at the bottom left"
         />
+        <Ambient />
         {BUILDINGS.map((b) => (
           <button
             key={b.id}
