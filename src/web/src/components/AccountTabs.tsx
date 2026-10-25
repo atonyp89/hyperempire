@@ -119,7 +119,7 @@ export function AccountTabs({ user, markets, trader, fills }: Props) {
             <table>
               <thead><tr><th>Time</th><th>Market</th><th>Direction</th><th>Price</th><th>Size</th><th>Builder fee</th><th>$aura</th></tr></thead>
               <tbody>
-                {fills.length === 0 && <tr><td colSpan={7} className="muted">No fills yet. Every fill through HyperHero earns $aura.</td></tr>}
+                {fills.length === 0 && <tr><td colSpan={7} className="muted">No fills yet. Every fill through HyperEmpire earns $aura.</td></tr>}
                 {fills.slice(0, 100).map((f) => (
                   <tr key={`${f.tid}-${f.oid}`}>
                     <td className="mono small">{new Date(f.time).toLocaleString()}</td>

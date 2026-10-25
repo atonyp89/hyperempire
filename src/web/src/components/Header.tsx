@@ -7,7 +7,7 @@ type Props = { auraEarned: number | null; referral: string | null; onOpen: (id: 
 export function Header({ auraEarned, referral, onOpen }: Props) {
   return (
     <header className="header">
-      <div className="brand">DEGEN EMPIRE</div>
+      <div className="brand">HYPEREMPIRE</div>
       <nav className="nav" aria-label="Sections">
         <button type="button" className="nav-link" onClick={() => onOpen('townhall')}>TOWNHALL</button>
         <button type="button" className="nav-link" onClick={() => onOpen('exchange')}>EXCHANGE</button>

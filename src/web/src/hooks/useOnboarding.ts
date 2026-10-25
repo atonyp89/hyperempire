@@ -1,4 +1,4 @@
-// One-time setup before trading: approve the HyperHero builder fee, then approve a local trading agent.
+// One-time setup before trading: approve the HyperEmpire builder fee, then approve a local trading agent.
 
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';

@@ -1,4 +1,4 @@
-"""Degen Empire main scene: a top-down pixel-art town around the Townhall.
+"""HyperEmpire main scene: a top-down pixel-art town around the Townhall.
 
 Usage: python3 empire_scene.py [out.png] [scale]
 

@@ -1,4 +1,4 @@
-# Degen Empire — design
+# HyperEmpire — design
 
 ## Art direction
 
@@ -17,7 +17,7 @@
 | --- | --- |
 | `hero-screen/Main.dc.html` | Hero screen mock (1280×800): equipment slots, trader card, knight on dais, stats with point allocation, adventure zones |
 | `hero-screen/Economy.dc.html` | Pitch slide (1600×900): fees, the $aura game loop and the three player groups in one picture |
-| `hero-screen/Scene.dc.html` | Degen Empire main scene (1280×720): the pixel scene with building plates and a HUD |
+| `hero-screen/Scene.dc.html` | HyperEmpire main scene (1280×720): the pixel scene with building plates and a HUD |
 | `hero-screen/canvas.json` | Canvas index for all artboards |
 | `scene/empire_scene.py` | Generates the top-down town scene pixel art (320×180, scaled ×4; muted top-down RPG town style): `python3 empire_scene.py` |
 | `scene/empire-scene.png`, `scene/empire-scene-1x.png` | The hand-drawn generator's scene at 1280×720 and at native 320×180 |
@@ -36,7 +36,7 @@ The `.dc.html` files are Design canvas components (`<x-dc>` markup + `DCLogic` c
 | --- | --- |
 | `hero-screen/standalone/hero-screen.html` | Hero screen, fully interactive (stat points, level-up chance, reroll, zones) |
 | `hero-screen/standalone/economy.html` | Pitch slide |
-| `hero-screen/standalone/empire-scene.html` | Degen Empire main scene |
+| `hero-screen/standalone/empire-scene.html` | HyperEmpire main scene |
 | `hero-screen/build_standalone.py` | Rebuilds the standalone pages from the `.dc.html` files: `python3 build_standalone.py` |
 
 After editing a `.dc.html`, rerun the build script so the standalone pages match. They load fonts from Google Fonts, so they need an internet connection to look right.

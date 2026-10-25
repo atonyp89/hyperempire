@@ -1,4 +1,4 @@
-# Degen Empire — design decisions log
+# HyperEmpire — design decisions log
 
 How the MVP rules in [mvp-design.md](mvp-design.md) were reached. As of Oct 23, 2026.
 
@@ -38,7 +38,8 @@ How the MVP rules in [mvp-design.md](mvp-design.md) were reached. As of Oct 23, 
 | Creator referral codes | In Phase 1: referrers earn a share of builder fees from traders they bring, paid in USDC (share TBD, 10–20%) | Growth lever with no streaming work; creators earn real money while $aura can't be cashed out |
 | Banked stat points | Levels in Phase 1 still grant points, spent once stat allocation ships | Early leveling carries over into Phase 2 |
 | Weekly Rising board | Not in Phase 1 | Keep Phase 1 to one Season 0 board ranked by level |
-| **Pivot: Degen Empire** (Oct 25) | The game grows an **empire** instead of a single hero; the repo moved to `hyperempire` | A bigger scope gives every player type more to do; empire builders are a familiar genre |
+| **Pivot: empire game** (Oct 25) | The game grows an **empire** instead of a single hero; the repo moved to `hyperempire` | A bigger scope gives every player type more to do; empire builders are a familiar genre |
+| **Name: HyperEmpire** (Oct 25) | The project and product are called **HyperEmpire** (repo `hyperempire`); "HyperHero" and "Degen Empire" were working names | "Hyper" ties it to Hyperliquid; "Empire" matches what players build |
 | Buildings | Townhall (progression), Exchange (trading UI), Tavern (heroes, Phase 2), Garden (seeds, Phase 3) | One building per loop; the scene doubles as navigation |
 | Townhall leveling | Leveling, risky upgrades and the Season 0 leaderboard move from the hero to the Townhall | The Townhall is the empire's level and the main $aura sink |
 | Building caps | No building can be a higher level than the Townhall | Keeps the Townhall the first upgrade |

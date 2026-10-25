@@ -1,10 +1,10 @@
-# Degen Empire — Game Design
+# HyperEmpire — Game Design
 
-Oct 25, 2026 · formerly "HyperHero"
+Oct 25, 2026 · formerly "HyperHero" and "Degen Empire"
 
 ## Pitch
 
-Degen Empire turns Hyperliquid trading into an empire builder: every fee you pay earns $aura, and $aura grows your empire, starting with the Townhall. Your empire is your trader identity card.
+HyperEmpire turns Hyperliquid trading into an empire builder: every fee you pay earns $aura, and $aura grows your empire, starting with the Townhall. Your empire is your trader identity card.
 
 - **Who:** existing Hyperliquid traders who enjoy a game layer. Long term, a social layer for trading as esport, starting with markets like Korea.
 - **How we earn:** builder-code fees on every fill routed through the Exchange, plus the $10 empire mint.

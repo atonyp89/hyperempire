@@ -32,4 +32,4 @@ export const MARKET_SLIPPAGE = 0.03;
 export const TRIGGER_SLIPPAGE = 0.1;
 
 /** Name the trading agent is registered under on Hyperliquid. */
-export const AGENT_NAME = 'HyperHero';
+export const AGENT_NAME = 'HyperEmpire';

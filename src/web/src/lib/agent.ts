@@ -7,12 +7,14 @@
 import type { Hex } from 'viem';
 import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
 import { NETWORK } from '../config';
+import { readMigrating } from './storage';
 
-const storageKey = (user: string) => `hyperhero.agent.${NETWORK}.${user.toLowerCase()}`;
+const storageKey = (user: string) => `hyperempire.agent.${NETWORK}.${user.toLowerCase()}`;
+const oldKey = (user: string) => `hyperhero.agent.${NETWORK}.${user.toLowerCase()}`;
 
 export function loadAgent(user: string): PrivateKeyAccount | null {
   try {
-    const pk = localStorage.getItem(storageKey(user));
+    const pk = readMigrating(storageKey(user), [oldKey(user)]);
     return pk ? privateKeyToAccount(pk as Hex) : null;
   } catch {
     return null;

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { NETWORK } from '../config';
+import { readMigrating } from '../lib/storage';
 import {
   branchSpent,
   levelCost,
@@ -16,11 +17,13 @@ import {
 type Saved = { level: number; auraSpent: number; ranks: Record<string, number>; respecs: number };
 const FRESH: Saved = { level: 1, auraSpent: 0, ranks: {}, respecs: 0 };
 
-const keyFor = (user?: string) => `degen-empire.townhall.${NETWORK}.${(user ?? 'guest').toLowerCase()}`;
+const who = (user?: string) => `${NETWORK}.${(user ?? 'guest').toLowerCase()}`;
+const keyFor = (user?: string) => `hyperempire.townhall.${who(user)}`;
+const oldKeyFor = (user?: string) => `degen-empire.townhall.${who(user)}`;
 
 function load(user?: string): Saved {
   try {
-    const raw = localStorage.getItem(keyFor(user));
+    const raw = readMigrating(keyFor(user), [oldKeyFor(user)]);
     return raw ? { ...FRESH, ...(JSON.parse(raw) as Saved) } : FRESH;
   } catch {
     return FRESH;

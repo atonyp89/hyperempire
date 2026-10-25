@@ -1,4 +1,4 @@
-// Order actions. Every order carries the HyperHero builder code, which is what earns $aura.
+// Order actions. Every order carries the HyperEmpire builder code, which is what earns $aura.
 
 import type { ExchangeClient } from '@nktkas/hyperliquid';
 import type { OrderParameters } from '@nktkas/hyperliquid/api/exchange';

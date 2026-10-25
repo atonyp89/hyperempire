@@ -1,6 +1,6 @@
-# HyperHero web: trading UI
+# HyperEmpire web app
 
-Phase 1 trading frontend. Users trade Hyperliquid perps through HyperHero's builder code, and every fill shows the $aura it earned (500 $aura per $1 of builder fee).
+Phase 1 trading frontend. Users trade Hyperliquid perps through HyperEmpire's builder code, and every fill shows the $aura it earned (500 $aura per $1 of builder fee).
 
 ## Run
 
@@ -48,7 +48,7 @@ Both approvals are signatures, not transactions, so they cost no gas. The accoun
 
 ## Known limits (next steps)
 
-- **$aura shown is an estimate** from each fill's `builderFee`. A fill routed through another builder also has a `builderFee`, so the real amount comes from the fee indexer, which only counts HyperHero's builder fills.
+- **$aura shown is an estimate** from each fill's `builderFee`. A fill routed through another builder also has a `builderFee`, so the real amount comes from the fee indexer, which only counts HyperEmpire's builder fills.
 - **Referral codes** are captured, but not yet sent anywhere. Attribution and USDC fee share need the backend.
 - **Hero level fee discount** isn't applied yet: it needs the HeroNFT contract to read the level.
 - No order book, depth chart or WebSocket streaming yet. Data polls every 3–5 s.

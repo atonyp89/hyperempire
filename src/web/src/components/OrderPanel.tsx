@@ -33,8 +33,8 @@ function Onboarding({ onboarding: o }: { onboarding: Onboarding }) {
       <Step
         n={1}
         done={o.builderApproved}
-        title="Approve the HyperHero builder fee"
-        body={`Lets HyperHero add its fee to your orders, up to ${BUILDER_MAX_FEE_RATE}. Every $1 of fee earns 500 $aura.`}
+        title="Approve the HyperEmpire builder fee"
+        body={`Lets HyperEmpire add its fee to your orders, up to ${BUILDER_MAX_FEE_RATE}. Every $1 of fee earns 500 $aura.`}
         action={o.approveBuilder}
         busy={o.busy === 'builder'}
         disabled={!o.canSign}
