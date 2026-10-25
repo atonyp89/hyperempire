@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hero Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen&display=swap" rel="stylesheet" />
+<style>
+  /* Hero sprite prototype: PixelLab scene-styled knight, 48×48 frames. Sheets: idle-south.png (4 frames), rotations.png (8 directions). */
+  :root { --bg: #2b3442; --panel: #3a4556; --ink: #151a22; --text: #efe3c8; --muted: #a8a08c; --gold: #e2b54a; --teal: #4fb3a5; }
+  * { box-sizing: border-box; }
+  body { margin: 0; min-height: 100vh; background: var(--bg); color: var(--text); font-family: Silkscreen, system-ui, sans-serif; display: grid; place-items: center; padding: 24px 16px; }
+  main { display: grid; gap: 20px; justify-items: center; max-width: 720px; width: 100%; }
+  h1 { margin: 0; font-size: 20px; letter-spacing: 1px; }
+  p { margin: 0; color: var(--muted); font-size: 11px; text-align: center; }
+  .stage { width: min(384px, 100%); aspect-ratio: 1; background: radial-gradient(ellipse 40% 10% at 50% 86%, #0006, transparent 70%), #5f7a3e; border: 3px solid var(--ink); box-shadow: inset 0 0 0 3px #7c9a52; display: grid; place-items: center; }
+  .sprite { width: 100%; aspect-ratio: 1; image-rendering: pixelated; background-repeat: no-repeat; background-size: 400% 100%; }
+  .idle { background-image: url(/empire/heroes/knight2/idle-south.png); animation: idle 0.8s steps(4) infinite; }
+  .dir { background-image: url(/empire/heroes/knight2/rotations.png); background-size: 800% 100%; }
+  @keyframes idle { from { background-position-x: 0; } to { background-position-x: 133.333%; } }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  button { font: inherit; font-size: 11px; color: var(--text); background: var(--panel); border: 2px solid var(--ink); padding: 6px 10px; cursor: pointer; }
+  button[aria-pressed="true"] { background: var(--teal); color: var(--ink); }
+  .dirs { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; width: 100%; }
+  .dirs button { padding: 4px; display: grid; gap: 4px; justify-items: center; }
+  .dirs .sprite { width: 100%; max-width: 64px; }
+  @media (prefers-reduced-motion: reduce) { .idle { animation: none; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>HYPEREMPIRE · KNIGHT</h1>
+  <div class="stage"><div id="hero" class="sprite idle"></div></div>
+  <div class="row">
+    <button id="mode-idle" aria-pressed="true">IDLE (SOUTH)</button>
+    <button id="mode-spin" aria-pressed="false">TURN</button>
+  </div>
+  <div class="dirs" id="dirs"></div>
+  <p>Scene-styled PixelLab knight (Create Image Pro with the town as style, turned with v3), 48×48. Idle = breathing-idle, 4 frames at 5 fps.</p>
+</main>
+<script>
+  const DIRS = ['S', 'SW', 'W', 'NW', 'N', 'NE', 'E', 'SE'];
+  const hero = document.getElementById('hero');
+  const pos = (i) => `${(i / 7) * 100}% 0`;
+  let spin = null;
+  const show = (i) => { hero.className = 'sprite dir'; hero.style.backgroundPosition = pos(i); };
+  const idle = () => { clearInterval(spin); spin = null; hero.className = 'sprite idle'; hero.style.backgroundPosition = ''; press('mode-idle'); };
+  const press = (id) => document.querySelectorAll('button').forEach((b) => b.setAttribute('aria-pressed', String(b.id === id)));
+  const dirs = document.getElementById('dirs');
+  DIRS.forEach((d, i) => {
+    const b = document.createElement('button');
+    b.id = `dir-${d}`;
+    b.innerHTML = `<div class="sprite dir" style="background-position:${pos(i)}"></div>${d}`;
+    b.onclick = () => { clearInterval(spin); spin = null; show(i); press(b.id); };
+    dirs.append(b);
+  });
+  document.getElementById('mode-idle').onclick = idle;
+  document.getElementById('mode-spin').onclick = () => {
+    clearInterval(spin); let i = 0; show(i); press('mode-spin');
+    spin = setInterval(() => show((i = (i + 1) % 8)), 350);
+  };
+</script>
+</body>
+</html>

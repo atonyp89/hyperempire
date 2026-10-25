@@ -111,6 +111,16 @@ code { font-family: var(--mono); color: var(--gold); }
   .tree-sprite, .wind, .leaf { animation: none !important; }
 }
 
+/* Hero at the Townhall door (EmpireScene Hero): drawn above the hotspots so the hover highlight never hides it,
+   clicks pass through to the Townhall, and the phase filter stands in for the time-of-day washes. */
+.hero-shadow, .hero-sprite { position: absolute; pointer-events: none; image-rendering: pixelated; }
+.hero-sprite { background: url(/empire/heroes/knight5/idle-south.png) 0 0 / 400% 100% no-repeat; animation: hero-idle 1.6s steps(4) infinite; }
+@keyframes hero-idle { to { background-position-x: 133.333%; } }
+.phase-morning .hero-sprite { filter: brightness(1.05); }
+.phase-night .hero-sprite { filter: brightness(0.55) saturate(0.7) hue-rotate(-10deg); }
+.phase-night .hero-shadow { opacity: 0.6; }
+@media (prefers-reduced-motion: reduce) { .hero-sprite { animation: none; } }
+
 /* Time of day (components/TimeOfDay.tsx): morning wash, evening = the scene as painted, night tint + lights */
 .tod { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .tod > * { position: absolute; opacity: 0; transition: opacity 1.4s ease; }
