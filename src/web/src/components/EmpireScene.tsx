@@ -22,8 +22,8 @@ const fromCrop = (x: number, y: number, w: number, h: number) => ({
 });
 
 const BUILDINGS: Building[] = [
-  { id: 'townhall', name: 'TOWNHALL', detail: 'UPGRADES · SOON', box: { left: 33.5, top: 5.5, width: 30.5, height: 39 }, ready: false },
-  { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES · PHASE 2', box: { left: 0.5, top: 11, width: 21, height: 34 }, ready: false },
+  { id: 'townhall', name: 'TOWNHALL', detail: 'UPGRADES · SOON', box: fromCrop(106, 9, 100, 73), ready: false, sprite: '/empire/townhall.png' },
+  { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES · PHASE 2', box: fromCrop(1, 18, 71, 66), ready: false, sprite: '/empire/tavern.png' },
   { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', box: fromCrop(248, 11, 60, 70), ready: true, sprite: '/empire/exchange.png' },
   { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS · PHASE 3', box: { left: 0, top: 63, width: 24, height: 37 }, ready: false },
 ];
