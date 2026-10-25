@@ -111,11 +111,18 @@ code { font-family: var(--mono); color: var(--gold); }
   .tree-sprite, .wind, .leaf { animation: none !important; }
 }
 
-/* Hero at the Townhall door (EmpireScene Hero): drawn above the hotspots so the hover highlight never hides it,
-   clicks pass through to the Townhall, and the phase filter stands in for the time-of-day washes. */
+/* Hero (components/Hero.tsx): drawn above the hotspots so the hover highlight never hides it; clicks pass
+   through to the buildings, and the phase filter stands in for the time-of-day washes. Sheets are 4 frames
+   x 8 directions of 32x32; --row picks the direction (DIRS order). */
 .hero-shadow, .hero-sprite { position: absolute; pointer-events: none; image-rendering: pixelated; }
-.hero-sprite { background: url(/empire/heroes/knight5/idle-south.png) 0 0 / 400% 100% no-repeat; animation: hero-idle 1.6s steps(4) infinite; }
-@keyframes hero-idle { to { background-position-x: 133.333%; } }
+.hero-sprite {
+  background: url(/empire/heroes/knight5/idle.png) no-repeat;
+  background-size: 400% 800%;
+  background-position-y: calc(var(--row, 0) * 100% / 7);
+  animation: hero-frames 1.6s steps(4) infinite;
+}
+.hero-sprite.walking { background-image: url(/empire/heroes/knight5/walk.png); animation-duration: 0.56s; }
+@keyframes hero-frames { from { background-position-x: 0; } to { background-position-x: 133.333%; } }
 .phase-morning .hero-sprite { filter: brightness(1.05); }
 .phase-night .hero-sprite { filter: brightness(0.55) saturate(0.7) hue-rotate(-10deg); }
 .phase-night .hero-shadow { opacity: 0.6; }

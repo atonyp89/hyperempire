@@ -51,7 +51,7 @@ export function App() {
   return (
     <div className="app">
       <Header auraEarned={address ? auraEarned : null} referral={referral} onOpen={open} day={day} />
-      <EmpireScene onOpen={open} phase={day.phase} />
+      <EmpireScene onOpen={open} phase={day.phase} heroActive={screen === null} />
 
       <TownhallModal open={screen === 'townhall'} onClose={close} townhall={townhall} />
 
