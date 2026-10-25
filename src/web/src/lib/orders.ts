@@ -12,6 +12,8 @@ export type OrderInput = {
   market: Market;
   isBuy: boolean;
   kind: 'market' | 'limit';
+  /** Time in force for a limit order: good till cancel, immediate or cancel, or add liquidity only (post-only). */
+  tif?: 'Gtc' | 'Ioc' | 'Alo';
   /** Size in coin units. */
   size: number;
   limitPx?: number;
@@ -66,7 +68,7 @@ export async function placeOrder(trader: ExchangeClient, o: OrderInput): Promise
       p: formatPrice(px, m.szDecimals),
       s: size,
       r: o.reduceOnly,
-      t: { limit: { tif: o.kind === 'market' ? 'FrontendMarket' : 'Gtc' } },
+      t: { limit: { tif: o.kind === 'market' ? 'FrontendMarket' : (o.tif ?? 'Gtc') } },
     },
   ];
   if (o.takeProfit) orders.push(triggerOrder(m, !o.isBuy, size, o.takeProfit, 'tp'));
@@ -104,6 +106,7 @@ export async function cancelOrder(trader: ExchangeClient, asset: number, oid: nu
   await trader.cancel({ cancels: [{ a: asset, o: oid }] });
 }
 
+/** Set the leverage and margin mode (cross or isolated) used for this asset's positions. */
 export async function setLeverage(trader: ExchangeClient, asset: number, leverage: number, isCross: boolean): Promise<void> {
   await trader.updateLeverage({ asset, isCross, leverage });
 }

@@ -45,3 +45,30 @@ export function useActiveAsset(user: Address | undefined, coin: string | undefin
     queryFn: () => info.activeAssetData({ user: user!, coin: coin! }),
   });
 }
+
+/** The account's own fee rates (taker = cross, maker = add), as fractions. */
+export function useUserFees(user: Address | undefined) {
+  return useQuery({
+    queryKey: ['userFees', user],
+    enabled: !!user,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const f = await info.userFees({ user: user! });
+      return { taker: Number(f.userCrossRate), maker: Number(f.userAddRate) };
+    },
+  });
+}
+
+/** Top of the order book, for the market-order slippage estimate. */
+export function useBook(coin: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ['l2Book', coin],
+    enabled: enabled && !!coin,
+    refetchInterval: 2_000,
+    queryFn: async () => {
+      const book = await info.l2Book({ coin: coin! });
+      const side = (levels: { px: string; sz: string }[]) => levels.map((l) => ({ px: Number(l.px), sz: Number(l.sz) }));
+      return { bids: side(book?.levels[0] ?? []), asks: side(book?.levels[1] ?? []) };
+    },
+  });
+}

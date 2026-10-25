@@ -24,6 +24,13 @@ Copy `.env.example` to `.env.local` and set `VITE_BUILDER_ADDRESS`. Until it is 
 - **Time of day** (`hooks/useDayPhase.ts`, `components/TimeOfDay.tsx`): follows the player's local clock. Morning (05:00–11:59) adds a soft-light golden grade (keeps pixel contrast), a sun glow, slow diagonal sunbeams, drifting motes, and warm sun glints twinkling on both pools; evening (12:00–18:59) is the scene as painted; night (19:00–04:59) tints the town dark blue and turns on `public/empire/night-lights.png` (lit windows, doorways, clock, lanterns), flickering lamp glows, fireflies, moonlight from the top-right and a silver moonpath of glints on the pools. The header chip shows the phase; clicking it cycles Auto → Morning → Evening → Night to preview (saved in the browser).
 - **Townhall modal** (`/#townhall`): level, $aura progress, risky upgrade (pay 10–100% of the cost for that chance), the three-branch perk tree (Trader live; Fighter and Crafter bank points for Phases 2–3), respec and building caps. Rules live in `src/lib/empire.ts`. Until the Townhall contract ships, progress is saved in the browser per wallet (`useTownhall`), and the $aura balance is 5,000 starter + estimated $aura from fills − Townhall spending. Perk icons in `public/empire/icons/` were generated with PixelLab (Pixflux, scene palette).
 - **Exchange modal** (`/#exchange`, also the header's EXCHANGE link): the trading UI. `#exchange` deep-links straight in for players who only trade; Escape or ✕ closes it.
+- **Order form** (`components/OrderPanel.tsx`, math in `lib/orderMath.ts`): laid out like Hyperliquid's (without its Pro order types).
+  - **Margin mode and leverage:** CROSS / ISOLATED and leverage buttons open small dialogs that apply the change on Hyperliquid right away (`updateLeverage`).
+  - **Order:** Market or Limit (with a MID button and GTC / IOC / ALO time in force), and Buy / Long or Sell / Short.
+  - **Size:** in USD or coin, with a 0–100% slider of the max trade size.
+  - **Options:** reduce only, and TP/SL set by price or by gain/loss on margin, the two kept in sync.
+  - **Summary:** estimated liquidation price, order value, margin required, slippage (estimated from the live book, against the 3% max), the account's own taker and maker fees plus the builder fee, and the $aura earned.
+  - **Dev preview:** on the dev server, `/?order-preview#exchange` shows the form without a wallet (zero-address account, nothing can be sent).
 
 The theme in `src/styles.css` uses colours sampled from the Empire scene (slate, wood, parchment, gold, teal, grass, roof red), so the modal matches the town.
 
