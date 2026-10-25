@@ -1,0 +1,8 @@
+.DS_Store
+node_modules/
+dist/
+
+# Local env files carry real config (builder address, network)
+.env
+.env.local
+.env.*.local

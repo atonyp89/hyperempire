@@ -1,0 +1,109 @@
+// Order actions. Every order carries the HyperHero builder code, which is what earns $aura.
+
+import type { ExchangeClient } from '@nktkas/hyperliquid';
+import type { OrderParameters } from '@nktkas/hyperliquid/api/exchange';
+import { BUILDER_ADDRESS, BUILDER_FEE_TENTHS_BPS, MARKET_SLIPPAGE, TRIGGER_SLIPPAGE } from '../config';
+import type { Market } from '../hooks/useMarkets';
+import { fmtNum, formatPrice, formatSize } from './format';
+
+type OrderSpec = OrderParameters['orders'][number];
+
+export type OrderInput = {
+  market: Market;
+  isBuy: boolean;
+  kind: 'market' | 'limit';
+  /** Size in coin units. */
+  size: number;
+  limitPx?: number;
+  reduceOnly: boolean;
+  takeProfit?: number;
+  stopLoss?: number;
+};
+
+function builder() {
+  if (!BUILDER_ADDRESS) throw new Error('Builder address is not configured (VITE_BUILDER_ADDRESS).');
+  return { b: BUILDER_ADDRESS, f: BUILDER_FEE_TENTHS_BPS };
+}
+
+/** Price for an aggressive order that crosses the book by MARKET_SLIPPAGE. */
+const marketPx = (m: Market, isBuy: boolean) => m.midPx * (isBuy ? 1 + MARKET_SLIPPAGE : 1 - MARKET_SLIPPAGE);
+
+function triggerOrder(m: Market, closeIsBuy: boolean, size: string, triggerPx: number, tpsl: 'tp' | 'sl'): OrderSpec {
+  const limit = triggerPx * (closeIsBuy ? 1 + TRIGGER_SLIPPAGE : 1 - TRIGGER_SLIPPAGE);
+  return {
+    a: m.asset,
+    b: closeIsBuy,
+    p: formatPrice(limit, m.szDecimals),
+    s: size,
+    r: true,
+    t: { trigger: { isMarket: true, triggerPx: formatPrice(triggerPx, m.szDecimals), tpsl } },
+  };
+}
+
+/** Human summary of the order statuses Hyperliquid returns. */
+function describe(statuses: Awaited<ReturnType<ExchangeClient['order']>>['response']['data']['statuses']): string {
+  return statuses
+    .map((s) => {
+      if (typeof s === 'string') return s === 'waitingForTrigger' ? 'TP/SL set' : 'Waiting for fill';
+      if ('filled' in s) return `Filled ${s.filled.totalSz} @ ${fmtNum(Number(s.filled.avgPx), 6)}`;
+      // The SDK throws on error statuses, so only success shapes reach here.
+      return `Order placed (#${s.resting.oid})`;
+    })
+    .join(' · ');
+}
+
+export async function placeOrder(trader: ExchangeClient, o: OrderInput): Promise<string> {
+  const m = o.market;
+  const size = formatSize(o.size, m.szDecimals);
+  if (Number(size) <= 0) throw new Error(`Size rounds to 0 at ${m.szDecimals} decimals.`);
+  const px = o.kind === 'market' ? marketPx(m, o.isBuy) : o.limitPx ?? 0;
+  if (px <= 0) throw new Error('Enter a price.');
+
+  const orders: OrderSpec[] = [
+    {
+      a: m.asset,
+      b: o.isBuy,
+      p: formatPrice(px, m.szDecimals),
+      s: size,
+      r: o.reduceOnly,
+      t: { limit: { tif: o.kind === 'market' ? 'FrontendMarket' : 'Gtc' } },
+    },
+  ];
+  if (o.takeProfit) orders.push(triggerOrder(m, !o.isBuy, size, o.takeProfit, 'tp'));
+  if (o.stopLoss) orders.push(triggerOrder(m, !o.isBuy, size, o.stopLoss, 'sl'));
+
+  const res = await trader.order({
+    orders,
+    grouping: orders.length > 1 ? 'normalTpsl' : 'na',
+    builder: builder(),
+  });
+  return describe(res.response.data.statuses);
+}
+
+/** Close a position with a reduce-only market order. `szi` is the signed position size. */
+export async function closePosition(trader: ExchangeClient, m: Market, szi: number): Promise<string> {
+  const isBuy = szi < 0;
+  const res = await trader.order({
+    orders: [
+      {
+        a: m.asset,
+        b: isBuy,
+        p: formatPrice(marketPx(m, isBuy), m.szDecimals),
+        s: formatSize(Math.abs(szi), m.szDecimals),
+        r: true,
+        t: { limit: { tif: 'FrontendMarket' } },
+      },
+    ],
+    grouping: 'na',
+    builder: builder(),
+  });
+  return describe(res.response.data.statuses);
+}
+
+export async function cancelOrder(trader: ExchangeClient, asset: number, oid: number): Promise<void> {
+  await trader.cancel({ cancels: [{ a: asset, o: oid }] });
+}
+
+export async function setLeverage(trader: ExchangeClient, asset: number, leverage: number, isCross: boolean): Promise<void> {
+  await trader.updateLeverage({ asset, isCross, leverage });
+}
