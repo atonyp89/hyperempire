@@ -1,4 +1,5 @@
-// Time-of-day layers over the Empire scene: a morning grade with sunbeams and motes, a night tint with lit windows,
+// Time-of-day layers over the Empire scene: a morning grade with sunbeams, motes and sun glints on the pools,
+// a night tint with a moonpath on the pools, moonlight, lit windows,
 // lamp and doorway glows, and fireflies. All layers stay mounted and fade with opacity, so
 // switching phase is a smooth transition.
 
@@ -25,6 +26,38 @@ const GLOWS: { x: number; y: number; r: number; kind: 'lamp' | 'door' | 'window'
   { x: 57, y: 72, r: 9, kind: 'window' },
   { x: 156, y: 57, r: 7, kind: 'window' },
 ];
+
+/** Pool water boxes in native scene pixels (x0, y0, x1, y1); glints are clipped to them. */
+const POOLS = [
+  { x0: 101, y0: 108, x1: 135, y1: 153 },
+  { x0: 181, y0: 108, x1: 215, y1: 153 },
+];
+/**
+ * Light on the pool water. Top-down, water shows glints, not a mirrored disc: short streaks that
+ * twinkle on the ripples. Morning: warm glints scattered, denser toward the sun (top-left).
+ * Night: fewer silver glints in a broken vertical moonpath. Deterministic so every load matches.
+ */
+type Glint = { x: number; y: number; w: number; d: number };
+function glints(seed: number, count: number, place: (r: () => number) => { x: number; y: number }): Glint[] {
+  let t = seed;
+  const r = () => ((t = (t * 9301 + 49297) % 233280) / 233280);
+  return Array.from({ length: count }, () => ({ ...place(r), w: 2 + Math.floor(r() * 4), d: -r() * 3 }));
+}
+const POOL_W = 34;
+const POOL_H = 45;
+const SUN_GLINTS = POOLS.map((_, i) =>
+  glints(11 + i * 7, 11, (r) => ({ x: Math.floor(Math.pow(r(), 1.6) * (POOL_W - 6)) + 1, y: Math.floor(Math.pow(r(), 1.3) * (POOL_H - 16)) + 8 })),
+);
+const MOON_GLINTS = POOLS.map((_, i) =>
+  glints(5 + i * 13, 7, (r) => ({ x: 17 + Math.floor((r() - 0.5) * 8) + i * 3, y: 10 + Math.floor(r() * (POOL_H - 22)) })),
+);
+
+const box = (x: number, y: number, w: number, h: number, inW: number, inH: number): CSSProperties => ({
+  left: `${(x / inW) * 100}%`,
+  top: `${(y / inH) * 100}%`,
+  width: `${(w / inW) * 100}%`,
+  height: `${(h / inH) * 100}%`,
+});
 
 /** Dust motes drifting through the morning sunbeams. */
 const MOTES = [
@@ -60,6 +93,21 @@ export function TimeOfDay({ phase }: { phase: Phase }) {
       {GLOWS.map((g, i) => (
         <span key={i} className={`tod-glow ${g.kind}`} style={at(g.x, g.y, g.r)} />
       ))}
+      <div className="tod-moonlight" />
+      {POOLS.map((p, i) => {
+        const pw = p.x1 - p.x0;
+        const ph = p.y1 - p.y0;
+        return (
+          <div key={`pool${i}`} className="pool-sky" style={box(p.x0, p.y0, pw, ph, SCENE_W, SCENE_H)}>
+            {SUN_GLINTS[i].map((g, j) => (
+              <span key={`s${j}`} className="glint sun" style={{ ...box(g.x, g.y, g.w, 1, pw, ph), animationDelay: `${g.d}s` }} />
+            ))}
+            {MOON_GLINTS[i].map((g, j) => (
+              <span key={`m${j}`} className="glint moon" style={{ ...box(g.x, g.y, g.w + 1, 1, pw, ph), animationDelay: `${g.d}s` }} />
+            ))}
+          </div>
+        );
+      })}
       {FIREFLIES.map((f, i) => (
         <span key={`f${i}`} className="firefly" style={{ ...at(f.x, f.y, 0.6), animationDelay: `${f.d}s` }} />
       ))}

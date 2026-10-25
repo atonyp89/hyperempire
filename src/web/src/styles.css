@@ -122,6 +122,17 @@ code { font-family: var(--mono); color: var(--gold); }
   mask-image: linear-gradient(150deg, #000 0%, rgba(0, 0, 0, 0.55) 35%, transparent 65%); }
 .tod-sun { left: -6%; top: -14%; width: 26%; height: 46%; border-radius: 50%; mix-blend-mode: screen; background: radial-gradient(circle, rgba(255, 244, 210, 0.5), rgba(255, 226, 160, 0.18) 40%, rgba(255, 226, 160, 0) 70%); }
 .mote { border-radius: 50%; background: #fff3c8; box-shadow: 0 0 4px 1px rgba(255, 236, 180, 0.7); }
+/* Glints on the pool water (sun in the morning, a moonpath at night), plus moonlight from the top-right. */
+.tod > .pool-sky { overflow: hidden; opacity: 1; }
+.pool-sky > * { position: absolute; opacity: 0; transition: opacity 1.4s ease; }
+.glint.sun { background: #fff4d2; box-shadow: 0 0 2px rgba(255, 236, 180, 0.8); }
+.glint.moon { background: #d6e4ff; box-shadow: 0 0 2px rgba(200, 218, 255, 0.7); }
+.tod-moonlight { right: -8%; top: -16%; width: 34%; height: 56%; border-radius: 50%; mix-blend-mode: screen; background: radial-gradient(circle, rgba(196, 214, 255, 0.32), rgba(160, 184, 240, 0.12) 40%, rgba(160, 184, 240, 0) 70%); }
+.tod-morning .glint.sun { animation: glint 2.2s steps(4) infinite; }
+.tod-night .glint.moon { animation: glint-moon 3.4s steps(4) infinite; }
+.tod-night .tod-moonlight { opacity: 1; }
+@keyframes glint { 0%, 55%, 100% { opacity: 0; } 65% { opacity: 0.95; } 80% { opacity: 0.5; } }
+@keyframes glint-moon { 0%, 40%, 100% { opacity: 0.15; } 55% { opacity: 0.85; } 75% { opacity: 0.45; } }
 .tod-wash-night { inset: 0; background: radial-gradient(140% 120% at 50% 45%, #46579a, #283463); mix-blend-mode: multiply; }
 .tod-lights { inset: 0; width: 100%; height: 100%; image-rendering: pixelated; filter: drop-shadow(0 0 3px rgba(255, 214, 107, 0.9)); }
 .tod-glow { border-radius: 50%; mix-blend-mode: screen; background: radial-gradient(circle, rgba(255, 214, 120, 0.6) 0%, rgba(255, 186, 90, 0.24) 38%, rgba(255, 186, 90, 0) 70%); }
@@ -157,7 +168,8 @@ code { font-family: var(--mono); color: var(--gold); }
 .time-chip { cursor: pointer; font-family: var(--pixel); font-size: 11px; letter-spacing: 1px; color: var(--text); }
 @media (prefers-reduced-motion: reduce) {
   .tod > * { transition: none; }
-  .tod-night .tod-glow.lamp, .tod-night .firefly, .tod-morning .tod-rays, .tod-morning .mote { animation: none; }
+  .tod-night .tod-glow.lamp, .tod-night .firefly, .tod-morning .tod-rays, .tod-morning .mote, .glint { animation: none !important; }
+  .pool-sky > * { transition: none; }
 }
 
 /* ---------------------------------------------------------- Exchange modal */
