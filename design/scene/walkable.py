@@ -18,7 +18,7 @@ sys.path.insert(0, '../sprites')
 from sheet import read_rgba, write_png  # noqa: E402
 
 ROAD = {(0xa6, 0x93, 0x6d), (0x93, 0x94, 0x8a)}
-START = (156, 100)  # the hero's start on the plaza (components/Hero.tsx)
+START = (156, 100)  # the hero's start on the plaza (src/web/src/game/scene/Hero.tsx)
 HOLE = 40
 # Never walkable: the two statue pools with their stone rims and fences (x0, y0, x1, y1, inclusive).
 BLOCK = [(96, 96, 140, 157), (176, 96, 220, 157)]

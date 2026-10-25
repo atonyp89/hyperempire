@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { BUILDER_FEE_RATE } from '../config';
+import { BUILDER_FEE_RATE } from '../../trading';
 import { BRANCHES, BUILDING_CAPS, FEE_DISCOUNT_CAP, PERKS, TIER_POINTS, branchSpent } from '../lib/empire';
-import { fmtAura } from '../lib/format';
+import { fmtAura } from '../../shared/format';
 import type { UpgradeResult, useTownhall } from '../hooks/useTownhall';
-import { BuildingModal } from './BuildingModal';
+import { BuildingModal } from '../../shared/ui/BuildingModal';
 
 type Townhall = ReturnType<typeof useTownhall>;
 type Props = { open: boolean; onClose: () => void; townhall: Townhall };

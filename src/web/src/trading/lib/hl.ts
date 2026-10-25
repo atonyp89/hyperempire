@@ -2,7 +2,7 @@
 
 import { ExchangeClient, HttpTransport, InfoClient } from '@nktkas/hyperliquid';
 import type { AbstractWallet } from '@nktkas/hyperliquid/signing';
-import { IS_TESTNET } from '../config';
+import { IS_TESTNET } from '../../shared/network';
 
 export const transport = new HttpTransport({ isTestnet: IS_TESTNET });
 export const info = new InfoClient({ transport });

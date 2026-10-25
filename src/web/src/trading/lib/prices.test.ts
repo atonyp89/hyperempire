@@ -1,5 +1,6 @@
 import { expect, test } from 'bun:test';
-import { auraForNotional, formatPrice, formatSize } from './format';
+import { formatPrice, formatSize } from './prices';
+import { auraForNotional } from './rewards';
 
 test('prices follow Hyperliquid perp rules: 5 significant figures, at most 6 - szDecimals decimals', () => {
   expect(formatPrice(81179 * 1.03, 5)).toBe('83614');

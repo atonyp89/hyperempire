@@ -3,7 +3,7 @@
 ## Art direction
 
 - **Empire (current):** muted, earthy top-down RPG town: olive grass, dirt roads, big outlined red and slate roofs, stone plaza with statue pools, dark trees. The main scene is `scene/townhall-pixellab.png`, generated with PixelLab (Create Image Pro, style reference). Icons use Pixflux with the scene as a forced palette.
-- **UI (current):** colours sampled from the scene: slate-navy panels with ink outlines and a bevel, wood title bars, parchment text, gold actions, teal selection (see `src/web/src/styles.css`).
+- **UI (current):** colours sampled from the scene: slate-navy panels with ink outlines and a bevel, wood title bars, parchment text, gold actions, teal selection (see `src/web/src/shared/styles/base.css`).
 - **Earlier HyperHero explorations (kept for reference):** a chibi 32×32 knight and a dark-navy hero screen, below.
 - **References (style only, not to copy):**
   - Top-down RPG town tileset image shared on Oct 25: the style the Empire scene follows

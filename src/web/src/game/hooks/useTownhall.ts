@@ -1,18 +1,9 @@
 // Townhall state. Saved in this browser (per wallet) until the Townhall contract ships.
 
 import { useCallback, useEffect, useState } from 'react';
-import { NETWORK } from '../config';
-import { readMigrating } from '../lib/storage';
-import {
-  branchSpent,
-  levelCost,
-  perkPoints,
-  PERKS,
-  respecCost,
-  STARTER_AURA,
-  TIER_POINTS,
-  totalSpent,
-} from '../lib/empire';
+import { NETWORK } from '../../shared/network';
+import { readMigrating } from '../../shared/storage';
+import { branchSpent, levelCost, perkPoints, PERKS, respecCost, STARTER_AURA, TIER_POINTS, totalSpent } from '../lib/empire';
 
 type Saved = { level: number; auraSpent: number; ranks: Record<string, number>; respecs: number };
 const FRESH: Saved = { level: 1, auraSpent: 0, ranks: {}, respecs: 0 };

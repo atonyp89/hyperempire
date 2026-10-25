@@ -4,7 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Market } from '../hooks/useMarkets';
 import { useClearinghouse, useFills, useOpenOrders } from '../hooks/useTraderData';
 import { errorMessage } from '../lib/hl';
-import { fmtAura, fmtNum, fmtPct, fmtPx, fmtUsd } from '../lib/format';
+import { fmtAura, fmtNum, fmtPct, fmtPx, fmtUsd } from '../../shared/format';
 import { cancelOrder, closePosition } from '../lib/orders';
 
 type Fill = NonNullable<ReturnType<typeof useFills>['data']>[number];

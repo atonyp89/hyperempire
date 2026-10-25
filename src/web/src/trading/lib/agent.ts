@@ -6,8 +6,8 @@
 
 import type { Hex } from 'viem';
 import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
-import { NETWORK } from '../config';
-import { readMigrating } from './storage';
+import { NETWORK } from '../../shared/network';
+import { readMigrating } from '../../shared/storage';
 
 const storageKey = (user: string) => `hyperempire.agent.${NETWORK}.${user.toLowerCase()}`;
 const oldKey = (user: string) => `hyperhero.agent.${NETWORK}.${user.toLowerCase()}`;

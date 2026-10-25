@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { info } from '../lib/hl';
-import { auraForFee } from '../lib/format';
+import { auraForFee } from '../lib/rewards';
 
 type Address = `0x${string}`;
 

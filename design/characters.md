@@ -2,7 +2,7 @@
 
 How knight #5, the walking hero, was made, written so the next hero, NPC or guard can follow the same path. It takes about 35 PixelLab generations and an hour or two.
 
-The result is a 32×32 sprite in the scene's own style. It has an idle and a walk in 8 directions, packed into two sheets that `src/web/src/components/Hero.tsx` plays.
+The result is a 32×32 sprite in the scene's own style. It has an idle and a walk in 8 directions, packed into two sheets that `src/web/src/game/scene/Hero.tsx` plays.
 
 ```mermaid
 flowchart LR
@@ -110,7 +110,7 @@ Every direction is shifted so its feet are on row 27 and its body centred on col
 
 For a new hero:
 
-1. **Sheets:** point the two `url(...)` paths in the hero block of `src/web/src/styles.css` at the new `idle.png` and `walk.png`.
+1. **Sheets:** point the two `url(...)` paths in the hero block of `src/web/src/game/game.css` at the new `idle.png` and `walk.png`.
 2. **Constants in `Hero.tsx`:** check these.
 
    | Constant | knight #5 | What it is |
@@ -154,5 +154,5 @@ For a new hero:
 | `design/sprites/sheet.py` | PNG reading and writing, and packing frames side by side |
 | `design/scene/walkable.py` | Builds the road mask |
 | `src/web/public/empire/heroes/knight5/` | Knight #5: `concept-5.png`, `rotations/`, `idle-south/`, `walk/`, `idle.png`, `walk.png`, `raw/` (rejected PixelLab output) |
-| `src/web/src/components/Hero.tsx` | Movement, collision and drawing |
+| `src/web/src/game/scene/Hero.tsx` | Movement, collision and drawing |
 | PixelLab character | https://www.pixellab.ai/create-character/ff6ea1c1-ccf7-4fb0-967c-35ccf7e45e30 |

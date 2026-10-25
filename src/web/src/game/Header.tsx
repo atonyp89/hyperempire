@@ -1,7 +1,7 @@
 import { useConnect, useConnection, useConnectors, useDisconnect } from 'wagmi';
-import { NETWORK, switchNetwork, type Network } from '../config';
-import { fmtAura, shortAddr } from '../lib/format';
-import type { useDayPhase } from '../hooks/useDayPhase';
+import { NETWORK, switchNetwork, type Network } from '../shared/network';
+import { fmtAura, shortAddr } from '../shared/format';
+import type { useDayPhase } from './hooks/useDayPhase';
 
 type Props = { auraEarned: number | null; referral: string | null; onOpen: (id: 'exchange' | 'townhall') => void; day: ReturnType<typeof useDayPhase> };
 

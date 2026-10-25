@@ -13,7 +13,7 @@ when it turns, starts or stops. PixelLab draws the side views a pixel higher tha
 The idle (for south too unless idle-south/ exists) is the rotation sprite, then everything above the legs
 (the bottom 3 rows) 1px lower: 2 frames each. Where the walk comes out taller than the standing pose
 (the side views: the skeleton straightens the legs), its body is lowered to the standing height.
-Row order matches DIRS in src/web/src/components/Hero.tsx.
+Row order matches DIRS in src/web/src/game/scene/Hero.tsx.
 """
 
 import os

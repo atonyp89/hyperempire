@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { Market } from '../hooks/useMarkets';
-import { fmtPct, fmtPx } from '../lib/format';
+import { fmtPct, fmtPx } from '../../shared/format';
 
 type Props = { markets: Market[]; loading: boolean; selected?: string; onSelect: (coin: string) => void; autoFocus?: boolean };
 

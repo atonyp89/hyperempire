@@ -4,7 +4,7 @@
 import { useState } from 'react';
 import type { Market } from '../hooks/useMarkets';
 import { useBook } from '../hooks/useTraderData';
-import { fmtNum, fmtPx } from '../lib/format';
+import { fmtNum, fmtPx } from '../../shared/format';
 
 /** Levels shown on each side. */
 const DEPTH = 12;

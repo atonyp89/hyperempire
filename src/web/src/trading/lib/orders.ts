@@ -4,7 +4,8 @@ import type { ExchangeClient } from '@nktkas/hyperliquid';
 import type { OrderParameters } from '@nktkas/hyperliquid/api/exchange';
 import { BUILDER_ADDRESS, BUILDER_FEE_TENTHS_BPS, MARKET_SLIPPAGE, TRIGGER_SLIPPAGE } from '../config';
 import type { Market } from '../hooks/useMarkets';
-import { fmtNum, formatPrice, formatSize } from './format';
+import { fmtNum } from '../../shared/format';
+import { formatPrice, formatSize } from './prices';
 
 type OrderSpec = OrderParameters['orders'][number];
 

@@ -5,7 +5,9 @@ import type { Market } from '../hooks/useMarkets';
 import type { useOnboarding } from '../hooks/useOnboarding';
 import { useActiveAsset, useBook, useClearinghouse, useUserFees } from '../hooks/useTraderData';
 import { errorMessage } from '../lib/hl';
-import { auraForNotional, fmtAura, fmtNum, fmtPx, fmtUsd, formatPrice, formatSize } from '../lib/format';
+import { auraForNotional } from '../lib/rewards';
+import { fmtAura, fmtNum, fmtPx, fmtUsd } from '../../shared/format';
+import { formatPrice, formatSize } from '../lib/prices';
 import { estLiquidationPx, estSlippage, priceForRoe, roeForPrice } from '../lib/orderMath';
 import { placeOrder, setLeverage } from '../lib/orders';
 

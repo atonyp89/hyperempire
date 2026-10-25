@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Market } from '../hooks/useMarkets';
 import { useCandles } from '../hooks/useMarkets';
-import { fmtPct, fmtPx, fmtUsd } from '../lib/format';
+import { fmtPct, fmtPx, fmtUsd } from '../../shared/format';
 import { MarketList } from './MarketList';
 
 type Props = { market: Market; markets: Market[]; loading: boolean; onSelect: (coin: string) => void };

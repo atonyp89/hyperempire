@@ -21,13 +21,13 @@ Copy `.env.example` to `.env.local` and set `VITE_BUILDER_ADDRESS`. Until it is 
 ## Screens
 
 - **Empire scene** (`/`): the town from `design/scene/townhall-pixellab.png` (copied to `public/empire/town.png`). Buildings are hotspots; the **Exchange** opens trading, the others show what's coming.
-- **Ambient life** (`components/Ambient.tsx`): three cut-out trees sway from the trunk, wind streaks drift across, and every 7–13 s a gust bends the trees harder and blows 6–10 pixel leaves over the town. The scene image is `public/empire/town-base.png` (the PixelLab town with those trees painted out). All motion stops under `prefers-reduced-motion`.
-- **Hero** (`components/Hero.tsx`): knight #5 starts on the plaza in front of the Townhall door. **WASD or the arrow keys** walk it around the town in 8 directions at 42 scene px/s, snapped to the scene's pixel grid, drawn at 0.8×. It can only walk on the roads: `public/empire/walkable.png` (from `design/scene/walkable.py`) marks the plaza, the path between the pools and the dirt roads, the feet (5px wide) must stay on it, and a blocked diagonal slides along the road edge. Keys are ignored while a building screen is open or a text field has focus. Sheets in `public/empire/heroes/knight5/` are 4 frames × 8 directions of 32×32: `walk.png` (PixelLab skeleton walk, 0.56s loop) and `idle.png` (head, torso and sword dip 1px, 1.6s loop), over an 8×2 pixel shadow (`heroes/shadow.png`). The hero sits above the hotspots so hover highlights never hide it, lets clicks through, and takes a per-phase filter in place of the time-of-day washes.
-- **Time of day** (`hooks/useDayPhase.ts`, `components/TimeOfDay.tsx`): follows the player's local clock. Morning (05:00–11:59) adds a soft-light golden grade (keeps pixel contrast), a sun glow, slow diagonal sunbeams, drifting motes, and warm sun glints twinkling on both pools; evening (12:00–18:59) is the scene as painted; night (19:00–04:59) tints the town dark blue and turns on `public/empire/night-lights.png` (lit windows, doorways, clock, lanterns), flickering lamp glows, fireflies, moonlight from the top-right and a silver moonpath of glints on the pools. The header chip shows the phase; clicking it cycles Auto → Morning → Evening → Night to preview (saved in the browser).
-- **Townhall modal** (`/#townhall`): level, $aura progress, risky upgrade (pay 10–100% of the cost for that chance), the three-branch perk tree (Trader live; Fighter and Crafter bank points for Phases 2–3), respec and building caps. Rules live in `src/lib/empire.ts`. Until the Townhall contract ships, progress is saved in the browser per wallet (`useTownhall`), and the $aura balance is 5,000 starter + estimated $aura from fills − Townhall spending. Perk icons in `public/empire/icons/` were generated with PixelLab (Pixflux, scene palette).
+- **Ambient life** (`game/scene/Ambient.tsx`): three cut-out trees sway from the trunk, wind streaks drift across, and every 7–13 s a gust bends the trees harder and blows 6–10 pixel leaves over the town. The scene image is `public/empire/town-base.png` (the PixelLab town with those trees painted out). All motion stops under `prefers-reduced-motion`.
+- **Hero** (`game/scene/Hero.tsx`): knight #5 starts on the plaza in front of the Townhall door. **WASD or the arrow keys** walk it around the town in 8 directions at 42 scene px/s, snapped to the scene's pixel grid, drawn at 0.8×. It can only walk on the roads: `public/empire/walkable.png` (from `design/scene/walkable.py`) marks the plaza, the path between the pools and the dirt roads, the feet (5px wide) must stay on it, and a blocked diagonal slides along the road edge. Keys are ignored while a building screen is open or a text field has focus. Sheets in `public/empire/heroes/knight5/` are 4 frames × 8 directions of 32×32: `walk.png` (PixelLab skeleton walk, 0.56s loop) and `idle.png` (head, torso and sword dip 1px, 1.6s loop), over an 8×2 pixel shadow (`heroes/shadow.png`). The hero sits above the hotspots so hover highlights never hide it, lets clicks through, and takes a per-phase filter in place of the time-of-day washes.
+- **Time of day** (`game/hooks/useDayPhase.ts`, `game/scene/TimeOfDay.tsx`): follows the player's local clock. Morning (05:00–11:59) adds a soft-light golden grade (keeps pixel contrast), a sun glow, slow diagonal sunbeams, drifting motes, and warm sun glints twinkling on both pools; evening (12:00–18:59) is the scene as painted; night (19:00–04:59) tints the town dark blue and turns on `public/empire/night-lights.png` (lit windows, doorways, clock, lanterns), flickering lamp glows, fireflies, moonlight from the top-right and a silver moonpath of glints on the pools. The header chip shows the phase; clicking it cycles Auto → Morning → Evening → Night to preview (saved in the browser).
+- **Townhall modal** (`/#townhall`): level, $aura progress, risky upgrade (pay 10–100% of the cost for that chance), the three-branch perk tree (Trader live; Fighter and Crafter bank points for Phases 2–3), respec and building caps. Rules live in `src/game/lib/empire.ts`. Until the Townhall contract ships, progress is saved in the browser per wallet (`useTownhall`), and the $aura balance is 5,000 starter + estimated $aura from fills − Townhall spending. Perk icons in `public/empire/icons/` were generated with PixelLab (Pixflux, scene palette).
 - **Exchange modal** (`/#exchange`, also the header's EXCHANGE link): the trading UI, nearly full screen (up to 1800×980), in three columns. On the left are the market header and account tabs; the market name is a dropdown with search, and Enter picks the first match. In the middle is the **order book**, and on the right the order form. `#exchange` deep-links straight in for players who only trade; Escape or ✕ closes it.
-- **Order book** (`components/OrderBook.tsx`): 12 asks above the spread and 12 bids below, with price, size and cumulative total in coin or USD over depth bars. It polls `l2Book` every second. Clicking a row switches the order form to Limit at that price.
-- **Order form** (`components/OrderPanel.tsx`, math in `lib/orderMath.ts`): laid out like Hyperliquid's (without its Pro order types).
+- **Order book** (`trading/components/OrderBook.tsx`): 12 asks above the spread and 12 bids below, with price, size and cumulative total in coin or USD over depth bars. It polls `l2Book` every second. Clicking a row switches the order form to Limit at that price.
+- **Order form** (`trading/components/OrderPanel.tsx`, math in `trading/lib/orderMath.ts`): laid out like Hyperliquid's (without its Pro order types).
   - **Margin mode and leverage:** CROSS / ISOLATED and leverage buttons open small dialogs that apply the change on Hyperliquid right away (`updateLeverage`).
   - **Order:** Market or Limit (with a MID button and GTC / IOC / ALO time in force), and Buy / Long or Sell / Short.
   - **Size:** in USD or coin, with a 0–100% slider of the max trade size.
@@ -35,7 +35,7 @@ Copy `.env.example` to `.env.local` and set `VITE_BUILDER_ADDRESS`. Until it is 
   - **Summary:** estimated liquidation price, order value, margin required, slippage (estimated from the live book, against the 3% max), the account's own taker and maker fees plus the builder fee, and the $aura earned.
   - **Dev preview:** on the dev server, `/?order-preview#exchange` shows the form without a wallet (zero-address account, nothing can be sent).
 
-The theme in `src/styles.css` uses colours sampled from the Empire scene (slate, wood, parchment, gold, teal, grass, roof red), so the modal matches the town.
+The theme in `src/shared/styles/base.css` uses colours sampled from the Empire scene (slate, wood, parchment, gold, teal, grass, roof red), so the modal matches the town.
 
 ## How trading works
 
@@ -48,16 +48,23 @@ Both approvals are signatures, not transactions, so they cost no gas. The accoun
 
 ## What's here
 
+The code is split into `src/trading/` (Hyperliquid trading) and `src/game/` (game and general UI), plus a small `src/shared/`. A test keeps trading safe from game changes. [src/README.md](src/README.md) has the rules.
+
 | Path | What |
 | --- | --- |
-| `src/config.ts` | Env config: network, builder address and fee, $aura rate, slippage |
-| `src/lib/hl.ts` | Hyperliquid `InfoClient` / `ExchangeClient` ([@nktkas/hyperliquid](https://www.npmjs.com/package/@nktkas/hyperliquid)) |
-| `src/lib/agent.ts` | Local trading agent key |
-| `src/lib/orders.ts` | Place (market/limit, TP/SL), close, cancel, leverage, all with the builder code |
-| `src/lib/format.ts` | Perp price/size rounding, $aura math, display formatting |
-| `src/lib/referral.ts` | Captures `?ref=CODE` for creator referrals |
-| `src/hooks/` | Markets, account data, onboarding (builder fee + agent) |
-| `src/components/` | Header, market header with the market dropdown + 24h chart, order book, order panel, positions / orders / fills |
+| `src/trading/index.ts` | Trading's public API: the only file outside `trading/` may import from it |
+| `src/trading/TradingTerminal.tsx` | The terminal: market header and account tabs, order book, order form, each behind its own error boundary |
+| `src/trading/config.ts` | Builder address and fee, $aura rate, slippage, agent name |
+| `src/trading/lib/hl.ts` | Hyperliquid `InfoClient` / `ExchangeClient` ([@nktkas/hyperliquid](https://www.npmjs.com/package/@nktkas/hyperliquid)) |
+| `src/trading/lib/agent.ts` | Local trading agent key |
+| `src/trading/lib/orders.ts` | Place (market/limit, TP/SL), close, cancel, leverage, all with the builder code |
+| `src/trading/lib/prices.ts`, `rewards.ts`, `orderMath.ts` | Perp price/size rounding, fee → $aura, TP/SL, liquidation and slippage estimates |
+| `src/trading/lib/referral.ts` | Captures `?ref=CODE` for creator referrals |
+| `src/trading/hooks/` | Markets, account data, order book, fees, onboarding (builder fee + agent) |
+| `src/trading/components/` | Market header with the dropdown and 24h chart, order book, order panel, positions / orders / fills |
+| `src/game/` | Header, scene (ambient life, time of day, hero), buildings (Townhall, Exchange frame), game rules and progress |
+| `src/shared/` | Network choice, storage, display formatting, wallet config, building modal, error boundary, base styles |
+| `src/architecture.test.ts` | Fails when an import or a stylesheet crosses the trading / game line |
 
 ## Known limits (next steps)
 
