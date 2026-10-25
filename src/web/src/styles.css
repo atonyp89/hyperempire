@@ -63,6 +63,14 @@ code { font-family: var(--mono); color: var(--gold); }
 .hotspot { position: absolute; padding: 0; border: 2px solid transparent; background: transparent; cursor: default; }
 .hotspot.ready { cursor: pointer; }
 .hotspot.ready:hover, .hotspot.ready:focus-visible { border-color: var(--gold); box-shadow: 0 0 0 2px var(--ink), inset 0 0 0 9999px rgba(252, 214, 107, 0.08); outline: none; }
+/* Buildings with a cut-out highlight their own shape instead of a box. */
+.hotspot.has-sprite { border: 0; }
+.hotspot.has-sprite.ready:hover, .hotspot.has-sprite.ready:focus-visible { border: 0; box-shadow: none; }
+.hl-sprite { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; opacity: 0; pointer-events: none; transition: opacity 120ms steps(2); }
+.hotspot.ready:hover .hl-sprite, .hotspot.ready:focus-visible .hl-sprite {
+  opacity: 1;
+  filter: brightness(1.18) drop-shadow(2px 0 0 var(--gold)) drop-shadow(-2px 0 0 var(--gold)) drop-shadow(0 2px 0 var(--gold)) drop-shadow(0 -2px 0 var(--gold)) drop-shadow(0 0 1px var(--ink));
+}
 .plate { position: absolute; left: 50%; bottom: -6px; transform: translate(-50%, 100%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 10px; white-space: nowrap; background: rgba(30, 40, 60, 0.92); border: 2px solid var(--ink); box-shadow: var(--bevel); pointer-events: none; }
 .plate-name { font-family: var(--pixel); font-size: 12px; letter-spacing: 1px; color: var(--text); }
 .plate-detail { font-family: var(--pixel); font-size: 9px; letter-spacing: 1px; color: var(--muted); }

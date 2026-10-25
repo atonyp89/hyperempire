@@ -18,6 +18,7 @@
 | `hero-screen/canvas.json` | Canvas index for all artboards |
 | `scene/empire_scene.py` | Generates the top-down town scene pixel art (320×180, scaled ×4; muted top-down RPG town style): `python3 empire_scene.py` |
 | `scene/empire-scene.png`, `scene/empire-scene-1x.png` | The hand-drawn generator's scene at 1280×720 and at native 320×180 |
+| `scene/cutout.py` | Cuts one building out of the scene as a transparent PNG for shape-following hover highlights: `python3 cutout.py townhall-pixellab-1x.png ../../src/web/public/empire/exchange.png 248 11 308 81` |
 | `scene/townhall-pixellab.png`, `scene/townhall-pixellab-1x.png` | **Current main scene**, generated with PixelLab (Create Image Pro, 320×180, style ref = the town reference), at 4× and native size |
 | `sprites/knight-front.txt` | Current knight sprite as a character grid (palette in `sprites/render.py`) |
 | `sprites/previews/knight-front.png` | Rendered preview of the current knight |
