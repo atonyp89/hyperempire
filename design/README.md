@@ -1,10 +1,13 @@
-# HyperHero — design
+# Degen Empire — design
 
 ## Art direction
 
-- **Hero:** chibi pixel-art knight, 32×32, oversized helm, thick dark outline, 3–4 tone shading per material, HyperHero teal (`#2EE6C5`) as the accent.
-- **UI:** dark navy panels with thin borders, small pixel caps (Silkscreen), gold for names and highlights, hero centered on a circular dais.
+- **Empire (current):** muted, earthy top-down RPG town: olive grass, dirt roads, big outlined red and slate roofs, stone plaza with statue pools, dark trees. The main scene is `scene/townhall-pixellab.png`, generated with PixelLab (Create Image Pro, style reference). Icons use Pixflux with the scene as a forced palette.
+- **UI (current):** colours sampled from the scene: slate-navy panels with ink outlines and a bevel, wood title bars, parchment text, gold actions, teal selection (see `src/web/src/styles.css`).
+- **Earlier HyperHero explorations (kept for reference):** a chibi 32×32 knight and a dark-navy hero screen, below.
 - **References (style only, not to copy):**
+  - Top-down RPG town tileset image shared on Oct 25: the style the Empire scene follows
+  - [Yield Fields](https://yieldfields.fun/): top-down island farm (an earlier scene exploration)
   - [Pixel art fantasy knight set (Shutterstock)](https://www.shutterstock.com/image-vector/pixel-art-fantasy-knight-warrior-character-2680707413): chibi proportions, shading ramps
   - [King Dies Rich (Steam)](https://store.steampowered.com/app/5377410/King_Dies_Rich/): hero/armory screen layout, palette, UI type
 

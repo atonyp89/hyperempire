@@ -1,17 +1,20 @@
-# HyperHero
+# Degen Empire
 
-Trade on Hyperliquid, grow a pixel-art hero. Every builder fee you pay through HyperHero earns $aura; $aura levels your hero, sends it on adventures and climbs the leaderboard. The hero is your trader identity card.
+Trade on Hyperliquid, grow a pixel-art empire. Every builder fee you pay through the Exchange earns $aura; $aura levels up your Townhall, earns perk points, unlocks new buildings and climbs the Season 0 leaderboard. Your empire is your trader identity card.
 
 ## Contents
 
 | Path | What |
 | --- | --- |
-| [docs/mvp-design.md](docs/mvp-design.md) | One-page MVP design: earning, leveling, adventure, leaderboard, Season 0 rules, architecture, open questions |
-| [docs/decisions.md](docs/decisions.md) | How the rules were decided: farming math, parked loss-bonus ideas, builder fee comparison |
-| [design/](design/README.md) | Art direction, hero screen mock, knight sprites and renderer |
-| [src/web/](src/web/README.md) | Phase 1 trading UI: Hyperliquid perps with the HyperHero builder code, $aura per fill |
+| [docs/mvp-design.md](docs/mvp-design.md) | Game design: player types, buildings (Townhall, Exchange, Tavern, Garden), $aura economy, perk tree, heroes, crafting, leaderboard, architecture, current status, open questions |
+| [docs/decisions.md](docs/decisions.md) | How the rules were decided, including the HyperHero → Degen Empire pivot, farming math and builder fee comparison |
+| [design/](design/README.md) | Art direction, the PixelLab Empire scene and cut-outs, mocks, sprites and their generators |
+| [src/web/](src/web/README.md) | The app: Empire scene, Exchange (Hyperliquid perps with our builder code) and Townhall screens |
 
-## Live links (private until shared)
+## Run the app
 
-- MVP design doc: https://claude.ai/artifact/ReM6MyrcRFf17qZtUxEwzU
-- Hero screen canvas: https://claude.ai/artifact/HLjGedth9eD96GUpHc2RAF
+```bash
+cd src/web && bun install && bun --bun run dev
+```
+
+Copy `src/web/.env.example` to `src/web/.env` and set the builder address first. See [src/web/README.md](src/web/README.md).

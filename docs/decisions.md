@@ -1,4 +1,4 @@
-# HyperHero — design decisions log
+# Degen Empire — design decisions log
 
 How the MVP rules in [mvp-design.md](mvp-design.md) were reached. As of Oct 23, 2026.
 
@@ -38,6 +38,19 @@ How the MVP rules in [mvp-design.md](mvp-design.md) were reached. As of Oct 23, 
 | Creator referral codes | In Phase 1: referrers earn a share of builder fees from traders they bring, paid in USDC (share TBD, 10–20%) | Growth lever with no streaming work; creators earn real money while $aura can't be cashed out |
 | Banked stat points | Levels in Phase 1 still grant points, spent once stat allocation ships | Early leveling carries over into Phase 2 |
 | Weekly Rising board | Not in Phase 1 | Keep Phase 1 to one Season 0 board ranked by level |
+| **Pivot: Degen Empire** (Oct 25) | The game grows an **empire** instead of a single hero; the repo moved to `hyperempire` | A bigger scope gives every player type more to do; empire builders are a familiar genre |
+| Buildings | Townhall (progression), Exchange (trading UI), Tavern (heroes, Phase 2), Garden (seeds, Phase 3) | One building per loop; the scene doubles as navigation |
+| Townhall leveling | Leveling, risky upgrades and the Season 0 leaderboard move from the hero to the Townhall | The Townhall is the empire's level and the main $aura sink |
+| Building caps | No building can be a higher level than the Townhall | Keeps the Townhall the first upgrade |
+| Perk tree | 1 point per Townhall level, spent like stat allocation across Trader / Fighter / Crafter branches; tiers open at 5 and 15 points in a branch; rising-cost respec | Players choose their own build; each branch serves one player type |
+| Fee discount (revised) | Exchange levels + Trader "Lower fees" perk, capped at −40% in total (replaces "every 10 hero levels −5%") | Traders get a discount from the buildings they use |
+| Exchange naming | The trading UI is the **Exchange** building, opened from the scene or `#exchange` | Instantly clear to traders |
+| Core trading never gated | Market/limit, TP/SL and all markets are available from Exchange level 1 | Gating core features loses traders to Phantom |
+| Heroes move to the Tavern | Tiered recruits (Common 50% … Mythic 0.2%) and rerolls apply to Tavern heroes in Phase 2; hero stats stay STR / AGI / VIT / INT / LUCK | Heroes become a building feature, not the whole game |
+| Content creators | Fourth player group; referral codes in Phase 1, live gifting later; six-question mechanic check adds "worth showing on stream?" | Creators bring players and give whales a stage |
+| Art direction | Muted top-down RPG town; the main scene is generated with PixelLab (Create Image Pro, style reference); icons with Pixflux in the scene palette | PixelLab output matched the reference far better than hand-drawn generators |
+| Building hover | Shape-following highlight from cut-out sprites (`design/scene/cutout.py`), not a box | Highlights read as the building itself |
+| Townhall state (temporary) | Level, perks and $aura spent kept in browser storage per wallet until the Townhall contract ships; perk fee discount is display-only | Lets the UI ship before contracts; display-only stops self-granted discounts |
 
 ## Farming math
 
