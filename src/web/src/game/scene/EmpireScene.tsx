@@ -45,9 +45,9 @@ const plateAt = (b: Building) =>
 
 const BUILDINGS: Building[] = [
   { id: 'townhall', name: 'TOWNHALL', detail: 'LEVEL UP · PERKS', about: "Your empire's heart. Spend $aura to level up, then put perk points into Trader, Fighter and Crafter.", box: fromCrop(106, 9, 100, 73), ready: true, sprite: '/empire/townhall.png' },
-  { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES · PHASE 2', about: 'Recruit heroes and send them on adventures. Opens in Phase 2.', box: fromCrop(1, 18, 71, 66), plate: { x: 44, y: 48 }, ready: false, sprite: '/empire/tavern.png' },
+  { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES', about: 'Recruit heroes and send them on adventures. Coming soon…', box: fromCrop(1, 18, 71, 66), plate: { x: 44, y: 48 }, ready: false, sprite: '/empire/tavern.png' },
   { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', about: 'Trade Hyperliquid perps. Every $1 of builder fee you pay earns 500 $aura.', box: fromCrop(248, 11, 60, 70), plate: { x: 278, y: 39 }, ready: true, sprite: '/empire/exchange.png' },
-  { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS · PHASE 3', about: 'Grow seeds into crafting materials. Opens in Phase 3.', box: { left: 0, top: 63, width: 24, height: 37 }, ready: false },
+  { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS', about: 'Grow seeds into crafting materials. Coming soon…', box: { left: 0, top: 63, width: 24, height: 37 }, ready: false },
 ];
 
 /** `heroActive`: WASD moves the hero (off while a building screen is open). */
