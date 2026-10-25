@@ -190,15 +190,15 @@ code { font-family: var(--mono); color: var(--gold); }
 }
 
 /* ---------------------------------------------------------- Exchange modal */
-.modal-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(2, 2, 2, 0.62); }
-.modal { width: min(1440px, 100%); height: min(900px, 100%); display: flex; flex-direction: column; background: var(--slate-900); border: 3px solid var(--ink); box-shadow: inset 0 0 0 3px var(--wood-600), inset 0 0 0 5px var(--ink), 6px 6px 0 rgba(2, 2, 2, 0.5); }
+.modal-backdrop { position: fixed; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; padding: 12px; background: rgba(2, 2, 2, 0.62); }
+.modal { width: min(1800px, 100%); height: min(980px, 100%); display: flex; flex-direction: column; background: var(--slate-900); border: 3px solid var(--ink); box-shadow: inset 0 0 0 3px var(--wood-600), inset 0 0 0 5px var(--ink), 6px 6px 0 rgba(2, 2, 2, 0.5); }
 .modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; margin: 5px 5px 0; background: var(--wood-800); border-bottom: 2px solid var(--ink); flex-wrap: wrap; }
 .modal-title { display: flex; flex-direction: column; gap: 2px; }
 .title-pixel { font-family: var(--pixel); font-size: 18px; letter-spacing: 2px; color: var(--gold); text-shadow: 2px 2px 0 var(--ink); }
 .modal-body { flex: 1; min-height: 0; overflow: auto; margin: 0 5px 5px; }
 
 /* ---------------------------------------------------------- Trading layout */
-.layout { min-height: 100%; display: grid; grid-template-columns: 240px minmax(0, 1fr) 340px; gap: 10px; padding: 10px; }
+.layout { min-height: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 300px 340px; gap: 10px; padding: 10px; }
 .center { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .panel { background: var(--slate-800); border: 2px solid var(--ink); box-shadow: var(--bevel); min-width: 0; }
 .panel.grow { flex: 1; min-height: 280px; }
@@ -227,8 +227,12 @@ code { font-family: var(--mono); color: var(--gold); }
 .btn.short { background: var(--roof); color: var(--parchment); text-shadow: 1px 1px 0 var(--ink); }
 
 /* Market list */
-.market-list { display: flex; flex-direction: column; gap: 8px; padding: 12px; height: 100%; }
-.market-rows { display: flex; flex-direction: column; overflow-y: auto; max-height: calc(100vh - 260px); }
+.market-list { display: flex; flex-direction: column; gap: 8px; padding: 12px; }
+.market-rows { display: flex; flex-direction: column; overflow-y: auto; max-height: min(420px, 60vh); }
+.market-picker { position: relative; }
+.picker-btn { padding: 4px 8px; margin-left: -8px; background: none; border: 2px solid transparent; cursor: pointer; }
+.picker-btn:hover, .picker-btn[aria-expanded='true'] { background: var(--slate-700); border-color: var(--ink); }
+.picker-pop { position: absolute; z-index: 6; top: calc(100% + 6px); left: -8px; width: 320px; background: var(--slate-800); border: 2px solid var(--ink); box-shadow: var(--bevel), 4px 4px 0 var(--ink); }
 .market-row { display: grid; grid-template-columns: 1fr auto 60px; gap: 8px; align-items: center; min-height: 40px; padding: 0 8px; background: transparent; border: 0; border-left: 3px solid transparent; text-align: left; cursor: pointer; font-size: 13px; }
 .market-row span:nth-child(2), .market-row span:nth-child(3) { text-align: right; }
 .market-row:hover { background: var(--slate-700); }
@@ -245,6 +249,29 @@ code { font-family: var(--mono); color: var(--gold); }
 
 /* Order panel */
 .order { padding: 16px; overflow-y: auto; }
+
+/* Order book (components/OrderBook.tsx) */
+.book { padding: 12px 0; overflow: hidden; }
+.order-book { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.ob-head { display: flex; justify-content: space-between; align-items: center; padding: 0 12px; }
+.ob-unit { display: flex; border: 2px solid var(--ink); }
+.ob-unit button { padding: 3px 8px; background: var(--slate-900); border: 0; font-family: var(--pixel); font-size: 10px; letter-spacing: 1px; color: var(--muted); cursor: pointer; }
+.ob-unit button + button { border-left: 2px solid var(--ink); }
+.ob-unit button.on { background: var(--slate-600); color: var(--text); }
+.ob-cols, .ob-row, .ob-spread { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; padding: 0 12px; }
+.ob-cols span, .ob-row span, .ob-spread span { text-align: right; }
+.ob-cols span:first-child, .ob-row span.ob-px, .ob-spread span:first-child { text-align: left; }
+.ob-cols { font-size: 9px; }
+.ob-side { display: flex; flex-direction: column; }
+.ob-row { position: relative; min-height: 22px; align-items: center; background: none; border: 0; color: var(--text-2); cursor: pointer; }
+.ob-row > span:not(.ob-bar) { position: relative; }
+.ob-row:hover { background: var(--slate-700); }
+.ob-bar { position: absolute; top: 1px; bottom: 1px; right: 0; opacity: 0.22; pointer-events: none; }
+.ob-row.ask .ob-bar { background: var(--down); }
+.ob-row.bid .ob-bar { background: var(--up); }
+.ob-row.ask .ob-px { color: var(--down); }
+.ob-row.bid .ob-px { color: var(--up); }
+.ob-spread { align-items: center; min-height: 26px; margin: 2px 0; background: var(--slate-900); border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink); color: var(--text-2); }
 .order-form, .onboarding { display: flex; flex-direction: column; gap: 12px; }
 .order-form { position: relative; }
 .seg { display: grid; grid-template-columns: 1fr 1fr; border: 2px solid var(--ink); }
@@ -367,9 +394,7 @@ td { padding: 8px 12px; border-bottom: 1px solid var(--slate-700); white-space: 
 /* ---------------------------------------------------------- Responsive */
 @media (max-width: 1100px) {
   .layout { grid-template-columns: minmax(0, 1fr) 320px; }
-  .markets { grid-column: 1 / -1; }
-  .market-rows { flex-direction: row; overflow-x: auto; max-height: none; }
-  .market-row { min-width: 180px; }
+  .center { grid-column: 1 / -1; }
 }
 @media (max-width: 1000px) {
   .th-grid { grid-template-columns: minmax(0, 1fr); }

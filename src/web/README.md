@@ -23,7 +23,8 @@ Copy `.env.example` to `.env.local` and set `VITE_BUILDER_ADDRESS`. Until it is 
 - **Hero** (`components/Hero.tsx`): knight #5 starts on the plaza in front of the Townhall door. **WASD or the arrow keys** walk it around the town in 8 directions at 42 scene px/s, snapped to the scene's pixel grid, drawn at 0.8×. It can only walk on the roads: `public/empire/walkable.png` (from `design/scene/walkable.py`) marks the plaza, the path between the pools and the dirt roads, the feet (5px wide) must stay on it, and a blocked diagonal slides along the road edge. Keys are ignored while a building screen is open or a text field has focus. Sheets in `public/empire/heroes/knight5/` are 4 frames × 8 directions of 32×32: `walk.png` (PixelLab skeleton walk, 0.56s loop) and `idle.png` (head, torso and sword dip 1px, 1.6s loop), over an 8×2 pixel shadow (`heroes/shadow.png`). The hero sits above the hotspots so hover highlights never hide it, lets clicks through, and takes a per-phase filter in place of the time-of-day washes.
 - **Time of day** (`hooks/useDayPhase.ts`, `components/TimeOfDay.tsx`): follows the player's local clock. Morning (05:00–11:59) adds a soft-light golden grade (keeps pixel contrast), a sun glow, slow diagonal sunbeams, drifting motes, and warm sun glints twinkling on both pools; evening (12:00–18:59) is the scene as painted; night (19:00–04:59) tints the town dark blue and turns on `public/empire/night-lights.png` (lit windows, doorways, clock, lanterns), flickering lamp glows, fireflies, moonlight from the top-right and a silver moonpath of glints on the pools. The header chip shows the phase; clicking it cycles Auto → Morning → Evening → Night to preview (saved in the browser).
 - **Townhall modal** (`/#townhall`): level, $aura progress, risky upgrade (pay 10–100% of the cost for that chance), the three-branch perk tree (Trader live; Fighter and Crafter bank points for Phases 2–3), respec and building caps. Rules live in `src/lib/empire.ts`. Until the Townhall contract ships, progress is saved in the browser per wallet (`useTownhall`), and the $aura balance is 5,000 starter + estimated $aura from fills − Townhall spending. Perk icons in `public/empire/icons/` were generated with PixelLab (Pixflux, scene palette).
-- **Exchange modal** (`/#exchange`, also the header's EXCHANGE link): the trading UI. `#exchange` deep-links straight in for players who only trade; Escape or ✕ closes it.
+- **Exchange modal** (`/#exchange`, also the header's EXCHANGE link): the trading UI, nearly full screen (up to 1800×980), in three columns. On the left are the market header and account tabs; the market name is a dropdown with search, and Enter picks the first match. In the middle is the **order book**, and on the right the order form. `#exchange` deep-links straight in for players who only trade; Escape or ✕ closes it.
+- **Order book** (`components/OrderBook.tsx`): 12 asks above the spread and 12 bids below, with price, size and cumulative total in coin or USD over depth bars. It polls `l2Book` every second. Clicking a row switches the order form to Limit at that price.
 - **Order form** (`components/OrderPanel.tsx`, math in `lib/orderMath.ts`): laid out like Hyperliquid's (without its Pro order types).
   - **Margin mode and leverage:** CROSS / ISOLATED and leverage buttons open small dialogs that apply the change on Hyperliquid right away (`updateLeverage`).
   - **Order:** Market or Limit (with a MID button and GTC / IOC / ALO time in force), and Buy / Long or Sell / Short.
@@ -54,11 +55,11 @@ Both approvals are signatures, not transactions, so they cost no gas. The accoun
 | `src/lib/format.ts` | Perp price/size rounding, $aura math, display formatting |
 | `src/lib/referral.ts` | Captures `?ref=CODE` for creator referrals |
 | `src/hooks/` | Markets, account data, onboarding (builder fee + agent) |
-| `src/components/` | Header, market list, market header + 24h chart, order panel, positions / orders / fills |
+| `src/components/` | Header, market header with the market dropdown + 24h chart, order book, order panel, positions / orders / fills |
 
 ## Known limits (next steps)
 
 - **$aura shown is an estimate** from each fill's `builderFee`. A fill routed through another builder also has a `builderFee`, so the real amount comes from the fee indexer, which only counts HyperEmpire's builder fills.
 - **Referral codes** are captured, but not yet sent anywhere. Attribution and USDC fee share need the backend.
 - **Hero level fee discount** isn't applied yet: it needs the HeroNFT contract to read the level.
-- No order book, depth chart or WebSocket streaming yet. Data polls every 3–5 s.
+- No depth chart, book price grouping or WebSocket streaming yet. The book polls every 1 s, other data every 3–5 s.

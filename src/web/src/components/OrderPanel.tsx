@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { BUILDER_ADDRESS, BUILDER_FEE_RATE, BUILDER_MAX_FEE_RATE, MARKET_SLIPPAGE } from '../config';
 import type { Market } from '../hooks/useMarkets';
@@ -10,7 +10,9 @@ import { estLiquidationPx, estSlippage, priceForRoe, roeForPrice } from '../lib/
 import { placeOrder, setLeverage } from '../lib/orders';
 
 type Onboarding = ReturnType<typeof useOnboarding>;
-type Props = { market?: Market; user?: `0x${string}`; onboarding: Onboarding };
+/** A price picked from a market's order book; `n` changes on every pick so picking the same price again still applies. */
+export type BookPick = { coin: string; px: number; n: number };
+type Props = { market?: Market; user?: `0x${string}`; onboarding: Onboarding; pick?: BookPick | null };
 
 /**
  * Dev only: `?order-preview` shows the order form without a wallet, reading the zero address's (empty)
@@ -20,8 +22,8 @@ const PREVIEW_USER = import.meta.env.DEV && new URLSearchParams(window.location.
   ? ('0x0000000000000000000000000000000000000000' as const)
   : null;
 
-export function OrderPanel({ market, user, onboarding }: Props) {
-  if (PREVIEW_USER && market) return <OrderForm key={market.name} market={market} user={PREVIEW_USER} onboarding={onboarding} />;
+export function OrderPanel({ market, user, onboarding, pick }: Props) {
+  if (PREVIEW_USER && market) return <OrderForm key={market.name} market={market} user={PREVIEW_USER} onboarding={onboarding} pick={pick} />;
   if (!BUILDER_ADDRESS) {
     return (
       <div className="notice warn">
@@ -33,7 +35,7 @@ export function OrderPanel({ market, user, onboarding }: Props) {
   if (onboarding.loading) return <div className="muted pad">Checking your account…</div>;
   if (!onboarding.ready) return <Onboarding onboarding={onboarding} />;
   if (!market) return <div className="muted pad">Loading market…</div>;
-  return <OrderForm key={market.name} market={market} user={user} onboarding={onboarding} />;
+  return <OrderForm key={market.name} market={market} user={user} onboarding={onboarding} pick={pick} />;
 }
 
 function Onboarding({ onboarding: o }: { onboarding: Onboarding }) {
@@ -107,7 +109,7 @@ const fmtRate = (r: number) => `${(r * 100).toFixed(4)}%`;
  * size in coin or USD with a slider of the max size, reduce only, time in force, TP/SL by price or by gain,
  * and a summary with liquidation, margin, slippage, fees and the $aura the order earns.
  */
-function OrderForm({ market, user, onboarding }: { market: Market; user: `0x${string}`; onboarding: Onboarding }) {
+function OrderForm({ market, user, onboarding, pick }: { market: Market; user: `0x${string}`; onboarding: Onboarding; pick?: BookPick | null }) {
   const qc = useQueryClient();
   const active = useActiveAsset(user, market.name);
   const ch = useClearinghouse(user);
@@ -126,6 +128,13 @@ function OrderForm({ market, user, onboarding }: { market: Market; user: `0x${st
   const [dialog, setDialog] = useState<Dialog>(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; text: string } | null>(null);
+
+  // A price clicked in the order book becomes a limit order at that price.
+  useEffect(() => {
+    if (!pick || pick.coin !== market.name) return;
+    setKind('limit');
+    setLimitPx(formatPrice(pick.px, market.szDecimals));
+  }, [pick?.n]);
 
   const lev = active.data?.leverage;
   const leverage = lev?.value ?? Math.min(10, market.maxLeverage);

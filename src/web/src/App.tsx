@@ -4,9 +4,9 @@ import { Header } from './components/Header';
 import { EmpireScene, type BuildingId } from './components/EmpireScene';
 import { ExchangeModal } from './components/ExchangeModal';
 import { TownhallModal } from './components/TownhallModal';
-import { MarketList } from './components/MarketList';
+import { OrderBook } from './components/OrderBook';
 import { MarketHeader } from './components/MarketHeader';
-import { OrderPanel } from './components/OrderPanel';
+import { OrderPanel, type BookPick } from './components/OrderPanel';
 import { AccountTabs } from './components/AccountTabs';
 import { useMarkets } from './hooks/useMarkets';
 import { useOnboarding } from './hooks/useOnboarding';
@@ -27,6 +27,7 @@ export function App() {
   const [coin, setCoin] = useState('BTC');
   const [referral] = useState(captureReferral);
   const [screen, setScreen] = useState<Screen>(screenFromHash);
+  const [pick, setPick] = useState<BookPick | null>(null);
 
   const open = useCallback((id: BuildingId) => {
     if (id !== 'exchange' && id !== 'townhall') return;
@@ -57,19 +58,23 @@ export function App() {
 
       <ExchangeModal open={screen === 'exchange'} onClose={close}>
         <div className="layout">
-          <aside className="panel markets">
-            <MarketList markets={markets.data ?? []} loading={markets.isLoading} selected={market?.name} onSelect={setCoin} />
-          </aside>
           <section className="center">
             <div className="panel">
-              {market ? <MarketHeader market={market} /> : <div className="muted pad">{markets.error ? 'Could not load markets.' : 'Loading markets…'}</div>}
+              {market ? (
+                <MarketHeader market={market} markets={markets.data ?? []} loading={markets.isLoading} onSelect={setCoin} />
+              ) : (
+                <div className="muted pad">{markets.error ? 'Could not load markets.' : 'Loading markets…'}</div>
+              )}
             </div>
             <div className="panel grow">
               <AccountTabs user={address} markets={markets.data ?? []} trader={onboarding.trader} fills={fills.data ?? []} />
             </div>
           </section>
+          <aside className="panel book">
+            {market && <OrderBook market={market} onPick={(px) => setPick({ coin: market.name, px, n: Date.now() })} />}
+          </aside>
           <aside className="panel order">
-            <OrderPanel market={market} user={address} onboarding={onboarding} />
+            <OrderPanel market={market} user={address} onboarding={onboarding} pick={pick} />
           </aside>
         </div>
       </ExchangeModal>

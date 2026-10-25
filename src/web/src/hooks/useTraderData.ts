@@ -59,12 +59,12 @@ export function useUserFees(user: Address | undefined) {
   });
 }
 
-/** Top of the order book, for the market-order slippage estimate. */
+/** Top of the order book: shown in the Exchange, and used for the market-order slippage estimate. */
 export function useBook(coin: string | undefined, enabled: boolean) {
   return useQuery({
     queryKey: ['l2Book', coin],
     enabled: enabled && !!coin,
-    refetchInterval: 2_000,
+    refetchInterval: 1_000,
     queryFn: async () => {
       const book = await info.l2Book({ coin: coin! });
       const side = (levels: { px: string; sz: string }[]) => levels.map((l) => ({ px: Number(l.px), sz: Number(l.sz) }));
