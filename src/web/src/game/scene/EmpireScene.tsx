@@ -1,4 +1,5 @@
 // The empire's main scene. Buildings are hotspots over the town image; the Exchange opens trading.
+// Each building's plate shows its name; hovering or focusing the building adds what it does.
 
 import { Ambient } from './Ambient';
 import { TimeOfDay } from './TimeOfDay';
@@ -10,10 +11,15 @@ export type BuildingId = 'townhall' | 'tavern' | 'exchange' | 'garden';
 type Building = {
   id: BuildingId;
   name: string;
+  /** Short tag, shown with `about` on hover. */
   detail: string;
+  /** What the building does, shown on hover. */
+  about: string;
   /** Hotspot box as percentages of the 320x180 scene. */
   box: { left: number; top: number; width: number; height: number };
   ready: boolean;
+  /** Where the name plate's centre sits, in native scene pixels; the middle of the box when left out. */
+  plate?: { x: number; y: number };
   /** Cut-out of the building (made by design/scene/cutout.py), drawn over the scene to highlight its shape on hover. */
   sprite?: string;
 };
@@ -28,11 +34,20 @@ const fromCrop = (x: number, y: number, w: number, h: number) => ({
   height: (h / SCENE_H) * 100,
 });
 
+/** Plate position inside its hotspot box, in % of the box: from `plate` (scene pixels), else the middle. */
+const plateAt = (b: Building) =>
+  b.plate
+    ? {
+        left: `${(((b.plate.x / SCENE_W) * 100 - b.box.left) / b.box.width) * 100}%`,
+        top: `${(((b.plate.y / SCENE_H) * 100 - b.box.top) / b.box.height) * 100}%`,
+      }
+    : undefined;
+
 const BUILDINGS: Building[] = [
-  { id: 'townhall', name: 'TOWNHALL', detail: 'LEVEL UP · PERKS', box: fromCrop(106, 9, 100, 73), ready: true, sprite: '/empire/townhall.png' },
-  { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES · PHASE 2', box: fromCrop(1, 18, 71, 66), ready: false, sprite: '/empire/tavern.png' },
-  { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', box: fromCrop(248, 11, 60, 70), ready: true, sprite: '/empire/exchange.png' },
-  { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS · PHASE 3', box: { left: 0, top: 63, width: 24, height: 37 }, ready: false },
+  { id: 'townhall', name: 'TOWNHALL', detail: 'LEVEL UP · PERKS', about: "Your empire's heart. Spend $aura to level up, then put perk points into Trader, Fighter and Crafter.", box: fromCrop(106, 9, 100, 73), ready: true, sprite: '/empire/townhall.png' },
+  { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES · PHASE 2', about: 'Recruit heroes and send them on adventures. Opens in Phase 2.', box: fromCrop(1, 18, 71, 66), plate: { x: 44, y: 48 }, ready: false, sprite: '/empire/tavern.png' },
+  { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', about: 'Trade Hyperliquid perps. Every $1 of builder fee you pay earns 500 $aura.', box: fromCrop(248, 11, 60, 70), plate: { x: 278, y: 39 }, ready: true, sprite: '/empire/exchange.png' },
+  { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS · PHASE 3', about: 'Grow seeds into crafting materials. Opens in Phase 3.', box: { left: 0, top: 63, width: 24, height: 37 }, ready: false },
 ];
 
 /** `heroActive`: WASD moves the hero (off while a building screen is open). */
@@ -58,9 +73,12 @@ export function EmpireScene({ onOpen, phase, heroActive }: { onOpen: (id: Buildi
             aria-label={`${b.name}: ${b.detail}${b.ready ? '' : ' (not available yet)'}`}
           >
             {b.sprite && <img className="hl-sprite" src={b.sprite} alt="" aria-hidden="true" />}
-            <span className="plate">
+            <span className="plate" style={plateAt(b)}>
               <span className="plate-name">{b.name}</span>
-              <span className="plate-detail">{b.detail}</span>
+              <span className="plate-more">
+                <span className="plate-detail">{b.detail}</span>
+                <span className="plate-about">{b.about}</span>
+              </span>
             </span>
           </button>
         ))}

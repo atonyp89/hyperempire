@@ -34,15 +34,19 @@
   opacity: 1;
   filter: brightness(1.18) drop-shadow(2px 0 0 var(--gold)) drop-shadow(-2px 0 0 var(--gold)) drop-shadow(0 2px 0 var(--gold)) drop-shadow(0 -2px 0 var(--gold)) drop-shadow(0 0 1px var(--ink));
 }
-.game .plate { position: absolute; left: 50%; bottom: -6px; transform: translate(-50%, 100%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 10px; white-space: nowrap; background: rgba(30, 40, 60, 0.92); border: 2px solid var(--ink); box-shadow: var(--bevel); pointer-events: none; }
+/* Plates sit in the middle of their building; the hover description grows evenly around that point. */
+.game .plate { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 10px; white-space: nowrap; background: rgba(30, 40, 60, 0.92); border: 2px solid var(--ink); box-shadow: var(--bevel); pointer-events: none; }
 .game .plate-name { font-family: var(--pixel); font-size: 12px; letter-spacing: 1px; color: var(--text); }
 .game .plate-detail { font-family: var(--pixel); font-size: 9px; letter-spacing: 1px; color: var(--muted); }
+/* The plate shows only the name; hovering or focusing the building adds its tag and what it does. */
+.game .plate-more { display: none; flex-direction: column; align-items: center; gap: 4px; width: 220px; white-space: normal; text-align: center; }
+.game .plate-about { font-size: 12px; line-height: 1.35; color: var(--text); }
+.game .hotspot:hover .plate-more, .game .hotspot:focus-visible .plate-more { display: flex; }
+.game .hotspot:hover, .game .hotspot:focus-visible { z-index: 3; }
 .game .hotspot.ready .plate { border-color: var(--ink); background: rgba(30, 40, 60, 0.95); }
 .game .hotspot.ready .plate-name { color: var(--gold); }
 .game .hotspot.ready .plate-detail { color: var(--teal); }
 .game .hotspot.locked .plate { opacity: 0.85; }
-.game .hotspot[aria-label^='TAVERN'] .plate, .game .hotspot[aria-label^='GARDEN'] .plate { bottom: auto; top: 6px; transform: translate(-50%, 0); }
-.game .hotspot[aria-label^='TOWNHALL'] .plate { bottom: auto; top: -6px; transform: translate(-50%, -100%); }
 
 /* Ambient life: swaying trees, wind streaks, gust leaves (scene/Ambient.tsx) */
 .game .ambient { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
@@ -204,5 +208,4 @@
   .game .header { padding: 10px 16px; gap: 12px; }
   .game .nav .soon { display: none; }
   .game .plate { padding: 3px 6px; }
-  .game .plate-detail { display: none; }
 }

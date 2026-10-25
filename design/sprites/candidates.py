@@ -1,8 +1,8 @@
 """Cut PixelLab Create Image Pro candidates out of the gallery sheet (standard library only).
 
-    python3 candidates.py SHEET.png CELL OUT_DIR
+    python3 candidates.py SHEET.png CELL OUT_DIR      (CELL is 24 for 24×24 candidates, or 40x24)
 
-The sheet holds N×N candidates on a CELL grid, but sprites often spill over their cell edges (a pose
+The sheet holds a grid of candidates, one per CELL, but sprites often spill over their cell edges (a pose
 clipped at the feet in one cell continues in the next), so slicing by cell mixes neighbours. Instead
 this finds connected pixel groups (8-way), gives each group to the cell holding its centre, and writes
 each candidate cropped to its own pixels as OUT_DIR/<index>.png, plus OUT_DIR/contact.png (all of
@@ -39,14 +39,15 @@ def groups(w, h, rows):
 
 
 def main():
-    sheet, cell, out = sys.argv[1], int(sys.argv[2]), sys.argv[3]
+    sheet, cell, out = sys.argv[1], sys.argv[2], sys.argv[3]
+    cell_w, cell_h = (int(v) for v in cell.split('x')) if 'x' in cell else (int(cell), int(cell))
     w, h, rows = read_rgba(sheet)
-    n = w // cell
+    n = w // cell_w
     cells = {}
     for pix in groups(w, h, rows):
         cx = sum(p[0] for p in pix) / len(pix)
         cy = sum(p[1] for p in pix) / len(pix)
-        cells.setdefault(int(cy // cell) * n + int(cx // cell), []).extend(pix)
+        cells.setdefault(int(cy // cell_h) * n + int(cx // cell_w), []).extend(pix)
     os.makedirs(out, exist_ok=True)
     crops = {}
     for i, pix in sorted(cells.items()):
