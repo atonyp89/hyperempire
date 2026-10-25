@@ -16,6 +16,8 @@ bun run typecheck
 
 Copy `.env.example` to `.env.local` and set `VITE_BUILDER_ADDRESS`. Until it is set, markets load but trading is disabled.
 
+**Testnet / Mainnet:** the header toggle switches networks; switching to mainnet asks first. `VITE_HL_NETWORK` is only the default. The choice is saved in the browser (`hyperempire.network`) and the page reloads, because the API client, trading keys and Townhall progress are all per network. Both networks use the same builder wallet (`VITE_BUILDER_ADDRESS`). The builder approval and the trading key are separate on each network, so players go through the one-time setup again the first time they trade on mainnet, and the builder needs its 100 USDC on each network it's used on.
+
 ## Screens
 
 - **Empire scene** (`/`): the town from `design/scene/townhall-pixellab.png` (copied to `public/empire/town.png`). Buildings are hotspots; the **Exchange** opens trading, the others show what's coming.

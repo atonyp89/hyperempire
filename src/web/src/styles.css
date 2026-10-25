@@ -54,6 +54,12 @@ code { font-family: var(--mono); color: var(--gold); }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 2px solid var(--ink); background: var(--slate-800); box-shadow: var(--bevel); font-size: 12px; }
 .chip.warn { color: var(--gold); }
 .chip.aura { font-weight: 600; }
+.net-toggle { display: inline-flex; border: 2px solid var(--ink); box-shadow: var(--bevel); }
+.net-toggle button { padding: 6px 10px; background: var(--slate-800); border: 0; font-size: 12px; color: var(--muted); cursor: pointer; }
+.net-toggle button + button { border-left: 2px solid var(--ink); }
+.net-toggle button:hover:not(.on) { color: var(--text); }
+.net-toggle button.on.testnet { background: var(--slate-600); color: var(--gold); }
+.net-toggle button.on.mainnet { background: var(--grass-dark); color: var(--parchment); }
 .gem { display: inline-block; width: 9px; height: 9px; background: var(--teal); border: 1px solid var(--ink); transform: rotate(45deg); }
 
 /* ---------------------------------------------------------- Empire scene */

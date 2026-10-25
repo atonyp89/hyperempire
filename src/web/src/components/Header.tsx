@@ -1,5 +1,5 @@
 import { useConnect, useConnection, useConnectors, useDisconnect } from 'wagmi';
-import { NETWORK } from '../config';
+import { NETWORK, switchNetwork, type Network } from '../config';
 import { fmtAura, shortAddr } from '../lib/format';
 import type { useDayPhase } from '../hooks/useDayPhase';
 
@@ -28,7 +28,7 @@ export function Header({ auraEarned, referral, onOpen, day }: Props) {
           <span className="chip-icon" aria-hidden="true">{PHASE_LABEL[day.phase][0]}</span> {PHASE_LABEL[day.phase][1]} <span className="muted">{day.mode === 'auto' ? 'AUTO' : 'PREVIEW'}</span>
         </button>
         {referral && <span className="chip muted" title="Referral code captured from your link">REF {referral}</span>}
-        <span className={`chip ${NETWORK === 'testnet' ? 'warn' : ''}`}>{NETWORK.toUpperCase()}</span>
+        <NetworkToggle />
         {auraEarned !== null && (
           <span className="chip aura" title="$aura earned from builder fees on your fills (estimate until claimed)">
             <span className="gem" aria-hidden="true" />
@@ -38,6 +38,36 @@ export function Header({ auraEarned, referral, onOpen, day }: Props) {
         <ConnectButton />
       </div>
     </header>
+  );
+}
+
+const NETWORKS: { id: Network; label: string }[] = [
+  { id: 'testnet', label: 'TESTNET' },
+  { id: 'mainnet', label: 'MAINNET' },
+];
+
+/** Testnet / Mainnet switch. Mainnet trades real funds, so switching to it asks first. */
+function NetworkToggle() {
+  const pick = (id: Network) => {
+    if (id === NETWORK) return;
+    if (id === 'mainnet' && !window.confirm('Switch to Hyperliquid mainnet? Orders there use real funds.')) return;
+    switchNetwork(id);
+  };
+  return (
+    <div className="net-toggle" role="radiogroup" aria-label="Hyperliquid network">
+      {NETWORKS.map((n) => (
+        <button
+          key={n.id}
+          type="button"
+          role="radio"
+          aria-checked={NETWORK === n.id}
+          className={NETWORK === n.id ? `on ${n.id}` : ''}
+          onClick={() => pick(n.id)}
+        >
+          {n.label}
+        </button>
+      ))}
+    </div>
   );
 }
 
