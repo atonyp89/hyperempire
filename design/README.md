@@ -11,6 +11,10 @@
   - [Pixel art fantasy knight set (Shutterstock)](https://www.shutterstock.com/image-vector/pixel-art-fantasy-knight-warrior-character-2680707413): chibi proportions, shading ramps
   - [King Dies Rich (Steam)](https://store.steampowered.com/app/5377410/King_Dies_Rich/): hero/armory screen layout, palette, UI type
 
+## Characters
+
+[characters.md](characters.md) is the step-by-step process for making a character that fits the scene and walks it: PixelLab prompts and settings, the scripts, the checks and the pitfalls found with knight #5.
+
 ## Files
 
 | Path | What |

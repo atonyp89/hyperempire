@@ -4,13 +4,13 @@
 
 Reads, under HERO_DIR:
   rotations/<dir>.png    PixelLab turnaround, 32x32
-  idle-south/<0-3>.png   hand-made south idle, 32x32 (the other directions' idle is made here)
+  idle-south/<0-3>.png   optional hand-made south idle, 32x32 (otherwise it's made like the others)
   walk/<dir>/<0-3>.png   PixelLab skeleton walk frames (they come back on a larger canvas)
 and writes idle.png and walk.png. Every direction is shifted so its standing feet land on row FEET and
 its body is centred on column CENTRE, the anchor Hero.tsx uses, so the hero neither floats nor jumps
 when it turns, starts or stops. PixelLab draws the side views a pixel higher than the front ones.
 
-The idle for directions other than south is the rotation sprite, then everything above the legs
+The idle (for south too unless idle-south/ exists) is the rotation sprite, then everything above the legs
 (the bottom 3 rows) 1px lower: 2 frames each. Where the walk comes out taller than the standing pose
 (the side views: the skeleton straightens the legs), its body is lowered to the standing height.
 Row order matches DIRS in src/web/src/components/Hero.tsx.
@@ -79,7 +79,7 @@ def main():
     idle, walk = [], []
     for d in DIRS:
         rot = read_rgba(os.path.join(hero, 'rotations', f'{d}.png'))
-        if d == 'south':
+        if d == 'south' and os.path.isdir(os.path.join(hero, 'idle-south')):
             src = [read_rgba(os.path.join(hero, 'idle-south', f'{i}.png')) for i in range(4)]
             idle_frames = anchored(src, src[0])
         else:

@@ -18,9 +18,10 @@ A library of front-facing knight poses drawn for the Empire scene, for future he
 
 ## Turning one into a character
 
-This is what was done for #5:
+The full process, walk and scene included, is in [design/characters.md](../../characters.md). In short, for #5:
 
 1. **Pad:** put `cut/<n>.png` on a 32×32 transparent canvas, feet about 4px from the bottom. PixelLab's v3 turnaround needs at least 32px.
 2. **Turn:** upload it and call `create_character` with mode v3 and `reference_image_url` set to the upload. That gives 8 directions for 1 generation.
 3. **Idle:** build it by hand. PixelLab's breathing-idle template redraws the body and can drop details such as the sword. For #5, everything above the legs dips 1px on two of four frames.
-4. **Pack:** pack the frames with `../sheet.py` and draw the sheet 1:1 in the scene.
+4. **Walk:** generate it with PixelLab's walking-4-frames in skeleton-v3 mode, 3 generations a direction.
+5. **Pack:** build the idle and walk sheets with `../pack_hero.py`, and draw them at 0.8× in the scene.
