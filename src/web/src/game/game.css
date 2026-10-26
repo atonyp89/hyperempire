@@ -48,6 +48,14 @@
 .game .hotspot.ready .plate-detail { color: var(--teal); }
 .game .hotspot.locked .plate { opacity: 0.85; }
 
+/* Garden crops (scene/Garden.tsx): wheat.png holds 4 stages of 16x16; the stage is picked by background-position.
+   Young and ripe wheat sways gently from its base. */
+.game .garden { position: absolute; inset: 0; pointer-events: none; }
+.game .crop { position: absolute; image-rendering: pixelated; background: url(/empire/crops/wheat.png) 0 0 / 400% 100% no-repeat; transform-origin: 50% 88%; }
+.game .crop.stage-2, .game .crop.stage-3 { animation: crop-sway 3.2s ease-in-out infinite alternate; }
+@keyframes crop-sway { from { transform: rotate(-3deg); } to { transform: rotate(3deg); } }
+@media (prefers-reduced-motion: reduce) { .game .crop { animation: none !important; } }
+
 /* Ambient life: swaying trees, wind streaks, gust leaves (scene/Ambient.tsx) */
 .game .ambient { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
 .game .tree-sprite { position: absolute; image-rendering: pixelated; transform-origin: 50% 100%; animation: sway var(--dur) ease-in-out var(--delay) infinite alternate; }

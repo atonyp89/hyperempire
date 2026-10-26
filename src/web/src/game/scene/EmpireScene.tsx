@@ -2,6 +2,7 @@
 // Each building's plate shows its name; hovering or focusing the building adds what it does.
 
 import { Ambient } from './Ambient';
+import { Garden } from './Garden';
 import { TimeOfDay } from './TimeOfDay';
 import { Hero } from './Hero';
 import type { Phase } from '../hooks/useDayPhase';
@@ -60,6 +61,7 @@ export function EmpireScene({ onOpen, phase, heroActive }: { onOpen: (id: Buildi
           src="/empire/town-base.png"
           alt="Your empire: the Townhall at the center behind a plaza with statue pools, the Tavern on the left, the Exchange on the right and the Garden fields at the bottom left"
         />
+        <Garden />
         <Ambient />
         <TimeOfDay phase={phase} />
         {BUILDINGS.map((b) => (
