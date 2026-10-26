@@ -7,7 +7,7 @@ import { Garden } from './Garden';
 import { TimeOfDay } from './TimeOfDay';
 import { Hero } from './Hero';
 import type { Phase } from '../hooks/useDayPhase';
-import { VIEW_W, WORLD_H, WORLD_W } from './world';
+import { WORLD_H, WORLD_W } from './world';
 
 export type BuildingId = 'townhall' | 'tavern' | 'exchange' | 'garden' | 'workshop';
 
@@ -58,7 +58,7 @@ export function EmpireScene({ onOpen, phase, heroActive }: { onOpen: (id: Buildi
     <div className="scene-wrap">
       <div className={`scene phase-${phase}`}>
         {/* The world is wider than the view; Hero.tsx slides it to follow the hero. */}
-        <div className="world" style={{ width: `${(WORLD_W / VIEW_W) * 100}%` }}>
+        <div className="world">
           <img
             className="scene-img"
             src="/empire/town-base.png"

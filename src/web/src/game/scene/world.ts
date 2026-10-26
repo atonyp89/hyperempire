@@ -4,5 +4,5 @@
 /** The whole world: the original town (0-320) plus the east strip with the Workshop (320-480). */
 export const WORLD_W = 480;
 export const WORLD_H = 180;
-/** What fits on screen at once; the scene box keeps this 16:9 shape. */
+/** The narrowest view (16:9). Wider screens show more, up to the whole world; Hero.tsx measures the real width. */
 export const VIEW_W = 320;

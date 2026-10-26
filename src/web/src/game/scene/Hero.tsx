@@ -72,8 +72,8 @@ function facing(dx: number, dy: number): Dir {
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
-/** Camera's left edge for a hero at x: the hero centred, without showing past either end of the world. */
-const cameraFor = (x: number) => clamp(x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
+/** Camera's left edge for a hero at x with a view `view` scene px wide: the hero centred, never past either end. */
+const cameraFor = (x: number, view = VIEW_W) => clamp(x - view / 2, 0, Math.max(0, WORLD_W - view));
 const editable = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
 
@@ -147,11 +147,13 @@ export function Hero({ active }: { active: boolean }) {
       if (moving !== wasWalking) setWalking((wasWalking = moving));
       // Ease the camera toward the hero and slide the world under the view, in whole screen pixels so the
       // pixel art doesn't shimmer.
-      const target = cameraFor(pos.current.x);
-      cam.current += (target - cam.current) * Math.min(1, dt * CAMERA_EASE);
-      if (Math.abs(target - cam.current) < 0.05) cam.current = target;
       const world = sprite.current?.closest<HTMLElement>('.world');
       if (world) {
+        // How much of the world the scene box shows, in scene pixels: 320 on a 16:9 screen, up to 480.
+        const view = ((world.parentElement?.clientWidth ?? 0) / world.offsetWidth) * WORLD_W || VIEW_W;
+        const target = cameraFor(pos.current.x, view);
+        cam.current += (target - cam.current) * Math.min(1, dt * CAMERA_EASE);
+        if (Math.abs(target - cam.current) < 0.05) cam.current = target;
         const px = Math.round((cam.current / WORLD_W) * world.offsetWidth);
         if (px !== lastPx) world.style.transform = `translateX(${-(lastPx = px)}px)`;
       }
