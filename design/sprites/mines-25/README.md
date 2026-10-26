@@ -1,6 +1,6 @@
 # 25 mines
 
-Standalone mine entrances drawn for the Empire scene. **#11**, the brown earthy one, is the Mine below the Exchange.
+Standalone mine entrances drawn for the Empire scene. **#11**, the brown earthy one, is the Mine at the bottom right of the east strip, below the Workshop.
 
 | File | What |
 | --- | --- |
@@ -13,10 +13,12 @@ Prompt: "one mine entrance for a top-down RPG town, facing the viewer: a wide lo
 
 ## How the Mine is placed
 
-The world layers are rebuilt from `design/scene/backup-before-mine/`:
+It first stood in the yard below the Exchange. It was moved to the east strip, and the yard went back to its crates (`design/scene/backup-before-mine/`).
 
-1. **Lawn:** the cleared lawn's changed pixels go in first. In `town-base.png` the swaying tree's box is skipped, since that tree is painted out of the base.
-2. **Mine:** #11 is drawn on top, with its cell's top-left at world (257, 122).
-3. **Hover outline:** `src/web/public/empire/mine.png` is #11 cropped to its pixels, so the outline matches the sprite exactly.
+1. **Restore:** the world starts from the backup.
+2. **Move the Workshop:** its block (world x 360–460, y 38–140: building, woodpile, barrels, yard and anvil) moves up 30 px.
+3. **Place the mine:** #11 goes in with its cell's top-left at world (426, 132).
+4. **Repaint:** PixelLab `inpaint_image` repaints the rest on a 256×180 canvas at world x 224, using a custom mask: the band below the moved yard (x 340–479, y 111–179) minus the mine's pixels, plus two small seams at the top. It joined the road to the yard and added a dirt branch to the mine. The result is `design/scene/workshop-moved-mine-inpaint.png`.
+5. **Hover outline:** `src/web/public/empire/mine.png` is #11 cropped to its pixels.
 
-To try another design, rebuild the same way with another cell.
+`yard-cleared.png` and `on-lawn-3x.png` are from the first placement, in the yard.
