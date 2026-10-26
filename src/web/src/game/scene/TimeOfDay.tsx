@@ -5,14 +5,13 @@
 
 import type { CSSProperties } from 'react';
 import type { Phase } from '../hooks/useDayPhase';
+import { WORLD_H, WORLD_W } from './world';
 
-const SCENE_W = 320;
-const SCENE_H = 180;
 const at = (x: number, y: number, r: number): CSSProperties => ({
-  left: `${((x - r) / SCENE_W) * 100}%`,
-  top: `${((y - r) / SCENE_H) * 100}%`,
-  width: `${((2 * r) / SCENE_W) * 100}%`,
-  height: `${((2 * r) / SCENE_H) * 100}%`,
+  left: `${((x - r) / WORLD_W) * 100}%`,
+  top: `${((y - r) / WORLD_H) * 100}%`,
+  width: `${((2 * r) / WORLD_W) * 100}%`,
+  height: `${((2 * r) / WORLD_H) * 100}%`,
 });
 
 /** Warm light pools at night: [x, y, radius] in native scene pixels. */
@@ -25,6 +24,9 @@ const GLOWS: { x: number; y: number; r: number; kind: 'lamp' | 'door' | 'window'
   { x: 30, y: 72, r: 12, kind: 'window' },
   { x: 57, y: 72, r: 9, kind: 'window' },
   { x: 156, y: 57, r: 7, kind: 'window' },
+  // Workshop (east strip): door and gable window.
+  { x: 408, y: 104, r: 14, kind: 'door' },
+  { x: 407, y: 81, r: 7, kind: 'window' },
 ];
 
 /** Pool water boxes in native scene pixels (x0, y0, x1, y1); glints are clipped to them. */
@@ -98,7 +100,7 @@ export function TimeOfDay({ phase }: { phase: Phase }) {
         const pw = p.x1 - p.x0;
         const ph = p.y1 - p.y0;
         return (
-          <div key={`pool${i}`} className="pool-sky" style={box(p.x0, p.y0, pw, ph, SCENE_W, SCENE_H)}>
+          <div key={`pool${i}`} className="pool-sky" style={box(p.x0, p.y0, pw, ph, WORLD_W, WORLD_H)}>
             {SUN_GLINTS[i].map((g, j) => (
               <span key={`s${j}`} className="glint sun" style={{ ...box(g.x, g.y, g.w, 1, pw, ph), animationDelay: `${g.d}s` }} />
             ))}

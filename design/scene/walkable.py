@@ -1,13 +1,14 @@
 """Build the hero's walkable mask (the roads) from the Empire scene (standard library only).
 
-    python3 walkable.py townhall-pixellab-1x.png ../../src/web/public/empire/walkable.png [preview.png]
+    python3 walkable.py world-480-1x.png ../../src/web/public/empire/walkable.png [preview.png]
 
 A pixel is road when it is dirt road (#a6936d) or plaza stone (#93948a). The 1px cracks and specks on
 the roads are filled by closing the mask (grow 1px, then shrink 1px), and only the road network that
 holds the hero's start point is kept, so stone on walls and statues elsewhere doesn't count. Then any
 blocked patch under HOLE px that the road surrounds is filled (so the hero doesn't snag on a stray
 stone), notches up to about 4px wide along the road edges are closed (grow 2px, shrink 2px), and
-strips 2px wide or less are trimmed. The pools and their rims (BLOCK) are never walkable. The output
+strips 2px wide or less are trimmed. The pools and their rims (BLOCK) are never walkable; OPEN strips always
+are, for road the colour test misses. The output
 is 320x180: white = walkable, transparent = blocked. With a third path it also writes a preview with
 the walkable area tinted over the scene.
 """
@@ -22,6 +23,9 @@ START = (156, 100)  # the hero's start on the plaza (src/web/src/game/scene/Hero
 HOLE = 40
 # Never walkable: the two statue pools with their stone rims and fences (x0, y0, x1, y1, inclusive).
 BLOCK = [(96, 96, 140, 157), (176, 96, 220, 157)]
+# Always walkable (x0, y0, x1, y1, inclusive), for road the colour test misses. Empty now: the small pine that cut
+# the bottom road where it meets the east strip was painted out of the scene instead.
+OPEN: list[tuple[int, int, int, int]] = []
 
 
 def grow(m, w, h, keep):
@@ -70,6 +74,10 @@ def main():
     for _ in range(2):
         keep = grow(keep, w, h, all)
     keep = grow(grow(keep, w, h, all), w, h, any)
+    for x0, y0, x1, y1 in OPEN:
+        for y in range(y0, y1 + 1):
+            for x in range(x0, x1 + 1):
+                keep[y][x] = True
     for x0, y0, x1, y1 in BLOCK:
         for y in range(y0, y1 + 1):
             for x in range(x0, x1 + 1):

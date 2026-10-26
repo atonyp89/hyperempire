@@ -1,10 +1,10 @@
 // The player's hero on the Empire scene: knight #5 (public/empire/heroes/knight5/), moved with WASD or the
-// arrow keys, and kept on the roads by public/empire/walkable.png (built by design/scene/walkable.py).
+// arrow keys, and kept on the roads by public/empire/walkable.png (built by design/scene/walkable.py). The hero
+// also drives the camera: the world is wider than the view, so it slides to keep the hero in sight.
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { VIEW_W, WORLD_H, WORLD_W } from './world';
 
-const SCENE_W = 320;
-const SCENE_H = 180;
 
 /** Sheet rows, in the order of idle.png and walk.png (4 frames of 32x32 per row). */
 export const DIRS = ['south', 'south-west', 'west', 'north-west', 'north', 'north-east', 'east', 'south-east'] as const;
@@ -20,7 +20,9 @@ const START = { x: 156, y: 102 };
 /** Walking speed in scene pixels per second. */
 const SPEED = 42;
 /** How far the feet may go: inside the scene, a little in from the edges. */
-const BOUNDS = { x0: 8, x1: SCENE_W - 8, y0: 24, y1: SCENE_H - 2 };
+const BOUNDS = { x0: 8, x1: WORLD_W - 8, y0: 24, y1: WORLD_H - 2 };
+/** How fast the camera catches up with the hero (per second); higher is snappier. */
+const CAMERA_EASE = 5;
 /** Feet half-width in scene pixels: every pixel of the feet must be on the road. */
 const FOOT = 2;
 
@@ -30,13 +32,13 @@ const roadsReady = new Promise<void>((resolve) => {
   const img = new Image();
   img.onload = () => {
     const c = document.createElement('canvas');
-    c.width = SCENE_W;
-    c.height = SCENE_H;
+    c.width = WORLD_W;
+    c.height = WORLD_H;
     const ctx = c.getContext('2d');
     if (ctx) {
       ctx.drawImage(img, 0, 0);
-      const px = ctx.getImageData(0, 0, SCENE_W, SCENE_H).data;
-      roads = new Uint8Array(SCENE_W * SCENE_H);
+      const px = ctx.getImageData(0, 0, WORLD_W, WORLD_H).data;
+      roads = new Uint8Array(WORLD_W * WORLD_H);
       for (let i = 0; i < roads.length; i++) roads[i] = px[i * 4 + 3] > 128 ? 1 : 0;
     }
     resolve();
@@ -50,7 +52,7 @@ function onRoad(x: number, y: number) {
   if (!roads) return true;
   const fy = Math.round(y);
   for (let fx = Math.round(x) - FOOT; fx <= Math.round(x) + FOOT; fx++) {
-    if (fx < 0 || fx >= SCENE_W || fy < 0 || fy >= SCENE_H || !roads[fy * SCENE_W + fx]) return false;
+    if (fx < 0 || fx >= WORLD_W || fy < 0 || fy >= WORLD_H || !roads[fy * WORLD_W + fx]) return false;
   }
   return true;
 }
@@ -70,6 +72,8 @@ function facing(dx: number, dy: number): Dir {
 }
 
 const clamp = (v: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, v));
+/** Camera's left edge for a hero at x: the hero centred, without showing past either end of the world. */
+const cameraFor = (x: number) => clamp(x - VIEW_W / 2, 0, WORLD_W - VIEW_W);
 const editable = (t: EventTarget | null) =>
   t instanceof HTMLElement && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
 
@@ -77,8 +81,8 @@ const editable = (t: EventTarget | null) =>
 function place(x: number, y: number) {
   const pct = (px: number, total: number) => `${(px / total) * 100}%`;
   return {
-    sprite: { left: pct(x - SRC_FEET.x * SCALE, SCENE_W), top: pct(y - SRC_FEET.y * SCALE, SCENE_H) },
-    shadow: { left: pct(x - 4, SCENE_W), top: pct(y - 1, SCENE_H) },
+    sprite: { left: pct(x - SRC_FEET.x * SCALE, WORLD_W), top: pct(y - SRC_FEET.y * SCALE, WORLD_H) },
+    shadow: { left: pct(x - 4, WORLD_W), top: pct(y - 1, WORLD_H) },
   };
 }
 
@@ -86,6 +90,8 @@ export function Hero({ active }: { active: boolean }) {
   const [dir, setDir] = useState<Dir>('south');
   const [walking, setWalking] = useState(false);
   const pos = useRef({ ...START });
+  /** Camera's left edge in scene pixels (see cameraFor). */
+  const cam = useRef(cameraFor(START.x));
   const held = useRef(new Set<string>());
   const sprite = useRef<HTMLSpanElement>(null);
   const shadow = useRef<HTMLImageElement>(null);
@@ -107,6 +113,7 @@ export function Hero({ active }: { active: boolean }) {
     let last = performance.now();
     let raf = 0;
     let stopped = false;
+    let lastPx = NaN;
     let wasWalking = false;
     let lastDir: Dir = 'south';
     const tick = (now: number) => {
@@ -138,6 +145,16 @@ export function Hero({ active }: { active: boolean }) {
         if (d !== lastDir) setDir((lastDir = d));
       }
       if (moving !== wasWalking) setWalking((wasWalking = moving));
+      // Ease the camera toward the hero and slide the world under the view, in whole screen pixels so the
+      // pixel art doesn't shimmer.
+      const target = cameraFor(pos.current.x);
+      cam.current += (target - cam.current) * Math.min(1, dt * CAMERA_EASE);
+      if (Math.abs(target - cam.current) < 0.05) cam.current = target;
+      const world = sprite.current?.closest<HTMLElement>('.world');
+      if (world) {
+        const px = Math.round((cam.current / WORLD_W) * world.offsetWidth);
+        if (px !== lastPx) world.style.transform = `translateX(${-(lastPx = px)}px)`;
+      }
       raf = requestAnimationFrame(tick);
     };
     roadsReady.then(() => {
@@ -157,7 +174,7 @@ export function Hero({ active }: { active: boolean }) {
   }, [active]);
 
   const box = place(Math.round(pos.current.x), Math.round(pos.current.y));
-  const size = { width: `${((FRAME * SCALE) / SCENE_W) * 100}%`, height: `${((FRAME * SCALE) / SCENE_H) * 100}%` };
+  const size = { width: `${((FRAME * SCALE) / WORLD_W) * 100}%`, height: `${((FRAME * SCALE) / WORLD_H) * 100}%` };
   const row = { '--row': DIRS.indexOf(dir) } as CSSProperties;
   return (
     <>
@@ -167,7 +184,7 @@ export function Hero({ active }: { active: boolean }) {
         src="/empire/heroes/shadow.png"
         alt=""
         aria-hidden="true"
-        style={{ ...box.shadow, width: `${(8 / SCENE_W) * 100}%`, height: `${(2 / SCENE_H) * 100}%` }}
+        style={{ ...box.shadow, width: `${(8 / WORLD_W) * 100}%`, height: `${(2 / WORLD_H) * 100}%` }}
       />
       <span ref={sprite} className={`hero-sprite ${walking ? 'walking' : ''}`} aria-hidden="true" style={{ ...box.sprite, ...size, ...row }} />
     </>

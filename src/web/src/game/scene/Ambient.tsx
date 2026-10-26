@@ -3,9 +3,8 @@
 // so they can move without a ghost underneath. Everything stops for players who prefer reduced motion.
 
 import { useEffect, useState, type CSSProperties } from 'react';
+import { WORLD_H, WORLD_W } from './world';
 
-const SCENE_W = 320;
-const SCENE_H = 180;
 const pct = (v: number, of: number) => `${(v / of) * 100}%`;
 
 const TREES = [
@@ -91,10 +90,10 @@ export function Ambient() {
           alt=""
           style={
             {
-              left: pct(t.x, SCENE_W),
-              top: pct(t.y, SCENE_H),
-              width: pct(t.w, SCENE_W),
-              height: pct(t.h, SCENE_H),
+              left: pct(t.x, WORLD_W),
+              top: pct(t.y, WORLD_H),
+              width: pct(t.w, WORLD_W),
+              height: pct(t.h, WORLD_H),
               '--dur': `${t.dur}s`,
               '--delay': `${t.delay}s`,
             } as CSSProperties
@@ -108,10 +107,10 @@ export function Ambient() {
             className="wind"
             style={
               {
-                top: pct(s.y, SCENE_H),
-                width: pct(s.len, SCENE_W),
+                top: pct(s.y, WORLD_H),
+                width: pct(s.len, WORLD_W),
                 // translate % is relative to the streak itself: cross ~124% of the scene
-                '--cross': `${(124 * SCENE_W) / s.len}%`,
+                '--cross': `${(124 * WORLD_W) / s.len}%`,
                 '--dur': `${s.dur}s`,
                 '--delay': `${s.delay}s`,
               } as CSSProperties
@@ -124,13 +123,13 @@ export function Ambient() {
           className="leaf"
           style={
             {
-              top: pct(l.y, SCENE_H),
-              width: pct(l.size, SCENE_W),
-              height: pct(l.size, SCENE_H),
+              top: pct(l.y, WORLD_H),
+              width: pct(l.size, WORLD_W),
+              height: pct(l.size, WORLD_H),
               '--dur': `${l.dur}s`,
               '--delay': `${l.delay}s`,
               // translate % is relative to the leaf: cross ~105% of the scene, bob ~10 native px
-              '--cross': `${(105 * SCENE_W) / l.size}%`,
+              '--cross': `${(105 * WORLD_W) / l.size}%`,
               '--bob': `${(10 / l.size) * 100}%`,
               '--drift': `${(l.drift / l.size) * 100}%`,
               background: l.color,

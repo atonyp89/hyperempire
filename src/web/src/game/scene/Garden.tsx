@@ -5,9 +5,8 @@
 // layers so night and morning reach them too.
 
 import { useEffect, useState, type CSSProperties } from 'react';
+import { WORLD_H, WORLD_W } from './world';
 
-const SCENE_W = 320;
-const SCENE_H = 180;
 const FRAME = 16;
 /** The mound's bottom row inside the 16x16 frame. */
 const SRC_FEET_Y = 14;
@@ -42,10 +41,10 @@ export function Garden() {
       {PLANTS.map((p, i) => {
         const stage = CYCLE[(step + offset(i)) % CYCLE.length];
         const style = {
-          left: `${((p.x - FRAME / 2) / SCENE_W) * 100}%`,
-          top: `${((p.y - SRC_FEET_Y) / SCENE_H) * 100}%`,
-          width: `${(FRAME / SCENE_W) * 100}%`,
-          height: `${(FRAME / SCENE_H) * 100}%`,
+          left: `${((p.x - FRAME / 2) / WORLD_W) * 100}%`,
+          top: `${((p.y - SRC_FEET_Y) / WORLD_H) * 100}%`,
+          width: `${(FRAME / WORLD_W) * 100}%`,
+          height: `${(FRAME / WORLD_H) * 100}%`,
           backgroundPositionX: `${(stage / 3) * 100}%`,
           animationDelay: `${-(i % 5) * 0.7}s`,
         } as CSSProperties;
