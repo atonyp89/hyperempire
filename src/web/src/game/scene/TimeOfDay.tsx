@@ -24,6 +24,9 @@ const GLOWS: { x: number; y: number; r: number; kind: 'lamp' | 'door' | 'window'
   { x: 30, y: 72, r: 12, kind: 'window' },
   { x: 57, y: 72, r: 9, kind: 'window' },
   { x: 156, y: 57, r: 7, kind: 'window' },
+  // Mine: shaft entrance and the lantern post beside it.
+  { x: 281, y: 145, r: 12, kind: 'door' },
+  { x: 296, y: 147, r: 6, kind: 'window' },
   // Workshop (east strip): door and gable window.
   { x: 408, y: 104, r: 14, kind: 'door' },
   { x: 407, y: 81, r: 7, kind: 'window' },
