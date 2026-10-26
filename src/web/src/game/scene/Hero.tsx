@@ -16,7 +16,7 @@ const SCALE = 0.8;
 /** Where the feet sit inside a 32x32 frame. */
 const SRC_FEET = { x: 16, y: 27 };
 /** Starting spot: the plaza in front of the Townhall door. */
-const START = { x: 156, y: 102 };
+const START = { x: 316, y: 102 };
 /** Walking speed in scene pixels per second. */
 const SPEED = 42;
 /** How far the feet may go: inside the scene, a little in from the edges. */

@@ -8,9 +8,9 @@ import { WORLD_H, WORLD_W } from './world';
 const pct = (v: number, of: number) => `${(v / of) * 100}%`;
 
 const TREES = [
-  { src: '/empire/trees/tree1.png', x: 88, y: 40, w: 19, h: 23, dur: 3.4, delay: 0 },
-  { src: '/empire/trees/tree2.png', x: 253, y: 79, w: 18, h: 22, dur: 3.9, delay: -1.3 },
-  { src: '/empire/trees/tree3.png', x: 239, y: 119, w: 19, h: 22, dur: 3.1, delay: -2.1 },
+  { src: '/empire/trees/tree1.png', x: 248, y: 40, w: 19, h: 23, dur: 3.4, delay: 0 },
+  { src: '/empire/trees/tree2.png', x: 413, y: 79, w: 18, h: 22, dur: 3.9, delay: -1.3 },
+  { src: '/empire/trees/tree3.png', x: 399, y: 119, w: 19, h: 22, dur: 3.1, delay: -2.1 },
 ];
 
 /** Fixed wind streaks: row (native px), length (native px), loop duration and offset (s). */

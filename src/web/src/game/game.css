@@ -21,10 +21,10 @@
 /* ---------------------------------------------------------- Empire scene */
 .game .scene-wrap { flex: 1; display: flex; align-items: center; justify-content: center; background: #4a4d44; padding: 12px; }
 /* The scene box is as tall as the space allows (16:9 at most narrow), then grows wider, up to the whole
-   480x180 world (8:3), so wide screens show more of the town before the camera needs to scroll. */
-.game .scene { --h: min(calc(100vh - 90px), calc((100vw - 24px) * 9 / 16)); position: relative; height: var(--h); width: min(100%, calc(var(--h) * 8 / 3)); border: 2px solid var(--ink); overflow: hidden; }
-/* The world (world.ts) keeps its 480:180 shape at the box's height; the camera slides it when it's wider than the box. */
-.game .world { position: absolute; left: 0; top: 0; height: 100%; aspect-ratio: 480 / 180; will-change: transform; }
+   640x180 world (32:9), so wide screens show more of the town before the camera needs to scroll. */
+.game .scene { --h: min(calc(100vh - 90px), calc((100vw - 24px) * 9 / 16)); position: relative; height: var(--h); width: min(100%, calc(var(--h) * 32 / 9)); border: 2px solid var(--ink); overflow: hidden; }
+/* The world (world.ts) keeps its 640:180 shape at the box's height; the camera slides it when it's wider than the box. */
+.game .world { position: absolute; left: 0; top: 0; height: 100%; aspect-ratio: 640 / 180; will-change: transform; }
 .game .scene-img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; display: block; }
 .game .hotspot { position: absolute; padding: 0; border: 2px solid transparent; background: transparent; cursor: default; }
 .game .hotspot.ready { cursor: pointer; }

@@ -340,7 +340,7 @@ Built in `src/web` (Vite + React + wagmi + the Hyperliquid TS SDK):
 - **Empire scene:** a PixelLab-generated town (`design/scene/townhall-pixellab.png`); building hotspots with shape-following hover highlights from cut-out sprites.
 - **Exchange modal:** live trading on Hyperliquid testnet with the builder code, builder-fee and agent onboarding, positions, orders and fills with $aura per fill.
 - **Townhall modal:** level and progress, risky upgrade, the three-branch perk tree with PixelLab icons, respec and building caps.
-- **Town:** a 480×180 world with a camera that follows a walkable knight hero. The Workshop and the Mine already stand in the east strip as "coming soon" buildings, and the Garden grows wheat.
+- **Town:** a 640×180 world with a camera that follows a walkable knight hero: a west strip with a big Garden (seven plots of wheat), the original town, and an east strip where the Workshop and the Mine already stand as "coming soon" buildings, and the Garden grows wheat.
 
 **Where $aura lives today:** nowhere permanent. Earned $aura is recalculated in the browser from each fill's `builderFee` × 500 (an estimate: it also counts other builders' fees, and Hyperliquid returns only recent fills). Townhall level, perks and $aura spent are kept in the browser's localStorage per wallet. The perk fee discount is display-only. The AURA token, Townhall contract, fee indexer and RewardDistributor are the next things to build.
 

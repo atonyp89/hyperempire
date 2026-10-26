@@ -1,4 +1,4 @@
-// Wheat growing in the Garden's two plots: each plant goes seed → sprout → young → ripe, stays ripe a while,
+// Wheat growing in the Garden's plots (the original two plus five in the west strip): each plant goes seed → sprout → young → ripe, stays ripe a while,
 // then is "harvested" back to seed. Plants start at different points of the cycle, so the field always shows
 // a mix, spaced 11-12px apart so the plot's furrows show between plants. Sprites: public/empire/crops/wheat.png
 // (4 stages of 16x16, made with PixelLab; see design/sprites/crops/README.md). Drawn under the time-of-day
@@ -18,11 +18,13 @@ const STEP_S = 18;
 
 /** Where each plant's mound sits (centre x, bottom y), in native scene pixels: on the raised soil of each plot. */
 const PLANTS: { x: number; y: number }[] = [
-  // Left plot: horizontal furrows, x 6-40, y 125-170.
-  ...[142, 154, 166].flatMap((y) => [12, 23, 34].map((x) => ({ x, y }))),
-  // Right plot: vertical furrows, x 42-70; the bush covers its bottom-right corner.
-  ...[142, 154].flatMap((y) => [50, 62].map((x) => ({ x, y }))),
-  { x: 50, y: 166 },
+  // West strip plots (x 7-41, 45-71, 75-88, 93-126, 130-157), added when the world grew west.
+  ...[142, 154, 166].flatMap((y) => [13, 24, 35, 51, 63, 81, 99, 110, 121, 137, 149].map((x) => ({ x, y }))),
+  // Left original plot: horizontal furrows, x 166-200, y 125-170.
+  ...[142, 154, 166].flatMap((y) => [172, 183, 194].map((x) => ({ x, y }))),
+  // Right original plot: vertical furrows, x 202-230; the bush covers its bottom-right corner.
+  ...[142, 154].flatMap((y) => [210, 222].map((x) => ({ x, y }))),
+  { x: 210, y: 166 },
 ];
 
 /** A fixed, varied start for each plant, so neighbours are rarely at the same stage. */
