@@ -1,6 +1,6 @@
 # HyperEmpire — Game Design
 
-Oct 25, 2026 · formerly "HyperHero" and "Degen Empire"
+Oct 26, 2026 · formerly "HyperHero" and "Degen Empire"
 
 ## Pitch
 
@@ -38,23 +38,28 @@ The main screen is a top-down town. Each building is a hotspot: hovering highlig
 | --- | --- | --- |
 | **Townhall** | Main progression: level up with $aura, earn perk points, set every other building's level cap | 1 |
 | **Exchange** | The trading UI: Hyperliquid perps with our builder code; every fill earns $aura. Levels add a fee discount | 1 |
-| **Tavern** | Recruit heroes with random tiers; reroll them | 2 |
-| **Garden** | Plant seeds, wait, harvest materials and potions | 3 |
+| **Tavern** | Recruit characters with random grades: Miners first, heroes later | 2 |
+| **Workshop** | Craft Picks for Miners (later: gear); repair worn Picks | 2 |
+| **Mine** | Send Miners to dig; a block of rewards every 60 s, split by mining power | 2 |
+| **Garden** | Plant seeds, wait, harvest materials and potions | later |
 
 ## Roadmap
 
 | Phase | Adds |
 | --- | --- |
 | 1 (now) | Exchange (trading UI, builder code); $aura from fees; empire mint with 5,000 starter $aura; Townhall leveling, risky upgrades, perk tree (Trader branch live); Season 0 leaderboard by Townhall level; creator referral codes |
-| 2 | Tavern: tiered hero recruits and rerolls; hero stats; adventures and the free daily run; Fighter perks go live |
-| 3 | Garden, crafting, materials, gear NFTs (5 slots, SPD); Crafter perks go live |
-| 4 | Creator live gifting and overlay, $aura transfers and a liquidity pool, PvP |
+| 2 | **Mining:** Tavern recruits Miners, Workshop crafts and repairs Picks, the Mine pays block rewards; the game backend; the Foreman perk goes live |
+| 3 | Tavern heroes: tiered recruits and rerolls, hero stats, adventures and the free daily run; Fighter perks go live |
+| 4 | Garden, materials, gear crafting and gear NFTs (5 slots, SPD); the rest of the Crafter perks go live |
+| 5 | Creator live gifting and overlay, $aura transfers and a liquidity pool, PvP |
+
+Phases 3–5 keep their old order behind mining; their order is still open.
 
 Phase 1 details:
 
 - **Exchange:** Hyperliquid perps with our builder code; one-time builder-fee approval at the 0.1% cap, 0.05% charged at launch; market and limit orders, TP/SL, leverage, positions and PnL, "$aura earned" on every fill. Core trading features are never locked behind levels.
 - **Sinks:** Townhall levels, failed upgrade attempts and perk respecs. Leaderboard prizes put $aura back, so the prize pool stays small next to what they burn.
-- **Banked perk points:** Fighter and Crafter points can be spent now and start working in Phases 2–3.
+- **Banked perk points:** Fighter and Crafter points can be spent now and start working when their features ship (Foreman with mining in Phase 2).
 - **Creator referral codes:** a referrer earns a share of the builder fees from traders they bring in, paid in USDC. Share to decide, 10–20%.
 
 ## Core loop
@@ -67,10 +72,11 @@ flowchart LR
   P -- "Trader perks: lower fees, more $aura" --> X
   T --> B["Leaderboard<br/>top 1,000 by Townhall level"]
   B -- "prizes from fee pool" --> E
-  T -- "caps & unlocks" --> V["Tavern (P2) · Garden (P3)"]
+  T -- "caps, Foreman perk: miner slots" --> V["Tavern · Workshop · Mine (P2)"]
+  V -- "block rewards" --> E
 ```
 
-Trading is the only source of new $aura. Townhall levels, failed upgrades and respecs burn it, and leaderboard prizes come from fees, not new emissions.
+$aura has two sources. **Trading** mints it from builder fees, so it's backed by revenue. **The Mine** (Phase 2) emits a fixed block reward that the team sets each week or season. Mining emission isn't backed by fees, so it's kept small next to what trading mints and what mining burns (see [Mining](#mining-phase-2)). Townhall levels, failed upgrades, respecs, recruits, crafts, failed merges, food and repairs burn $aura; leaderboard prizes come from fees.
 
 ## Earning $aura
 
@@ -113,11 +119,12 @@ Each Townhall level gives **1 perk point**. Players spend points on perk ranks i
 | --- | --- | --- | --- |
 | 1 | **Lower fees** −1% builder fee per rank (0/5) | **Drill** +1 ATK and DEF for all heroes per rank (0/5) | **Green thumb** −5% garden growth time per rank (0/5) |
 | 1 | **Streak** +1% $aura per rank for each day of your trading streak, 7 days max (0/3) | **Barracks** +1 hero slot in the Tavern per rank (0/3) | **Salvager** +5% materials from salvage per rank (0/5) |
+| 1 | — | — | **Foreman** +1 Miner slot per rank (0/5); live in Phase 2 |
 | 2 | **Market maker** +5% $aura on maker fills per rank (0/3) | **Scout** +3% adventure success odds per rank (0/5) | **Steady hands** +3% craft quality odds per rank (0/5) |
 | 2 | **Patron** +5% referral share per rank (0/3) | **Swift march** −5% adventure lock time per rank (0/3) | **Bulk forge** −5% $aura cost to craft per rank (0/3) |
 | 3 | **Whale's ear** once a day, 10% of one trade's builder fee back as $aura (0/1) | **Warlord** heroes start every adventure with a free buff (0/1) | **Master artisan** crafts can roll one extra affix (0/1) |
 
-Points spent in Fighter or Crafter before Phases 2–3 are banked and start working when heroes and crafting arrive.
+Points spent in Fighter or Crafter before their features ship are banked and start working when they arrive. Foreman is the first Crafter perk to go live, with mining.
 
 ## Exchange
 
@@ -128,7 +135,85 @@ The Exchange building is the trading UI. It opens from the scene (or `#exchange`
 - **Levels:** Exchange levels add a fee discount, shared with Trader perks under the −40% cap. Exchange level can't exceed Townhall level.
 - **Never gated:** market and limit orders, TP/SL and all markets are available from level 1.
 
-## Tavern and heroes (Phase 2)
+## Mining (Phase 2)
+
+Players recruit **Miners**, equip them with **Picks**, and send them to the **Mine**. Every 60 seconds the Mine produces a block of rewards, shared by mining power, like Bitcoin mining. It's the first gacha loop, and it ties together the Townhall, Exchange, Tavern, Workshop and Mine.
+
+```mermaid
+flowchart LR
+  EX["Exchange<br/>trade → $aura"] --> A(("$aura"))
+  A --> TH["Townhall<br/>levels, Foreman perk = slots"]
+  A --> TV["Tavern<br/>recruit Miners"]
+  A --> WS["Workshop<br/>craft and repair Picks"]
+  A --> FD["Food<br/>recharge Miners"]
+  TV --> M["Miners"]
+  WS --> P["Picks"]
+  M --> MG{{"Merge 2 → 1"}}
+  P --> MG
+  M --> MI["Mine<br/>block every 60 s"]
+  P --> MI
+  TH -. "slots" .-> MI
+  MI -- "$aura (later: BTC, ETH, oil…)" --> A
+```
+
+### Grades
+
+Miners and Picks share five grades. Mythic is kept for heroes.
+
+| Grade | Recruit / craft odds | Merge into next grade | Miner power | Pick multiplier |
+| --- | --- | --- | --- | --- |
+| Common | 70% | 50% | 10 | ×1.1 |
+| Uncommon | 22% | 40% | 35 | ×1.25 |
+| Rare | 6.5% | 30% | 150 | ×1.5 |
+| Epic | 1.4% | 15% | 800 | ×2 |
+| Legendary | 0.1% | — | 6,000 | ×3 |
+
+- **Recruit and craft:** recruiting a Miner at the Tavern (1,000 $aura) or crafting a Pick at the Workshop (600 $aura) rolls a random grade. The $aura burns. Prices are starting points.
+- **Merge:** two of the same type and grade make one of the next grade. A failure destroys both. There's no way to raise the odds. The result starts with full energy or durability.
+- **Legendary is meant to be very rare:** merging up to one takes about 1,800 Commons on average (Epic about 133), and recruiting one directly is 1 in 1,000.
+- **Power vs cost:** each grade's power sits a little below its average cost in Commons (Uncommon 35 vs 40, Epic 800 vs 1,333). Merging isn't free profit; it's how players fit more power into limited slots, and failures burn a lot.
+- **Pity (optional):** a guaranteed Rare or better every 30 recruits. None for Epic or Legendary.
+
+### Power and slots
+
+- **Power:** a Miner's power = Miner power × Pick multiplier. One Pick per Miner; with no Pick, or a broken one, the Miner mines at ×1.
+- **Slots:** only Miners in a slot mine. A Townhall starts with **3 slots**; the Foreman perk adds 1 per rank, **8 at most**.
+- **No cap:** one player's total power is not capped.
+
+### Upkeep
+
+- **Hunger:** Miners are people and get hungry. Each has energy from 0 to 100 that drains while it mines; a full meal lasts about 24 hours, and at 0 it stops until fed. Feeding costs $aura and grows with grade (a day's food: Common 20, Uncommon 60, Rare 220, Epic 1,000, Legendary 6,000).
+- **Durability:** a Pick wears down every block it mines (about 1 day for a Common, 7 for a Legendary). A broken Pick stays equipped with no bonus until the Workshop repairs it for $aura; cost grows with grade and wear.
+- **Tuning rule:** a grade's daily upkeep is about 30–40% of what it is expected to earn at the network power we target, so mining pays but always needs topping up. Recalculated whenever block rewards change.
+
+### Blocks and pools
+
+- **Block:** every 60 seconds. Each reward type ($aura first; later others such as BTC, ETH or oil) has its own block reward, **set manually each week or season** and announced ahead.
+- **Two pools per reward:** half of each reward's block goes to its **shared pool**, split by share of power among the Miners in it. The other half goes to its **rush pool**: one winner per block, picked with odds set by power. The split can differ per reward.
+- **One pool per Miner:** each Miner works in exactly one pool, for example $aura shared or BTC rush. With two rewards there are four pools and three base slots, so placement is a real choice.
+- **Rush pools can be switched off** per reward. Whether they launch is decided later.
+- **Switching costs time:** moving a Miner to another pool takes it out for a few blocks while it walks. Power is counted at the start of each block, so nobody can jump in just before a payout.
+- **Offline mining:** deployed Miners keep mining while the player is away, until they run out of energy.
+- **Example:** an $aura block of 100 pays 50 to the shared pool and 50 to the rush pool. With 10% of the shared pool's power you get 5 $aura every block; with 10% of the rush pool's power you have a 10% chance at 50 each block.
+
+### The Mine screen
+
+Players choose their own pools, so the Mine shows the numbers:
+
+- **For each pool:** its total power, its reward per block and the reward per 1,000 power per day.
+- **For the player:** expected earnings per day for their own power, and in rush pools their chance per block and the average wait between wins (e.g. "1.2% per block, ~1 win every 83 min").
+- **Move preview:** before a Miner switches pools, a preview of the change, e.g. "Move Rare (150) to BTC shared: +0.00002 BTC/day, −12 $aura/day, 3 blocks walking".
+
+### Guardrails
+
+- **Emission stays small:** the team sets block rewards so that mining emits well below the $aura minted from fees in the same period, and below what mining burns in recruits, crafts, failed merges, food and repairs.
+- **Fair rolls:** every recruit, craft, merge and block draw runs on the backend. Block draws use commit-reveal: a hidden seed is published before each period and revealed after, so anyone can check them.
+- **Real-asset prizes need a legal read:** a rush pool that pays real BTC to players who paid $aura for random Miners is the most gambling-like part of the design. $aura stays non-transferable, which helps. Shared pools, split by power, are easier to defend.
+
+## Tavern and heroes (Phase 3)
+
+Heroes come after Miners; both are characters recruited at the Tavern.
+
 
 The Tavern recruits heroes. Every recruit rolls a random tier, which sets the hero's total base stats; that total is split randomly across five stats.
 
@@ -168,11 +253,13 @@ Tuning target: expected value below 1× for weak heroes, about 1.1× for strong 
 
 Idea under consideration: make adventures a watchable idle auto-battle with a perk draft (see Epic Idle Journey) instead of a timer and odds.
 
-## Garden (Phase 3)
+## Garden (later)
 
 Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid players. The harvest is **materials and potions, never $aura**, so the Garden can't print currency. Seeds come from adventures or are bought with $aura. Green thumb (Crafter) speeds growth.
 
-## Crafting, gear and materials (Phase 3)
+## Crafting, gear and materials (later)
+
+The Workshop crafts Picks in Phase 2; gear crafting follows.
 
 Crafting gives low and mid-tier players a role: they turn time and luck into gear NFTs that whales buy.
 
@@ -230,7 +317,7 @@ The top 1,000 empires by **Townhall level** share a prize pool funded by a fixed
 
 ## Architecture
 
-The empire, buildings, heroes and $aura live on HyperEVM; only the fee-to-reward calculation runs off-chain, because fill history sits on HyperCore.
+The empire, buildings, heroes and $aura live on HyperEVM; the fee-to-reward calculation runs off-chain, because fill history sits on HyperCore. Mining (Phase 2) runs on a game backend: a 60-second block lottery and its rolls need a server, and $aura is non-transferable anyway. Characters and items are stored as generic records (type, grade, stats, energy or durability), so heroes and other character types fit in later.
 
 Data path: HyperCore fills with our builder code → indexer totals fees per wallet each epoch → Merkle root posted on-chain → players claim $aura.
 
@@ -243,15 +330,17 @@ Data path: HyperCore fills with our builder code → indexer totals fees per wal
 | Tavern + HeroNFT (Phase 2) | HyperEVM | Tiered recruits, rerolls, hero stats |
 | Adventure (Phase 2) | HyperEVM | Locks a hero, resolves with stats and randomness |
 | Fee indexer | Off-chain | Reads builder fills, computes rewards, posts roots; later multi-signer |
+| Game backend (Phase 2) | Off-chain | $aura ledger credited by the fee indexer; Miners and Picks (grade, energy, durability); recruit, craft and merge rolls; block draws every 60 s with commit-reveal; Townhall state, since slots depend on it |
 | Referral service | Off-chain | Records referral codes and pays the USDC fee share |
 
-## Where things stand (Oct 25, 2026)
+## Where things stand (Oct 26, 2026)
 
 Built in `src/web` (Vite + React + wagmi + the Hyperliquid TS SDK):
 
 - **Empire scene:** a PixelLab-generated town (`design/scene/townhall-pixellab.png`); building hotspots with shape-following hover highlights from cut-out sprites.
 - **Exchange modal:** live trading on Hyperliquid testnet with the builder code, builder-fee and agent onboarding, positions, orders and fills with $aura per fill.
 - **Townhall modal:** level and progress, risky upgrade, the three-branch perk tree with PixelLab icons, respec and building caps.
+- **Town:** a 480×180 world with a camera that follows a walkable knight hero. The Workshop and the Mine already stand in the east strip as "coming soon" buildings, and the Garden grows wheat.
 
 **Where $aura lives today:** nowhere permanent. Earned $aura is recalculated in the browser from each fill's `builderFee` × 500 (an estimate: it also counts other builders' fees, and Hyperliquid returns only recent fills). Townhall level, perks and $aura spent are kept in the browser's localStorage per wallet. The perk fee discount is display-only. The AURA token, Townhall contract, fee indexer and RewardDistributor are the next things to build.
 
@@ -268,5 +357,10 @@ Built in `src/web` (Vite + React + wagmi + the Hyperliquid TS SDK):
 - [ ] Randomness source on HyperEVM: VRF provider, or commit-reveal
 - [ ] Daily emission cap per empire, in $aura
 - [ ] Legal review of rewards tied to leveraged trading, and region restrictions
+- [ ] Mining: launch rush pools or shared only; first block reward sizes
+- [ ] Mining: recruit, craft, food and repair prices; walking time between pools; pity on or off
+- [ ] Mining: funding and payout of real-asset rewards (BTC and others), and whether their rush pools ever launch
+- [ ] Game backend vs on-chain: when, if ever, $aura balances and Miners move on-chain
+- [ ] Phase order after mining (heroes, Garden and gear, creators)
 
 Sources for builder fee rates: [Datawallet on Phantom](https://www.datawallet.com/crypto/phantom-perpetuals-review), [CryptoTicker on MetaMask](https://cryptoticker.io/en/metamask-dex/reviews/), [CoinGecko builder rankings](https://www.coingecko.com/research/publications/top-hyperliquid-builders).

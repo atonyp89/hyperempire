@@ -1,6 +1,6 @@
 # HyperEmpire — design decisions log
 
-How the MVP rules in [mvp-design.md](mvp-design.md) were reached. As of Oct 23, 2026.
+How the MVP rules in [mvp-design.md](mvp-design.md) were reached. As of Oct 26, 2026.
 
 ## Decided
 
@@ -52,6 +52,21 @@ How the MVP rules in [mvp-design.md](mvp-design.md) were reached. As of Oct 23, 
 | Art direction | Muted top-down RPG town; the main scene is generated with PixelLab (Create Image Pro, style reference); icons with Pixflux in the scene palette | PixelLab output matched the reference far better than hand-drawn generators |
 | Building hover | Shape-following highlight from cut-out sprites (`design/scene/cutout.py`), not a box | Highlights read as the building itself |
 | Townhall state (temporary) | Level, perks and $aura spent kept in browser storage per wallet until the Townhall contract ships; perk fee discount is display-only | Lets the UI ship before contracts; display-only stops self-granted discounts |
+| **Mining is Phase 2** (Oct 26) | The first gacha loop: Tavern recruits Miners, Workshop crafts Picks, the Mine pays block rewards; heroes follow later | Uses the Townhall, Exchange, Tavern, Workshop and Mine together, and gives $aura sinks beyond the Townhall |
+| Character types | Miners first, heroes later, more types after; all stored as one generic character record | Heroes and others fit in without a rework |
+| Grades | Common / Uncommon / Rare / Epic / Legendary for Miners and Picks; recruit and craft odds 70 / 22 / 6.5 / 1.4 / 0.1%; Mythic stays for heroes | Legendary must be extremely hard to get (1 in 1,000 by roll, ~1,800 Commons by merging) |
+| Merging | Two of the same type and grade make one of the next (50 / 40 / 30 / 15% success); a failure destroys both; no $aura boost | Simple flow; failures are a large $aura sink |
+| Picks | Crafted at the Workshop with the same grades and merge rules; multiply a Miner's power; have durability and are repaired with $aura | A second collection and a recurring sink |
+| Hunger | Miners have energy, drain it while mining, stop at 0, and are fed with $aura | Miners are people; upkeep keeps $aura flowing out as power grows |
+| Miner slots | Base 3, +1 per rank of the Crafter perk **Foreman** (5 ranks, 8 max) | Limited slots make merging and pool choice matter, and tie mining to the Townhall |
+| Block reward | Fixed per block, every 60 s; set manually per reward each week or season | Bitcoin-like and easy to tune; the team controls emission |
+| Pools | Each reward has a shared pool (split by power) and a rush pool (one winner per block, odds by power), 50/50 by default; rush pools can be switched off and their launch is decided later | Steady income plus jackpot moments, without committing to the lottery yet |
+| One pool per Miner | Each Miner works in exactly one pool; moving costs a few blocks of walking; power counted at the start of each block | Placement is a real choice; no jumping in before a payout |
+| Pool choice is the player's | The Mine shows each pool's payout per power and the player's expected earnings and odds | Players decide with real numbers instead of guesses |
+| Other rewards | BTC, ETH, oil and others are set up manually per week or season, each with its own pools | Lets seasons feature different prizes |
+| No power cap | One player's mining power is not capped | Pay-to-win stays allowed, as on the leaderboard |
+| $aura stays non-transferable | Confirmed for mining | Keeps mining rewards in-game and lowers gambling-law risk |
+| Game backend | Balances, inventory, rolls and block draws run on a backend, with commit-reveal draws players can check | A 60 s block lottery can't run in the browser, and on-chain draws every minute are costly |
 
 ## Farming math
 
