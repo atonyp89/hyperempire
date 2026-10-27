@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { BUILDER_FEE_RATE } from '../../trading';
-import { BRANCHES, BUILDING_CAPS, FEE_DISCOUNT_CAP, PERKS, TIER_POINTS, branchSpent } from '../lib/empire';
+import { AURA_PER_USD_FEE, BUILDER_FEE_RATE } from '../../trading';
+import { BRANCHES, BUILDING_CAPS, STARTER_AURA, FEE_DISCOUNT_CAP, PERKS, TIER_POINTS, branchSpent } from '@server/contract';
 import { fmtAura } from '../../shared/format';
+import { API_MODE } from '../../shared/api';
 import type { UpgradeResult, useTownhall } from '../hooks/useTownhall';
 import { BuildingModal } from '../../shared/ui/BuildingModal';
 
@@ -11,22 +12,58 @@ type Props = { open: boolean; onClose: () => void; townhall: Townhall };
 export function TownhallModal({ open, onClose, townhall: t }: Props) {
   return (
     <BuildingModal open={open} onClose={onClose} title="THE TOWNHALL" subtitle={<>Level up your empire · earn perk points · set building caps</>}>
-      <div className="th-grid">
-        <Overview t={t} />
-        <Upgrade t={t} />
-        <Perks t={t} />
-        <Caps t={t} />
-      </div>
+      {t.ready ? (
+        <div className="th-grid">
+          <Overview t={t} />
+          <Upgrade t={t} />
+          <Perks t={t} />
+          <Caps t={t} />
+        </div>
+      ) : (
+        <SignIn t={t} />
+      )}
+      {t.error && t.ready && (
+        <div className="notice err" role="alert">
+          {t.error}
+        </div>
+      )}
       <p className="muted small th-note">
-        Preview: Townhall progress is saved in this browser until the Townhall contract ships. $aura here = {fmtAura(5000)} starter + estimated
-        $aura from your fills − what you spend in the Townhall.
+        $aura = {fmtAura(STARTER_AURA)} starter + {fmtAura(AURA_PER_USD_FEE)} per $1 of builder fees on your fills − what you spend. Progress is kept by
+        the HyperEmpire server{API_MODE === 'local' ? ' (running in this browser while in development)' : ''}.
       </p>
     </BuildingModal>
   );
 }
 
+/** Before the Townhall loads: connect a wallet, then sign one message to start a session. */
+function SignIn({ t }: { t: Townhall }) {
+  const s = t.session;
+  return (
+    <section className="panel th-signin" aria-label="Sign in">
+      <img className="th-sprite" src="/empire/townhall.png" alt="Your Townhall" />
+      {!s.address ? (
+        <div className="muted">Connect your wallet to enter your Townhall.</div>
+      ) : t.loading ? (
+        <div className="muted">Opening your Townhall…</div>
+      ) : (
+        <>
+          <div className="muted small">Sign a message with your wallet to prove it’s you. It’s free and sends no transaction.</div>
+          <button type="button" className="btn primary big" disabled={s.signingIn} onClick={() => void s.signIn()}>
+            {s.signingIn ? 'CHECK YOUR WALLET…' : 'SIGN IN'}
+          </button>
+          {(s.error ?? t.error) && (
+            <div className="notice err" role="alert">
+              {s.error ?? t.error}
+            </div>
+          )}
+        </>
+      )}
+    </section>
+  );
+}
+
 function Overview({ t }: { t: Townhall }) {
-  const pct = Math.min(100, Math.round((t.balance / t.nextCost) * 100));
+  const pct = t.nextCost ? Math.min(100, Math.round((t.balance / t.nextCost) * 100)) : 0;
   return (
     <section className="panel th-overview" aria-label="Townhall level">
       <img className="th-sprite" src="/empire/townhall.png" alt="Your Townhall" />
@@ -57,6 +94,10 @@ function Upgrade({ t }: { t: Townhall }) {
   const [result, setResult] = useState<UpgradeResult | null>(null);
   const attempt = Math.round((t.nextCost * chance) / 100);
   const affordable = attempt <= t.balance;
+  const go = async () => {
+    setResult(null);
+    setResult(await t.upgrade(chance).catch(() => null));
+  };
 
   return (
     <section className="panel th-upgrade" aria-label="Upgrade the Townhall">
@@ -81,8 +122,8 @@ function Upgrade({ t }: { t: Townhall }) {
       <div className="th-cost mono">
         <span className="muted">Cost</span> <span className="gold">{fmtAura(attempt)} $aura</span> <span className="muted">· {chance}% chance</span>
       </div>
-      <button type="button" className="btn primary big" disabled={!affordable} onClick={() => setResult(t.upgrade(chance))}>
-        {affordable ? (chance === 100 ? 'UPGRADE' : `TRY UPGRADE · ${chance}%`) : 'NOT ENOUGH $AURA'}
+      <button type="button" className="btn primary big" disabled={!affordable || t.busy} onClick={() => void go()}>
+        {t.busy ? 'ROLLING…' : affordable ? (chance === 100 ? 'UPGRADE' : `TRY UPGRADE · ${chance}%`) : 'NOT ENOUGH $AURA'}
       </button>
       {result && (
         <div className={`notice ${result.ok ? 'ok' : 'err'}`} role="status">
@@ -99,7 +140,7 @@ function Perks({ t }: { t: Townhall }) {
     <section className="panel th-perks" aria-label="Perks">
       <div className="th-perks-head">
         <span className="label">PERKS · {t.points} POINT{t.points === 1 ? '' : 'S'} TO SPEND</span>
-        <button type="button" className="btn ghost small" disabled={Object.keys(t.ranks).length === 0 || t.respec > t.balance} onClick={() => t.doRespec()}>
+        <button type="button" className="btn ghost small" disabled={t.busy || Object.keys(t.ranks).length === 0 || t.respec > t.balance} onClick={() => t.doRespec()}>
           RESPEC · {fmtAura(t.respec)}
         </button>
       </div>

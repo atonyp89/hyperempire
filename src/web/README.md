@@ -7,7 +7,7 @@ Phase 1 trading frontend. Users trade Hyperliquid perps through HyperEmpire's bu
 Vite 8 needs Node 20.19+ (or 22.12+). With the Node on this machine (20.18), run it through Bun:
 
 ```bash
-bun install
+bun install && (cd ../server && bun install)   # the web app bundles the server for local mode
 bun --bun run dev        # http://localhost:5173
 bun --bun run build
 bun test                 # price/size rounding and $aura math
@@ -26,7 +26,7 @@ Copy `.env.example` to `.env.local` and set `VITE_BUILDER_ADDRESS`. Until it is 
 - **Ambient life** (`game/scene/Ambient.tsx`): three cut-out trees sway from the trunk, wind streaks drift across, and every 7–13 s a gust bends the trees harder and blows 6–10 pixel leaves over the town. The scene image is `public/empire/town-base.png` (the PixelLab town with those trees painted out). All motion stops under `prefers-reduced-motion`.
 - **Hero** (`game/scene/Hero.tsx`): knight #5 starts on the plaza in front of the Townhall door. **WASD or the arrow keys** walk it around the town in 8 directions at 42 scene px/s, snapped to the scene's pixel grid, drawn at 0.8×. It can only walk on the roads: `public/empire/walkable.png` (from `design/scene/walkable.py`) marks the plaza, the path between the pools and the dirt roads, the feet (5px wide) must stay on it, and a blocked diagonal slides along the road edge. Keys are ignored while a building screen is open or a text field has focus. Sheets in `public/empire/heroes/knight5/` are 4 frames × 8 directions of 32×32: `walk.png` (PixelLab skeleton walk, 0.56s loop) and `idle.png` (head, torso and sword dip 1px, 1.6s loop), over an 8×2 pixel shadow (`heroes/shadow.png`). The hero sits above the hotspots so hover highlights never hide it, lets clicks through, and takes a per-phase filter in place of the time-of-day washes.
 - **Time of day** (`game/hooks/useDayPhase.ts`, `game/scene/TimeOfDay.tsx`): follows the player's local clock. Morning (05:00–11:59) adds a soft-light golden grade (keeps pixel contrast), a sun glow, slow diagonal sunbeams, drifting motes, and warm sun glints twinkling on both pools; evening (12:00–18:59) is the scene as painted; night (19:00–04:59) tints the town dark blue and turns on `public/empire/night-lights.png` (lit windows, doorways, clock, lanterns), flickering lamp glows, fireflies, moonlight from the top-right and a silver moonpath of glints on the pools. The header chip shows the phase; clicking it cycles Auto → Morning → Evening → Night to preview (saved in the browser).
-- **Townhall modal** (`/#townhall`): level, $aura progress, risky upgrade (pay 10–100% of the cost for that chance), the three-branch perk tree (Trader live; Fighter and Crafter bank points for Phases 2–3), respec and building caps. Rules live in `src/game/lib/empire.ts`. Until the Townhall contract ships, progress is saved in the browser per wallet (`useTownhall`), and the $aura balance is 5,000 starter + estimated $aura from fills − Townhall spending. Perk icons in `public/empire/icons/` were generated with PixelLab (Pixflux, scene palette).
+- **Townhall modal** (`/#townhall`): level, $aura progress, risky upgrade (pay 10–100% of the cost for that chance), the three-branch perk tree (Trader live; Fighter and Crafter bank points for Phases 2–3), respec and building caps. Rules live in `src/server/src/rules/empire.ts` (the web app reads them through `@server/contract`). Progress and the $aura balance (5,000 starter + 500 per $1 of builder fee − spending) are kept by the API: the player signs one message (**SIGN IN** in the header), and `useTownhall` reads and changes the Townhall through it. In development the API runs inside the browser; see **API** below. Perk icons in `public/empire/icons/` were generated with PixelLab (Pixflux, scene palette).
 - **Exchange modal** (`/#exchange`, also the header's EXCHANGE link): the trading UI, nearly full screen (up to 1800×980), in three columns. On the left are the market header and account tabs; the market name is a dropdown with search, and Enter picks the first match. In the middle is the **order book**, and on the right the order form. `#exchange` deep-links straight in for players who only trade; Escape or ✕ closes it.
 - **Order book** (`trading/components/OrderBook.tsx`): 12 asks above the spread and 12 bids below, with price, size and cumulative total in coin or USD over depth bars. It polls `l2Book` every second. Clicking a row switches the order form to Limit at that price.
 - **Order form** (`trading/components/OrderPanel.tsx`, math in `trading/lib/orderMath.ts`): laid out like Hyperliquid's (without its Pro order types).
@@ -48,6 +48,13 @@ The theme in `src/shared/styles/base.css` uses colours sampled from the Empire s
 
 Both approvals are signatures, not transactions, so they cost no gas. The account needs USDC on Hyperliquid first. The builder address must hold at least 100 USDC in its perps account before Hyperliquid accepts it.
 
+**API:** game state (the $aura balance, Townhall, and mining next) lives behind the HyperEmpire API in [src/server](../server/README.md) (documented in [docs/backend](../../docs/backend/README.md)). `VITE_API_URL` picks where it runs:
+
+- `local` (the default): the whole server runs inside the browser, with Postgres as PGlite saved in IndexedDB (one database per network, one tab at a time). Every call is still a real HTTP `Request` through the same Hono app, sign-in and all, so the client behaves exactly as it will in production. Clear the site's data to start over.
+- A URL such as `https://api.hyperempire.xyz`: calls that deployed server. Nothing else in the client changes.
+
+`src/shared/api.ts` is the only place that knows the difference.
+
 ## What's here
 
 The code is split into `src/trading/` (Hyperliquid trading) and `src/game/` (game and general UI), plus a small `src/shared/`. A test keeps trading safe from game changes. [src/README.md](src/README.md) has the rules.
@@ -64,13 +71,14 @@ The code is split into `src/trading/` (Hyperliquid trading) and `src/game/` (gam
 | `src/trading/lib/referral.ts` | Captures `?ref=CODE` for creator referrals |
 | `src/trading/hooks/` | Markets, account data, order book, fees, onboarding (builder fee + agent) |
 | `src/trading/components/` | Market header with the dropdown and 24h chart, order book, order panel, positions / orders / fills |
-| `src/game/` | Header, scene (ambient life, time of day, hero), buildings (Townhall, Exchange frame), game rules and progress |
-| `src/shared/` | Network choice, storage, display formatting, wallet config, building modal, error boundary, base styles |
-| `src/architecture.test.ts` | Fails when an import or a stylesheet crosses the trading / game line |
+| `src/game/` | Header, scene (ambient life, time of day, hero), buildings (Townhall, Exchange frame), hooks that read and change game state through the API |
+| `src/shared/` | Network choice, API client (`api.ts`, local or remote) and wallet sign-in (`session.ts`), storage, display formatting, wallet config, building modal, error boundary, base styles |
+| `src/architecture.test.ts` | Fails when an import or a stylesheet crosses the trading / game line, or crosses into or out of the server |
 
 ## Known limits (next steps)
 
-- **$aura shown is an estimate** from each fill's `builderFee`. A fill routed through another builder also has a `builderFee`, so the real amount comes from the fee indexer, which only counts HyperEmpire's builder fills.
+- **$aura credited from fills is an estimate** from each fill's `builderFee` (the API credits it on `/me`). A fill routed through another builder also has a `builderFee`, so the real amount comes from the fee indexer, which only counts HyperEmpire's builder fills.
+- **No Mine screen yet.** The API already has the full mining flow (`/mine`: recruit, merge, feed, deploy, picks, block rewards); the UI is next.
 - **Referral codes** are captured, but not yet sent anywhere. Attribution and USDC fee share need the backend.
 - **Hero level fee discount** isn't applied yet: it needs the HeroNFT contract to read the level.
 - No depth chart, book price grouping or WebSocket streaming yet. The book polls every 1 s, other data every 3–5 s.

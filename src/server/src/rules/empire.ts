@@ -1,4 +1,5 @@
-// Townhall rules: level costs, risky upgrades, perk tree, respec. Numbers follow docs/mvp-design.md.
+// Townhall rules: level costs, risky upgrades, perk tree, respec. Numbers follow docs/economy/game-design.md. The server
+// enforces them; the web app imports the same catalog (through contract.ts) to draw the Townhall screen.
 
 export type BranchId = 'trader' | 'fighter' | 'crafter';
 
@@ -37,6 +38,7 @@ export const PERKS: Perk[] = [
   { id: 'swift-march', branch: 'fighter', tier: 2, name: 'Swift march', effect: '−5% adventure lock time per rank', maxRank: 3, icon: ICON('branch-fighter') },
   { id: 'warlord', branch: 'fighter', tier: 3, name: 'Warlord', effect: 'Heroes start every adventure with a free buff', maxRank: 1, icon: ICON('branch-fighter') },
 
+  { id: 'foreman', branch: 'crafter', tier: 1, name: 'Foreman', effect: '+1 Miner slot in the Mine per rank', maxRank: 5, icon: ICON('branch-crafter') },
   { id: 'green-thumb', branch: 'crafter', tier: 1, name: 'Green thumb', effect: '−5% garden growth time per rank', maxRank: 5, icon: ICON('branch-crafter') },
   { id: 'salvager', branch: 'crafter', tier: 1, name: 'Salvager', effect: '+5% materials from salvage per rank', maxRank: 5, icon: ICON('branch-crafter') },
   { id: 'steady-hands', branch: 'crafter', tier: 2, name: 'Steady hands', effect: '+3% craft quality odds per rank', maxRank: 5, icon: ICON('branch-crafter') },

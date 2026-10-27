@@ -174,6 +174,8 @@
 .game .icon32 { width: 32px; height: 32px; image-rendering: pixelated; flex-shrink: 0; }
 .game .th-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 10px; }
 .game .th-overview { display: flex; gap: 16px; align-items: center; padding: 16px; }
+.game .th-signin { display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; padding: 24px 16px; max-width: 420px; margin: 0 auto; }
+.game .th-signin .th-sprite { width: 96px; }
 .game .th-sprite { width: 200px; height: auto; image-rendering: pixelated; flex-shrink: 0; }
 .game .th-ov-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
 .game .th-level { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }

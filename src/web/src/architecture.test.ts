@@ -2,6 +2,8 @@
 //   shared/   used by both; imports neither part
 //   trading/  Hyperliquid trading; imports shared/ only
 //   game/     game and general UI; imports shared/ and trading's public API (trading/index.ts) only
+//   @server/  the API (../server/src): web code may import only @server/contract (shapes and rules), and only
+//             shared/api.ts may import @server/local (the in-browser server); the server never imports web code
 // Stylesheets are scoped the same way: trading rules under .trading, game rules under .game.
 
 import { describe, expect, test } from 'bun:test';
@@ -25,6 +27,10 @@ function localImports(file: string): string[] {
   return specs.map((s) => relative(SRC, resolve(dirname(file), s)).replace(/\.(tsx?|css)$/, ''));
 }
 
+/** `@server/...` imports of a file. */
+const serverImports = (file: string) =>
+  [...readFileSync(file, 'utf8').matchAll(/(?:from\s+|import\(\s*)['"](@server\/[^'"]+)['"]/g)].map((m) => m[1]);
+
 const part = (path: string) => path.split('/')[0];
 const code = files(SRC, /\.tsx?$/).filter((f) => !f.endsWith('.test.ts'));
 
@@ -41,6 +47,20 @@ describe('code boundaries', () => {
         return target === 'trading' && to !== 'trading' && to !== 'trading/index';
       });
       expect(broken).toEqual([]);
+      const server = serverImports(file).filter((s) => s !== '@server/contract' && !(s === '@server/local' && rel === 'shared/api.ts'));
+      expect(server).toEqual([]);
+    });
+  }
+});
+
+describe('server boundary', () => {
+  const SERVER = resolve(SRC, '../../server/src');
+  for (const file of files(SERVER, /\.tsx?$/)) {
+    test(`server/${relative(SERVER, file)} never imports web code`, () => {
+      const text = readFileSync(file, 'utf8');
+      const specs = [...text.matchAll(/(?:from\s+|import\(\s*)['"]([^'"]+)['"]/g)].map((m) => m[1]);
+      const out = specs.filter((s) => s.startsWith('.') && !resolve(dirname(file), s).startsWith(SERVER));
+      expect(out.concat(specs.filter((s) => s.startsWith('@server') || /(^|\/)web\//.test(s)))).toEqual([]);
     });
   }
 });

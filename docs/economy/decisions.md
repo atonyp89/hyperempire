@@ -1,6 +1,6 @@
 # HyperEmpire — design decisions log
 
-How the MVP rules in [mvp-design.md](mvp-design.md) were reached. As of Oct 26, 2026.
+How the MVP rules in [game-design.md](game-design.md) were reached. As of Oct 26, 2026.
 
 ## Decided
 
@@ -30,7 +30,7 @@ How the MVP rules in [mvp-design.md](mvp-design.md) were reached. As of Oct 26, 
 | Gear-only stats | SPD only (shoes, shorter adventure locks, capped at −40%); LUCK became a base stat that gear can also boost | Gear keeps one exclusive stat |
 | Material tiers | Five families (Ore, Hide, Wood, Gem, Essence) × four tiers | Tier sets stat range; four tiers are enough depth |
 | Naming | Classic fantasy names, no crypto flavor (zone renamed Liquidation Crypt → Forgotten Crypt) | Keep the game world readable on its own |
-| Player types | Every mechanic is checked for pure traders, whales and low/mid tier (five-question check in mvp-design.md) | The economy fails if any one group leaves |
+| Player types | Every mechanic is checked for pure traders, whales and low/mid tier (five-question check in game-design.md) | The economy fails if any one group leaves |
 | Fee discount | Every 10 hero levels cut the builder fee by 5%, max 40% off at level 80 | Gives pure traders a Season 0 use for $aura and a reason to stay vs Phantom; leveling still burns $aura |
 | Starter $aura | The $10 mint includes 5,000 $aura | Players who don't trade can still level and craft a little |
 | Free daily run | One Rat Cellar run per hero per day, no entry fee, drops materials only | A free path into crafting without printing $aura; $10 mint and daily cap limit bots |
@@ -67,6 +67,9 @@ How the MVP rules in [mvp-design.md](mvp-design.md) were reached. As of Oct 26, 
 | No power cap | One player's mining power is not capped | Pay-to-win stays allowed, as on the leaderboard |
 | $aura stays non-transferable | Confirmed for mining | Keeps mining rewards in-game and lowers gambling-law risk |
 | Game backend | Balances, inventory, rolls and block draws run on a backend, with commit-reveal draws players can check | A 60 s block lottery can't run in the browser, and on-chain draws every minute are costly |
+| Backend stack | TypeScript on Bun with Hono, Drizzle and Postgres (`src/server`); production on AWS (Postgres on RDS). Not Railway | One language with the web app and shared rules; Hono runs anywhere, so hosting stays open |
+| Game sign-in stays separate from trading | Players sign in to the HyperEmpire API with their own wallet message, apart from Hyperliquid's builder-fee and agent approvals; the trading key is not reused for game sign-in | Other perp exchanges will be added later, so the game account must not depend on any one exchange |
+| Browser-run API for development | Until the backend is deployed, the web app runs the same server in the browser (PGlite in IndexedDB) through real HTTP requests; production only changes `VITE_API_URL` | Builds and tests the full client-server flow now, without hosting; nothing to rewrite when it moves |
 
 ## Farming math
 

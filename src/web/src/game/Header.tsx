@@ -1,13 +1,14 @@
 import { useConnect, useConnection, useConnectors, useDisconnect } from 'wagmi';
 import { NETWORK, switchNetwork, type Network } from '../shared/network';
 import { fmtAura, shortAddr } from '../shared/format';
+import { useMe, useSession } from '../shared/session';
 import type { useDayPhase } from './hooks/useDayPhase';
 
-type Props = { auraEarned: number | null; referral: string | null; onOpen: (id: 'exchange' | 'townhall') => void; day: ReturnType<typeof useDayPhase> };
+type Props = { referral: string | null; onOpen: (id: 'exchange' | 'townhall') => void; day: ReturnType<typeof useDayPhase> };
 
 const PHASE_LABEL = { morning: ['☀', 'MORNING'], evening: ['◐', 'EVENING'], night: ['☾', 'NIGHT'] } as const;
 
-export function Header({ auraEarned, referral, onOpen, day }: Props) {
+export function Header({ referral, onOpen, day }: Props) {
   return (
     <header className="header">
       <div className="brand">HYPEREMPIRE</div>
@@ -29,12 +30,7 @@ export function Header({ auraEarned, referral, onOpen, day }: Props) {
         </button>
         {referral && <span className="chip muted" title="Referral code captured from your link">REF {referral}</span>}
         <NetworkToggle />
-        {auraEarned !== null && (
-          <span className="chip aura" title="$aura earned from builder fees on your fills (estimate until claimed)">
-            <span className="gem" aria-hidden="true" />
-            {fmtAura(auraEarned)} <span className="muted">$AURA</span>
-          </span>
-        )}
+        <AuraChip />
         <ConnectButton />
       </div>
     </header>
@@ -68,6 +64,26 @@ function NetworkToggle() {
         </button>
       ))}
     </div>
+  );
+}
+
+/** The $aura balance once signed in; a Sign-in button while a wallet is connected but not signed in. */
+function AuraChip() {
+  const s = useSession();
+  const me = useMe();
+  if (!s.address) return null;
+  if (!s.signedIn) {
+    return (
+      <button type="button" className="btn ghost" disabled={s.signingIn} onClick={() => void s.signIn()} title={s.error ?? 'Sign a message to load your $aura and Townhall'}>
+        {s.signingIn ? 'SIGNING…' : 'SIGN IN'}
+      </button>
+    );
+  }
+  return (
+    <span className="chip aura" title="Your $aura: starter + builder fees on your fills − what you spend">
+      <span className="gem" aria-hidden="true" />
+      {me.data ? fmtAura(me.data.aura) : '…'} <span className="muted">$AURA</span>
+    </span>
   );
 }
 

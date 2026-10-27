@@ -6,3 +6,6 @@ dist/
 .env
 .env.local
 .env.*.local
+
+# Local server database (PGlite on disk)
+src/server/data/

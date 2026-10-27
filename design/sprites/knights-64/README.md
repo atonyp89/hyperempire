@@ -18,7 +18,7 @@ A library of front-facing knight poses drawn for the Empire scene, for future he
 
 ## Turning one into a character
 
-The full process, walk and scene included, is in [design/characters.md](../../characters.md). In short, for #5:
+The full process, walk and scene included, is in [docs/graphics/characters.md](../../../docs/graphics/characters.md). In short, for #5:
 
 1. **Pad:** put `cut/<n>.png` on a 32×32 transparent canvas, feet about 4px from the bottom. PixelLab's v3 turnaround needs at least 32px.
 2. **Turn:** upload it and call `create_character` with mode v3 and `reference_image_url` set to the upload. That gives 8 directions for 1 generation.

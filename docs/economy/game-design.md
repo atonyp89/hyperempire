@@ -317,21 +317,7 @@ The top 1,000 empires by **Townhall level** share a prize pool funded by a fixed
 
 ## Architecture
 
-The empire, buildings, heroes and $aura live on HyperEVM; the fee-to-reward calculation runs off-chain, because fill history sits on HyperCore. Mining (Phase 2) runs on a game backend: a 60-second block lottery and its rolls need a server, and $aura is non-transferable anyway. Characters and items are stored as generic records (type, grade, stats, energy or durability), so heroes and other character types fit in later.
-
-Data path: HyperCore fills with our builder code → indexer totals fees per wallet each epoch → Merkle root posted on-chain → players claim $aura.
-
-| Component | Where | Role |
-| --- | --- | --- |
-| EmpireNFT (ERC-721) | HyperEVM | $10 mint with starter $aura; stores Townhall level and perk ranks |
-| Townhall | HyperEVM | Burns $aura for levels, risky upgrades (VRF or commit-reveal) and respecs; assigns perk points |
-| AURA (ERC-20) | HyperEVM | Transfers off in Season 0; burns on spend |
-| RewardDistributor | HyperEVM | Merkle claims per epoch; daily cap per empire; leaderboard prizes |
-| Tavern + HeroNFT (Phase 2) | HyperEVM | Tiered recruits, rerolls, hero stats |
-| Adventure (Phase 2) | HyperEVM | Locks a hero, resolves with stats and randomness |
-| Fee indexer | Off-chain | Reads builder fills, computes rewards, posts roots; later multi-signer |
-| Game backend (Phase 2) | Off-chain | $aura ledger credited by the fee indexer; Miners and Picks (grade, energy, durability); recruit, craft and merge rolls; block draws every 60 s with commit-reveal; Townhall state, since slots depend on it |
-| Referral service | Off-chain | Records referral codes and pays the USDC fee share |
+How the game runs (contracts, the fee indexer and the game backend) is in [docs/backend](../backend/README.md).
 
 ## Where things stand (Oct 26, 2026)
 
@@ -342,7 +328,7 @@ Built in `src/web` (Vite + React + wagmi + the Hyperliquid TS SDK):
 - **Townhall modal:** level and progress, risky upgrade, the three-branch perk tree with PixelLab icons, respec and building caps.
 - **Town:** a 640×180 world with a camera that follows a walkable knight hero: a west strip with a big Garden (seven plots of wheat), the original town, and an east strip where the Workshop and the Mine already stand as "coming soon" buildings, and the Garden grows wheat.
 
-**Where $aura lives today:** nowhere permanent. Earned $aura is recalculated in the browser from each fill's `builderFee` × 500 (an estimate: it also counts other builders' fees, and Hyperliquid returns only recent fills). Townhall level, perks and $aura spent are kept in the browser's localStorage per wallet. The perk fee discount is display-only. The AURA token, Townhall contract, fee indexer and RewardDistributor are the next things to build.
+**Where $aura lives today:** in the game backend's ledger (`src/server`). The API credits each new fill's `builderFee` × 500 (an estimate: it also counts other builders' fees) and records every spend; Townhall level and perks live there too. During development the backend runs inside the browser on PGlite, so data stays on that device; production moves the same code and its Postgres database to AWS. The perk fee discount is display-only. The AURA token, Townhall contract, fee indexer and RewardDistributor are the next things to build.
 
 ## Open questions
 
