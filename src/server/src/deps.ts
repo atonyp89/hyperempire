@@ -24,7 +24,14 @@ export type Deps = {
   simulatedPower?: Partial<Record<PoolId, number>>;
   /** Origins allowed to call the API from a browser (CORS). Not needed when the app runs in-process. */
   allowedOrigins?: string[];
+  /** Username and password for the read-only admin dashboard (/admin). Without them, /admin doesn't exist. */
+  admin?: AdminCredentials;
 };
+
+export type AdminCredentials = { user: string; password: string };
+
+/** The shortest admin password accepted; a shorter one leaves the admin dashboard off. */
+export const ADMIN_MIN_PASSWORD = 12;
 
 /** Uniform random number in [0, 1) from the platform's secure generator (browsers, Bun and Node all have it). */
 export function secureRandom(): number {

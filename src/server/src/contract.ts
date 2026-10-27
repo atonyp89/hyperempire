@@ -67,3 +67,19 @@ export type MineView = {
   picks: PickView[];
   rushWins: { height: number; pool: PoolId; amount: number }[];
 };
+
+// Admin dashboard (read-only). Values come back as JSON: big integers as strings, timestamps as ISO strings.
+
+export type AdminColumn = { name: string; type: string; nullable: boolean; default: string | null };
+export type AdminTable = { name: string; rows: number; columns: AdminColumn[]; indexes: string[] };
+export type AdminOverview = {
+  network: string;
+  tables: AdminTable[];
+  /** $aura across every balance. */
+  auraSupply: number;
+  /** $aura per ledger kind: minted (positive kinds) and burned (negative). */
+  ledgerByKind: { kind: string; total: number; entries: number }[];
+  settledHeight: number | null;
+};
+export type AdminRows = { table: string; columns: string[]; rows: Record<string, unknown>[]; total: number; limit: number; offset: number };
+export type AdminQueryResult = { columns: string[]; rows: Record<string, unknown>[]; rowCount: number; truncated: boolean; ms: number };

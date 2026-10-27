@@ -7,6 +7,7 @@ import type { ApiErrorBody } from './contract';
 import type { Deps } from './deps';
 import type { Env } from './env';
 import { ApiError } from './errors';
+import { admin } from './routes/admin';
 import { auth, requireAuth } from './routes/auth';
 import { me } from './routes/me';
 import { mining } from './routes/mining';
@@ -34,6 +35,7 @@ export function createApp(deps: Deps) {
   app.route('/me', me);
   app.route('/townhall', townhall);
   app.route('/mine', mining);
+  app.route('/admin', admin);
   return app;
 }
 

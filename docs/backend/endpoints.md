@@ -6,7 +6,7 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 
 - **Base URL:** the deployed server (`VITE_API_URL`). In development the web app calls the same paths in-process.
 - **Bodies:** JSON, with `Content-Type: application/json`. A `POST` without a body sends none.
-- **Auth:** every endpoint except `/health` and `/auth/*` needs `Authorization: Bearer <token>` from [sign-in](#sign-in). Without it the answer is `401 unauthorized`.
+- **Auth:** every endpoint except `/health`, `/auth/*` and `/admin/*` needs `Authorization: Bearer <token>` from [sign-in](#sign-in). Without it the answer is `401 unauthorized`. `/admin/*` needs the [admin login](#admin) instead.
 - **Amounts:** in $aura, as numbers. They can have up to 3 decimals: mining pays fractions.
 - **Addresses:** sent in any case, returned lowercase.
 - **Errors:** `{ "error": "<code>", "message": "<text>" }` with the status. The common ones are in [the overview](README.md#errors); each endpoint below lists the rule errors it can return.
@@ -33,6 +33,9 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | POST | [`/mine/craft`](#post-minecraft) | Craft a Pick |
 | POST | [`/mine/picks/merge`](#post-minepicksmerge) | Merge two Picks |
 | POST | [`/mine/picks/:id/repair`](#post-minepicksidrepair) | Repair a Pick |
+| GET | [`/admin/overview`](#get-adminoverview) | Admin: tables, row counts, $aura totals |
+| GET | [`/admin/tables/:name`](#get-admintablesname) | Admin: a page of a table's rows |
+| POST | [`/admin/query`](#post-adminquery) | Admin: run one read-only SQL statement |
 
 ## Health
 
@@ -299,6 +302,64 @@ No body. Restores durability to 100 for `repairCost`. Returns the Mine view.
 - `402 not_enough_aura`.
 - `404`: not your Pick.
 - `409 full`: doesn't need repair.
+
+## Admin
+
+Read-only routes for the [admin dashboard](README.md#admin-dashboard). Every one needs `Authorization: Basic <base64 of user:password>` with the server's `ADMIN_USER` and `ADMIN_PASSWORD`.
+
+- `404 not_found`: the admin login isn't configured (or its password is under 12 characters).
+- `401 admin_unauthorized`: wrong username or password.
+- `429 too_many_attempts`: 10 wrong logins from this client; wait 15 minutes.
+
+### `GET /admin/overview`
+
+```json
+{
+  "network": "testnet",
+  "tables": [
+    {
+      "name": "accounts",
+      "rows": 1,
+      "columns": [{ "name": "address", "type": "text", "nullable": false, "default": null }],
+      "indexes": ["CREATE UNIQUE INDEX accounts_pkey ON public.accounts USING btree (address)"]
+    }
+  ],
+  "auraSupply": 2233.507,
+  "ledgerByKind": [
+    { "kind": "starter", "total": 5000, "entries": 1 },
+    { "kind": "fee", "total": 264.507, "entries": 70 },
+    { "kind": "townhall:upgrade", "total": -3031, "entries": 1 }
+  ],
+  "settledHeight": 37709
+}
+```
+
+Totals are in $aura. `ledgerByKind` is sorted from most minted to most burned. `settledHeight` is `null` before the first block settles.
+
+### `GET /admin/tables/:name`
+
+Query: `limit` (1–500, default 50), `offset` (default 0), `order` (a column; defaults to the first), `dir` (`asc` or `desc`, default `desc`).
+
+```json
+{ "table": "miners", "columns": ["id", "address", "grade", "..."], "rows": [{ "id": 1, "address": "0x…", "grade": 0 }], "total": 3, "limit": 50, "offset": 0 }
+```
+
+Rows are raw, as stored (amounts in milli-$aura). An unknown `order` falls back to the first column.
+
+- `404`: no such table.
+
+### `POST /admin/query`
+
+```json
+// request
+{ "sql": "SELECT kind, count(*) FROM ledger GROUP BY kind" }
+// response
+{ "columns": ["kind", "count"], "rows": [{ "kind": "fee", "count": 70 }], "rowCount": 3, "truncated": false, "ms": 4 }
+```
+
+One statement, starting with `SELECT`, `WITH`, `EXPLAIN`, `SHOW`, `TABLE` or `VALUES`. It runs in a read-only transaction that is rolled back. At most 500 rows come back; `truncated` says there were more.
+
+- `400 query_failed`: not a read, more than one statement, a write Postgres refused, or a SQL error (the message is Postgres's).
 
 ## Example: a full session with curl
 

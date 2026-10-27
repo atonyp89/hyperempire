@@ -13,7 +13,7 @@ import { createApp } from './app';
 import { settle } from './blocks';
 import { schema, type Db } from './db';
 import { migrate } from './db/migrations';
-import { secureRandom, type Deps, type Network } from './deps';
+import { ADMIN_MIN_PASSWORD, secureRandom, type Deps, type Network } from './deps';
 import { fillsReader } from './hyperliquid';
 import { BLOCK_MS } from './rules/mining';
 
@@ -28,7 +28,10 @@ const db = (
 ) as unknown as Db;
 await migrate(db);
 
-const deps: Deps = { db, network, now: Date.now, random: secureRandom, fills: fillsReader(network), allowedOrigins };
+const admin = process.env.ADMIN_USER && process.env.ADMIN_PASSWORD ? { user: process.env.ADMIN_USER, password: process.env.ADMIN_PASSWORD } : undefined;
+if (admin && admin.password.length < ADMIN_MIN_PASSWORD) console.warn(`[admin] ADMIN_PASSWORD needs at least ${ADMIN_MIN_PASSWORD} characters; /admin is off.`);
+
+const deps: Deps = { db, network, now: Date.now, random: secureRandom, fills: fillsReader(network), allowedOrigins, admin };
 const app = createApp(deps);
 
 setInterval(() => settle(deps).catch((err) => console.error('[blocks]', err)), BLOCK_MS);

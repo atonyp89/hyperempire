@@ -26,7 +26,7 @@ How the game runs: the HyperEmpire API, its data and its endpoints.
 
 | Doc | What |
 | --- | --- |
-| [README.md](backend/README.md) | Architecture, where it runs (browser in development, AWS in production), sign-in, the $aura ledger, fees, Townhall, mining blocks, data model, errors, and the planned on-chain parts |
+| [README.md](backend/README.md) | Architecture, where it runs (browser in development, AWS in production), sign-in, the $aura ledger, fees, Townhall, mining blocks, data model, the admin dashboard, errors, and the planned on-chain parts |
 | [endpoints.md](backend/endpoints.md) | Every endpoint, with requests, responses and errors |
 | [src/server/README.md](../src/server/README.md) | Running, testing and deploying the server |
 

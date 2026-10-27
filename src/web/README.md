@@ -50,10 +50,12 @@ Both approvals are signatures, not transactions, so they cost no gas. The accoun
 
 **API:** game state (the $aura balance, Townhall, and mining next) lives behind the HyperEmpire API in [src/server](../server/README.md) (documented in [docs/backend](../../docs/backend/README.md)). `VITE_API_URL` picks where it runs:
 
-- `local` (the default): the whole server runs inside the browser, with Postgres as PGlite saved in IndexedDB (one database per network, one tab at a time). Every call is still a real HTTP `Request` through the same Hono app, sign-in and all, so the client behaves exactly as it will in production. Clear the site's data to start over.
+- `local` (the default): the whole server runs inside the browser, with Postgres as PGlite saved in IndexedDB (one database per network; one tab opens it and the others send it their requests). Every call is still a real HTTP `Request` through the same Hono app, sign-in and all, so the client behaves exactly as it will in production. Clear the site's data to start over.
 - A URL such as `https://api.hyperempire.xyz`: calls that deployed server. Nothing else in the client changes.
 
 `src/shared/api.ts` is the only place that knows the difference.
+
+**Admin dashboard:** `http://localhost:5173/admin.html` shows every table, its schema and rows, $aura totals, and a read-only SQL box. Put `ADMIN_USER` and `ADMIN_PASSWORD` (12+ characters) in `.env.local` and restart the dev server; sign in with them. It works next to the game tab. Details in [docs/backend](../../docs/backend/README.md#admin-dashboard).
 
 ## What's here
 

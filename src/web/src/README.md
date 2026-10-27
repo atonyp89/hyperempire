@@ -8,6 +8,7 @@ The web app has two parts that must not break each other. Trading handles real m
 | `game/` | Game and general UI: header, Empire scene (ambient life, time of day, hero), buildings (Townhall, the Exchange frame), game hooks, and `game.css` | `shared/`, and trading only through `trading/index.ts` |
 | `shared/` | What both need: the network choice (`network.ts`), the API client (`api.ts`) and sign-in (`session.ts`), storage, display formatting, wallet config (`wagmi.ts`), the building modal frame, error boundaries and the base styles (`styles/base.css`) | Nothing in `trading/` or `game/` |
 | `App.tsx`, `main.tsx` | Composition: mounts the game and the Exchange, each behind its own error boundary | Like `game/` |
+| `admin/` | The admin dashboard page (`admin.html`): database overview, tables and read-only SQL, styled in `admin.css` under `.admin` | `shared/` only |
 | `@server/…` | The API in `../../server/src` (see [its README](../../server/README.md)) | Web code imports only `@server/contract` (request/response shapes and game rules); only `shared/api.ts` imports `@server/local` |
 
 ## The rules, and what checks them

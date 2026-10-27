@@ -22,16 +22,26 @@ async function send(path: string, init: RequestInit): Promise<Response> {
   if (API_URL === 'local') {
     // Loaded on first use, so a production build pointed at a real server never fetches it.
     const { localServer } = await import('@server/local');
-    const server = await localServer(NETWORK);
+    const server = await localServer(NETWORK, { admin: __LOCAL_ADMIN__ ?? undefined });
     return server.fetch(new Request(`http://local.hyperempire${path}`, init));
   }
   return fetch(`${API_URL.replace(/\/$/, '')}${path}`, init);
 }
 
-export async function api<T>(path: string, opts: { method?: 'GET' | 'POST'; body?: unknown; token?: string | null } = {}): Promise<T> {
+export type ApiOptions = {
+  method?: 'GET' | 'POST';
+  body?: unknown;
+  /** Session token, sent as Bearer. */
+  token?: string | null;
+  /** A whole Authorization header instead (the admin dashboard's Basic login). */
+  authorization?: string;
+};
+
+export async function api<T>(path: string, opts: ApiOptions = {}): Promise<T> {
   const headers: Record<string, string> = {};
   if (opts.body !== undefined) headers['content-type'] = 'application/json';
   if (opts.token) headers.authorization = `Bearer ${opts.token}`;
+  if (opts.authorization) headers.authorization = opts.authorization;
   let res: Response;
   try {
     res = await send(path, { method: opts.method ?? (opts.body === undefined ? 'GET' : 'POST'), headers, body: opts.body === undefined ? undefined : JSON.stringify(opts.body) });

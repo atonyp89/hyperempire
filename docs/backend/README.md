@@ -32,7 +32,9 @@ The same `createApp(deps)` serves every request in both setups. Only the databas
 
 `src/web/src/shared/api.ts` is the only client file that knows which one is in use. Moving to production means deploying `src/server` with a database and changing `VITE_API_URL`; no client code changes.
 
-Limits of development mode: the data lives on one device and is lost if the site's data is cleared, and only one tab can open it at a time (a `navigator.locks` lock), since two tabs would run two copies of the server over one database.
+**Several tabs, one server.** Only one tab opens the database (it holds a `navigator.locks` lock), since two tabs would run two copies of the server over one database. Every other tab, such as a second game tab or the admin dashboard, sends its requests to that tab over a `BroadcastChannel` and gets the same `Response` back, like a client of one server. When the owner tab closes, a waiting tab takes the lock and opens the database itself. A request caught in that switch fails after 15 s; reloading fixes it.
+
+Limit of development mode: the data lives on one device and is lost if the site's data is cleared.
 
 ## Code layout
 
@@ -40,13 +42,13 @@ Limits of development mode: the data lives on one device and is lost if the site
 | --- | --- |
 | `src/contract.ts` | The API contract: request and response types and the rules the client shows. The only server module the web app imports (plus `local.ts`) |
 | `src/app.ts` | `createApp(deps)`: CORS, routes, error handling |
-| `src/routes/` | `auth.ts`, `me.ts`, `townhall.ts`, `mining.ts` |
+| `src/routes/` | `auth.ts`, `me.ts`, `townhall.ts`, `mining.ts`, `admin.ts` |
 | `src/rules/` | Pure game rules with no I/O: `empire.ts` (levels, perks, respec), `mining.ts` (grades, merges, upkeep, pools), `aura.ts` (units) |
 | `src/ledger.ts` | Balances and the ledger |
 | `src/aura.ts` | Builder fees → $aura |
 | `src/blocks.ts` | Mining block settlement |
 | `src/db/` | Drizzle schema, SQL migrations, shared types |
-| `src/deps.ts` | Everything the app gets from outside: database, network, clock, randomness, fills reader, simulated power, CORS origins |
+| `src/deps.ts` | Everything the app gets from outside: database, network, clock, randomness, fills reader, simulated power, CORS origins, admin login |
 | `src/local.ts`, `src/main.ts` | The two entry points |
 | `src/app.test.ts` | End-to-end tests: real requests and a real wallet signature on an in-memory database, with a fake clock, dice and fills |
 
@@ -146,6 +148,27 @@ At most 10,080 blocks (a week) are replayed at once, so a long gap can't stall a
 
 Addresses are stored lowercase. Migrations are SQL strings in `src/db/migrations.ts`, applied in order on start and run one statement at a time. Never edit an applied migration; add the next one.
 
+## Admin dashboard
+
+A read-only view of the database for the team, at `/admin.html` in the web app. It's a separate page from the game and calls the API's `/admin` routes, so it works the same with the in-browser server and a deployed one.
+
+- **Overview:** players, $aura supply, minted and burned totals, $aura by ledger kind, Miners and Picks, the last settled block, and every table with its row count.
+- **Tables:** each table's schema (columns, types, defaults, indexes) and its rows, 50 to a page, sorted by any column.
+- **SQL:** one statement at a time, first 500 rows, with example queries.
+
+**Login:** HTTP Basic auth with one username and password, kept in server config, never in the database.
+
+| Where | Set in | Notes |
+| --- | --- | --- |
+| In-browser server | `ADMIN_USER`, `ADMIN_PASSWORD` in `src/web/.env.local` (git-ignored), then restart the dev server | Vite hands them to the in-browser server on the dev server only; `vite build` sets them to `null`, so they are never in a production bundle |
+| Deployed server | `ADMIN_USER`, `ADMIN_PASSWORD` environment variables | Use a secret store (AWS Secrets Manager or SSM) |
+
+Without both, or with a password shorter than 12 characters, `/admin` doesn't exist (404). The page keeps the login in memory only, so a reload asks again. After 10 wrong logins from one client (by `X-Forwarded-For`), that client waits 15 minutes. A player's session token doesn't open it.
+
+**Read-only, two ways:** the SQL box accepts only statements that start with `SELECT`, `WITH`, `EXPLAIN`, `SHOW`, `TABLE` or `VALUES`. Each query also runs in a `READ ONLY` transaction that is always rolled back, so Postgres itself refuses writes, including a write hidden in a `WITH`. Table and column names in the table view are checked against the real schema before they reach SQL.
+
+Values come back as JSON: big integers that don't fit a number as strings, timestamps as ISO strings, `numeric` as strings. `accounts.balance`, `ledger.delta` and `rush_wins.amount` are in milli-$aura (1,000 = 1 $aura).
+
 ## Errors
 
 Every error is JSON with an HTTP status: `{ "error": "<code>", "message": "<readable text>" }`. The `code` is stable for code to check; the `message` can be shown to the player.
@@ -153,9 +176,10 @@ Every error is JSON with an HTTP status: `{ "error": "<code>", "message": "<read
 | Status | Codes | Meaning |
 | --- | --- | --- |
 | 400 | `bad_request` | Missing or invalid input |
-| 401 | `unauthorized` | No session, an expired session, or a bad signature |
+| 401 | `unauthorized`, `admin_unauthorized` | No session, an expired session, a bad signature, or a wrong admin login |
 | 402 | `not_enough_aura` | The balance can't cover it |
 | 404 | `not_found` | No such endpoint, or not your Miner or Pick |
+| 429 | `too_many_attempts` | Too many wrong admin logins; wait 15 minutes |
 | 409 | `no_points`, `max_rank`, `tier_locked`, `nothing_to_reset`, `no_slots`, `grade_mismatch`, `deployed`, `equipped`, `max_grade`, `full` | A game rule says no (see [endpoints.md](endpoints.md)) |
 | 500 | `internal` | A bug; details only in the server log |
 

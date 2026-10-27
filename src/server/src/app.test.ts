@@ -11,9 +11,11 @@ import { migrate } from './db/migrations';
 import type { Fill } from './deps';
 import { BLOCK_MS, GENESIS, WALK_BLOCKS } from './rules/mining';
 
+const ADMIN = { user: 'admin', password: 'correct horse battery' };
 const wallet = privateKeyToAccount('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d');
 
 let app: App;
+let db: Db;
 let clock: number;
 let dice: number[];
 let fills: Fill[];
@@ -36,7 +38,7 @@ async function signIn(): Promise<string> {
 }
 
 beforeEach(async () => {
-  const db = drizzle(new PGlite(), { schema }) as unknown as Db;
+  db = drizzle(new PGlite(), { schema }) as unknown as Db;
   await migrate(db);
   clock = GENESIS + 1_000 * BLOCK_MS + 10;
   dice = [];
@@ -47,6 +49,7 @@ beforeEach(async () => {
     now: () => clock,
     random: () => dice.shift() ?? 0.5,
     fills: async (_a, since) => fills.filter((f) => f.time >= since),
+    admin: ADMIN,
   });
 });
 
@@ -185,5 +188,71 @@ describe('mining', () => {
     // Alone in the pool it wins every block it mined: 50 $aura each.
     expect(after.aura - before).toBe(50 * after.rushWins.length);
     expect(after.rushWins.length).toBeGreaterThan(0);
+  });
+});
+
+describe('admin', () => {
+  const basic = (user: string, password: string, ip?: string) => ({
+    authorization: `Basic ${btoa(`${user}:${password}`)}`,
+    ...(ip ? { 'x-forwarded-for': ip } : {}),
+  });
+  const adminCall = async (method: string, path: string, body?: unknown, headers = basic(ADMIN.user, ADMIN.password)) => {
+    const res = await app.request(path, { method, headers: { 'content-type': 'application/json', ...headers }, body: body === undefined ? undefined : JSON.stringify(body) });
+    return { status: res.status, json: (await res.json()) as any };
+  };
+
+  test('is off without credentials, and needs the right username and password', async () => {
+    const off = createApp({ db, network: 'testnet', now: () => clock, random: Math.random, fills: async () => [] });
+    expect((await off.request('/admin/overview', { headers: basic(ADMIN.user, ADMIN.password) })).status).toBe(404);
+    const short = createApp({ db, network: 'testnet', now: () => clock, random: Math.random, fills: async () => [], admin: { user: 'a', password: 'short' } });
+    expect((await short.request('/admin/overview', { headers: basic('a', 'short') })).status).toBe(404);
+    expect((await app.request('/admin/overview')).status).toBe(401);
+    expect((await adminCall('GET', '/admin/overview', undefined, basic('admin', 'wrong'))).status).toBe(401);
+    expect((await adminCall('GET', '/admin/overview', undefined, basic('root', ADMIN.password))).status).toBe(401);
+    // A player's session token doesn't open it either.
+    const token = await signIn();
+    expect((await app.request('/admin/overview', { headers: { authorization: `Bearer ${token}` } })).status).toBe(401);
+  });
+
+  test('overview: tables, row counts and $aura totals', async () => {
+    await signIn();
+    const { status, json } = await adminCall('GET', '/admin/overview');
+    expect(status).toBe(200);
+    const accounts = json.tables.find((t: any) => t.name === 'accounts');
+    expect(accounts.rows).toBe(1);
+    expect(accounts.columns.map((c: any) => c.name)).toContain('balance');
+    expect(json.auraSupply).toBe(5_000);
+    expect(json.ledgerByKind).toEqual([{ kind: 'starter', total: 5_000, entries: 1 }]);
+  });
+
+  test('table rows page, sort, and reject unknown tables', async () => {
+    const token = await signIn();
+    for (let i = 0; i < 3; i++) await call('POST', '/mine/recruit', undefined, token);
+    const page = await adminCall('GET', '/admin/tables/miners?limit=2&order=id&dir=asc');
+    expect(page.json.total).toBe(3);
+    expect(page.json.rows.map((r: any) => r.id)).toEqual([1, 2]);
+    // An unknown sort column falls back to the first column instead of reaching the SQL.
+    expect((await adminCall('GET', '/admin/tables/miners?order=id;DROP%20TABLE%20miners')).status).toBe(200);
+    expect((await adminCall('GET', '/admin/tables/pg_user')).status).toBe(404);
+  });
+
+  test('queries are read-only, one statement at a time', async () => {
+    await signIn();
+    const ok = await adminCall('POST', '/admin/query', { sql: 'SELECT address, balance FROM accounts' });
+    expect(ok.status).toBe(200);
+    expect(ok.json.columns).toEqual(['address', 'balance']);
+    expect(ok.json.rows[0].balance).toBe(5_000_000);
+    for (const bad of ['UPDATE accounts SET balance = 0', 'DELETE FROM ledger', 'DROP TABLE accounts', 'SET TRANSACTION READ WRITE', 'SELECT 1; DELETE FROM ledger', 'WITH d AS (DELETE FROM ledger RETURNING *) SELECT count(*) FROM d', 'COMMIT']) {
+      const r = await adminCall('POST', '/admin/query', { sql: bad });
+      expect(r.status).toBe(400);
+    }
+    expect((await adminCall('POST', '/admin/query', { sql: 'SELECT sum(balance)::int AS s FROM accounts' })).json.rows[0].s).toBe(5_000_000);
+  });
+
+  test('locks a client out after 10 wrong passwords', async () => {
+    for (let i = 0; i < 10; i++) expect((await adminCall('GET', '/admin/overview', undefined, basic('admin', 'nope', '9.9.9.9'))).status).toBe(401);
+    expect((await adminCall('GET', '/admin/overview', undefined, basic(ADMIN.user, ADMIN.password, '9.9.9.9'))).status).toBe(429);
+    clock += 16 * 60_000;
+    expect((await adminCall('GET', '/admin/overview', undefined, basic(ADMIN.user, ADMIN.password, '9.9.9.9'))).status).toBe(200);
   });
 });

@@ -2,6 +2,7 @@
 //   shared/   used by both; imports neither part
 //   trading/  Hyperliquid trading; imports shared/ only
 //   game/     game and general UI; imports shared/ and trading's public API (trading/index.ts) only
+//   admin/    the admin dashboard page (admin.html); imports shared/ only
 //   @server/  the API (../server/src): web code may import only @server/contract (shapes and rules), and only
 //             shared/api.ts may import @server/local (the in-browser server); the server never imports web code
 // Stylesheets are scoped the same way: trading rules under .trading, game rules under .game.
@@ -44,6 +45,7 @@ describe('code boundaries', () => {
         const target = part(to);
         if (from === 'shared') return target === 'trading' || target === 'game';
         if (from === 'trading') return target === 'game' || to === 'App';
+        if (from === 'admin') return target === 'game' || target === 'trading' || to === 'App';
         return target === 'trading' && to !== 'trading' && to !== 'trading/index';
       });
       expect(broken).toEqual([]);
@@ -93,7 +95,7 @@ function selectors(css: string): string[] {
 }
 
 describe('style scoping', () => {
-  const scoped = { trading: '.trading', game: '.game' } as const;
+  const scoped = { trading: '.trading', game: '.game', admin: '.admin' } as const;
   for (const [dir, root] of Object.entries(scoped)) {
     for (const sheet of files(join(SRC, dir), /\.css$/)) {
       test(`${relative(SRC, sheet)}: every rule under ${root}`, () => {
@@ -104,6 +106,6 @@ describe('style scoping', () => {
   }
   test('shared styles never target either part', () => {
     const css = files(join(SRC, 'shared'), /\.css$/).map((f) => readFileSync(f, 'utf8')).join('\n');
-    expect(selectors(css).filter((sel) => /\.(trading|game)\b/.test(sel))).toEqual([]);
+    expect(selectors(css).filter((sel) => /\.(trading|game|admin)\b/.test(sel))).toEqual([]);
   });
 });
