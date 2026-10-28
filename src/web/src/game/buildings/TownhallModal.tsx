@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { BUILDER_FEE_RATE } from '../../trading';
-import { BRANCHES, BUILDING_CAPS, DAILY_EMISSION, STARTER_AURA, FEE_DISCOUNT_CAP, PERKS, TIER_POINTS, branchSpent } from '@server/contract';
+import { DAILY_EMISSION, MASTERIES, STARTER_AURA } from '@server/contract';
 import { fmtAura } from '../../shared/format';
 import { API_MODE } from '../../shared/api';
 import type { UpgradeResult, useTownhall } from '../hooks/useTownhall';
@@ -11,13 +10,13 @@ type Props = { open: boolean; onClose: () => void; townhall: Townhall };
 
 export function TownhallModal({ open, onClose, townhall: t }: Props) {
   return (
-    <BuildingModal open={open} onClose={onClose} title="THE TOWNHALL" subtitle={<>Level up your empire · earn perk points · set building caps</>}>
+    <BuildingModal open={open} onClose={onClose} title="THE TOWNHALL" subtitle={<>Level up your empire · raise every building’s Mastery cap · more Mastery XP</>}>
       {t.ready ? (
         <div className="th-grid">
           <Overview t={t} />
           <Upgrade t={t} />
-          <Perks t={t} />
-          <Caps t={t} />
+          <Gives t={t} />
+          <Masteries t={t} />
         </div>
       ) : (
         <SignIn t={t} />
@@ -81,7 +80,9 @@ function Overview({ t }: { t: Townhall }) {
           </span>
           <span className="muted">next level {fmtAura(t.nextCost)}</span>
         </div>
-        <div className="small muted">{t.points > 0 ? <span className="gold">{t.points} perk point{t.points === 1 ? '' : 's'} to spend</span> : 'All perk points spent'}</div>
+        <div className="small muted">
+          Every Mastery up to <span className="gold">LV {t.masteryCap}</span> · <span className="gold">+{pct1(t.masteryXpBonus)}</span> Mastery XP
+        </div>
       </div>
     </section>
   );
@@ -127,88 +128,90 @@ function Upgrade({ t }: { t: Townhall }) {
       </button>
       {result && (
         <div className={`notice ${result.ok ? 'ok' : 'err'}`} role="status">
-          {result.ok ? `Success! Townhall is now LV ${result.level}. +1 perk point.` : `Failed. ${fmtAura(result.spent)} $aura burned. Try again?`}
+          {result.ok ? `Success! Townhall is now LV ${result.level}. Mastery cap LV ${result.level}.` : `Failed. ${fmtAura(result.spent)} $aura burned. Try again?`}
         </div>
       )}
     </section>
   );
 }
 
-function Perks({ t }: { t: Townhall }) {
-  const feeDiscount = Math.min(FEE_DISCOUNT_CAP, (t.ranks['lower-fees'] ?? 0) * 0.01);
+const pct1 = (f: number) => `${Math.round(f * 100)}%`;
+
+/** What the Townhall level gives, now and at the next level. */
+function Gives({ t }: { t: Townhall }) {
+  const rows = [
+    { what: 'Mastery cap', now: `LV ${t.masteryCap}`, next: `LV ${t.masteryCap + 1}`, about: 'No building’s Mastery can be higher than your Townhall. XP earned past the cap is kept and counts once you upgrade.' },
+    { what: 'Mastery XP bonus', now: `+${pct1(t.masteryXpBonus)}`, next: `+${pct1(t.masteryXpBonus + 0.01)}`, about: '+1% Mastery XP in every building per Townhall level.' },
+  ];
   return (
-    <section className="panel th-perks" aria-label="Perks">
-      <div className="th-perks-head">
-        <span className="label">PERKS · {t.points} POINT{t.points === 1 ? '' : 'S'} TO SPEND</span>
-        <button type="button" className="btn ghost small" disabled={t.busy || Object.keys(t.ranks).length === 0 || t.respec > t.balance} onClick={() => t.doRespec()}>
-          RESPEC · {fmtAura(t.respec)}
-        </button>
-      </div>
-      <div className="branches">
-        {BRANCHES.map((b) => {
-          const spent = branchSpent(t.ranks, b.id);
-          return (
-            <div key={b.id} className={`branch ${b.live ? '' : 'later'}`}>
-              <div className="branch-head">
-                <img className="icon32" src={b.icon} alt="" aria-hidden="true" />
-                <div>
-                  <div className="branch-name">{b.name} <span className="muted small">· {spent} pts</span></div>
-                  <div className="muted small">{b.who}</div>
-                </div>
-                <span className={`phase ${b.live ? 'live' : ''}`}>{b.phase}</span>
-              </div>
-              {[1, 2, 3].map((tier) => {
-                const need = TIER_POINTS[tier as 1 | 2 | 3];
-                const open = spent >= need;
-                return (
-                  <div key={tier} className="tier">
-                    {tier > 1 && <div className={`tier-gate ${open ? 'open' : ''}`}>{open ? `TIER ${tier}` : `TIER ${tier} · ${need} PTS IN ${b.name}`}</div>}
-                    {PERKS.filter((p) => p.branch === b.id && p.tier === tier).map((p) => {
-                      const rank = t.ranks[p.id] ?? 0;
-                      return (
-                        <div key={p.id} className={`perk ${open ? '' : 'locked'} ${rank > 0 ? 'has' : ''}`}>
-                          <img className="icon32" src={p.icon} alt="" aria-hidden="true" />
-                          <div className="perk-body">
-                            <div className="perk-name">
-                              {p.name} <span className="mono small rank">{rank}/{p.maxRank}</span>
-                            </div>
-                            <div className="muted small">{p.effect}</div>
-                          </div>
-                          <button type="button" className="btn small plus" disabled={!t.canRank(p.id)} onClick={() => t.addRank(p.id)} aria-label={`Add a rank to ${p.name}`}>
-                            +
-                          </button>
-                        </div>
-                      );
-                    })}
-                  </div>
-                );
-              })}
-            </div>
-          );
-        })}
-      </div>
-      <div className="small muted">
-        Builder fee with your perks: <span className="mono gold">{(BUILDER_FEE_RATE * (1 - feeDiscount) * 100).toFixed(4)}%</span> (−{Math.round(feeDiscount * 100)}%, max −
-        {FEE_DISCOUNT_CAP * 100}% with the Exchange). Fighter and Crafter points bank now and work when heroes and crafting arrive.
-      </div>
+    <section className="panel th-gives" aria-label="What your Townhall level gives">
+      <div className="label">WHAT YOUR LEVEL GIVES</div>
+      <table className="th-gives-table">
+        <thead>
+          <tr>
+            <th />
+            <th>NOW · LV {t.level}</th>
+            <th>NEXT · LV {t.level + 1}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r) => (
+            <tr key={r.what} title={r.about}>
+              <td>
+                <div className="strong">{r.what}</div>
+                <div className="muted small">{r.about}</div>
+              </td>
+              <td className="mono gold">{r.now}</td>
+              <td className="mono">{r.next}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="small muted">Coming later: your Townhall grows grander in the town as it levels up.</div>
     </section>
   );
 }
 
-function Caps({ t }: { t: Townhall }) {
+/** Every building's Mastery: earned by using that building, capped by the Townhall level. */
+function Masteries({ t }: { t: Townhall }) {
   return (
-    <section className="panel th-caps" aria-label="Building caps">
-      <div className="label">BUILDING CAPS</div>
-      {BUILDING_CAPS.map((c) => {
-        const unlocked = t.level >= c.unlockAt;
-        return (
-          <div key={c.name} className="cap-row">
-            <span className="strong">{c.name}</span>
-            <span className={`mono small ${unlocked ? '' : 'muted'}`}>{unlocked ? `up to LV ${t.level}` : `unlocks at Townhall LV ${c.unlockAt}`}</span>
-          </div>
-        );
-      })}
-      <div className="small muted">The Townhall caps every other building’s level, so it is always the first upgrade.</div>
+    <section className="panel th-masteries" aria-label="Mastery">
+      <div className="th-masteries-head">
+        <span className="label">MASTERY · EARNED BY USING EACH BUILDING · CAPPED AT LV {t.masteryCap}</span>
+      </div>
+      <div className="masteries">
+        {MASTERIES.map((m) => {
+          const v = t.masteries.find((x) => x.id === m.id);
+          const level = v?.level ?? 0;
+          const locked = m.opensAt !== undefined && t.level < m.opensAt;
+          return (
+            <article key={m.id} className={`mastery ${v?.live ? 'live' : 'soon'}`} aria-label={`${m.name} Mastery`}>
+              <div className="mastery-head">
+                <img className="mastery-sprite" src={m.sprite} alt="" aria-hidden="true" />
+                <div className="mastery-title">
+                  <span className="mastery-name">{m.name}</span>
+                  <span className="mono small">
+                    LV {level} <span className="muted">/ {t.masteryCap}</span>
+                  </span>
+                </div>
+              </div>
+              <div className="mastery-bar" role="progressbar" aria-label={`${m.name} Mastery toward the cap`} aria-valuemin={0} aria-valuemax={t.masteryCap} aria-valuenow={level}>
+                <div className="mastery-bar-fill" style={{ width: `${t.masteryCap ? Math.min(100, (level / t.masteryCap) * 100) : 0}%` }} />
+              </div>
+              <div className="small">
+                <span className="muted">XP from </span>
+                {m.xpFrom}
+              </div>
+              <ul className="mastery-perks small muted">
+                {m.perks.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+              <span className={`phase ${v?.live ? 'live' : ''}`}>{v?.live ? 'LIVE' : locked ? `OPENS AT LV ${m.opensAt}` : 'COMING SOON'}</span>
+            </article>
+          );
+        })}
+      </div>
     </section>
   );
 }

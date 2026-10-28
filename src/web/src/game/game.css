@@ -189,31 +189,30 @@
 .game .chance.on { background: var(--slate-600); box-shadow: inset 0 0 0 2px var(--gold); }
 .game .chance.cant { color: #6b7488; }
 .game .th-cost { font-size: 15px; }
-.game .th-perks { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
-.game .th-perks-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.game .branches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
-.game .branch { display: flex; flex-direction: column; gap: 6px; padding: 10px; background: var(--slate-900); border: 2px solid var(--ink); box-shadow: inset 0 0 0 2px var(--slate-700); }
-.game .branch.later { opacity: 0.9; }
-.game .branch-head { display: flex; align-items: center; gap: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--slate-700); }
-.game .branch-name { font-family: var(--pixel); font-size: 13px; letter-spacing: 1px; color: var(--gold); }
-.game .phase { margin-left: auto; font-family: var(--pixel); font-size: 9px; letter-spacing: 1px; padding: 3px 6px; border: 2px solid var(--ink); background: var(--slate-700); color: var(--muted); white-space: nowrap; }
+.game .th-gives { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.game .th-gives-table { width: 100%; border-collapse: collapse; }
+.game .th-gives-table th { font-family: var(--pixel); font-size: 10px; letter-spacing: 1px; color: var(--muted); font-weight: 400; text-align: left; padding: 0 10px 6px 0; }
+.game .th-gives-table td { padding: 10px 10px 10px 0; border-top: 1px solid var(--slate-700); vertical-align: top; }
+.game .th-gives-table td.mono { font-size: 15px; white-space: nowrap; width: 140px; }
+.game .th-masteries { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.game .th-masteries-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.game .masteries { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
+.game .mastery { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--slate-900); border: 2px solid var(--ink); box-shadow: inset 0 0 0 2px var(--slate-700); }
+.game .mastery.soon .mastery-sprite { filter: saturate(0.6); }
+.game .mastery-head { display: flex; align-items: center; gap: 10px; }
+.game .mastery-sprite { width: 64px; height: 56px; object-fit: contain; image-rendering: pixelated; flex-shrink: 0; }
+.game .mastery-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.game .mastery-name { font-family: var(--pixel); font-size: 13px; letter-spacing: 1px; color: var(--gold); }
+.game .mastery-bar { height: 10px; background: var(--ink-2); border: 2px solid var(--ink); }
+.game .mastery-bar-fill { height: 100%; background: var(--teal); }
+.game .mastery-perks { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.game .phase { font-family: var(--pixel); font-size: 9px; letter-spacing: 1px; padding: 3px 6px; border: 2px solid var(--ink); background: var(--slate-700); color: var(--muted); white-space: nowrap; }
 .game .phase.live { background: var(--grass); color: var(--parchment); }
-.game .tier { display: flex; flex-direction: column; gap: 6px; }
-.game .tier-gate { font-family: var(--pixel); font-size: 9px; letter-spacing: 1px; color: var(--muted); text-align: center; padding: 4px 0; border-top: 2px dashed var(--slate-600); }
-.game .tier-gate.open { color: var(--teal); }
-.game .perk { display: flex; align-items: center; gap: 10px; padding: 6px; border: 2px solid transparent; }
-.game .perk.has { border-color: var(--slate-600); background: var(--slate-800); }
-.game .perk.locked { opacity: 0.45; }
-.game .perk-body { flex: 1; min-width: 0; }
-.game .perk-name { font-weight: 600; font-size: 13px; }
-.game .rank { color: var(--gold); margin-left: 4px; }
-.game .plus { min-width: 40px; min-height: 40px; font-size: 16px; }
-.game .th-caps { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
-.game .cap-row { display: flex; justify-content: space-between; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--slate-700); }
+.game .mastery .phase { align-self: flex-start; }
 .game .th-note { padding: 0 14px 12px; margin: 0; }
 @media (max-width: 1000px) {
   .game .th-grid { grid-template-columns: minmax(0, 1fr); }
-  .game .branches { grid-template-columns: minmax(0, 1fr); }
+  .game .masteries { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 760px) {
   .game .th-overview { flex-direction: column; align-items: stretch; }

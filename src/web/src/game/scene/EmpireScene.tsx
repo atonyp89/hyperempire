@@ -45,7 +45,7 @@ const plateAt = (b: Building) =>
     : undefined;
 
 const BUILDINGS: Building[] = [
-  { id: 'townhall', name: 'TOWNHALL', detail: 'LEVEL UP · PERKS', about: "Your empire's heart. Spend $aura to level up, then put perk points into Trader, Fighter and Crafter.", box: fromCrop(106, 9, 100, 73), ready: true, sprite: '/empire/townhall.png' },
+  { id: 'townhall', name: 'TOWNHALL', detail: 'LEVEL UP · MASTERY', about: "Your empire's heart. Spend $aura to level up: every building's Mastery can grow as high as your Townhall.", box: fromCrop(106, 9, 100, 73), ready: true, sprite: '/empire/townhall.png' },
   { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES', about: 'Recruit heroes and send them on adventures. Coming soon…', box: fromCrop(1, 18, 71, 66), plate: { x: 44, y: 48 }, ready: false, sprite: '/empire/tavern.png' },
   { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', about: 'Trade Hyperliquid perps. Every $1 of builder fee you pay earns 500 $aura.', box: fromCrop(248, 11, 60, 70), plate: { x: 278, y: 39 }, ready: true, sprite: '/empire/exchange.png' },
   { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS', about: 'Grow seeds into crafting materials. Coming soon…', box: fromCrop(0, 113, 77, 67), ready: false },

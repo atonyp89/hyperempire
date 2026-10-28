@@ -1,7 +1,7 @@
 // Database schema (Drizzle, Postgres). The same tables run on PGlite in the browser during development and on
 // Postgres in production; migrations.ts creates them. One database per Hyperliquid network.
 
-import { bigint, doublePrecision, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { bigint, doublePrecision, index, integer, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 /** One row per wallet that has signed in. `balance` is in milli-$aura (see rules/aura.ts). */
 export const accounts = pgTable('accounts', {
@@ -41,8 +41,6 @@ export const sessions = pgTable('sessions', {
 export const townhalls = pgTable('townhalls', {
   address: text('address').primaryKey(),
   level: integer('level').notNull().default(1),
-  ranks: jsonb('ranks').$type<Record<string, number>>().notNull().default({}),
-  respecs: integer('respecs').notNull().default(0),
 });
 
 export const miners = pgTable(

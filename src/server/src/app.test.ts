@@ -199,17 +199,17 @@ describe('townhall', () => {
     expect(json.townhall.aura).toBe(5_000 - 1_516);
   });
 
-  test('perks need points, and respec costs $aura', async () => {
+  test('the level caps every Mastery and adds Mastery XP; perks and respec are gone', async () => {
     const token = await signIn();
-    expect((await call('POST', '/townhall/perks', { perkId: 'foreman' }, token)).json.ranks.foreman).toBe(1);
-    expect((await call('POST', '/townhall/perks', { perkId: 'lower-fees' }, token)).status).toBe(409);
-    expect((await call('GET', '/me', undefined, token)).json.slots).toBe(4);
-    // A respec at level 1 costs 5,250 $aura: more than the 5,000 starter, until trading adds some.
-    expect((await call('POST', '/townhall/respec', undefined, token)).status).toBe(402);
+    const { json } = await call('GET', '/townhall', undefined, token);
+    expect(json).toMatchObject({ level: 1, masteryCap: 1, masteryXpBonus: 0.01 });
+    expect(json.masteries.map((m: any) => m.id)).toEqual(['exchange', 'mine', 'tavern', 'workshop', 'garden']);
+    expect(json.masteries.every((m: any) => m.level === 0 && !m.live)).toBe(true);
     await earn(token);
-    const { json } = await call('POST', '/townhall/respec', undefined, token);
-    expect(json.ranks).toEqual({});
-    expect(json.aura).toBe(105_000 - 5_250);
+    const up = (await call('POST', '/townhall/upgrade', { chance: 100 }, token)).json.townhall;
+    expect(up).toMatchObject({ level: 2, masteryCap: 2, masteryXpBonus: 0.02 });
+    expect((await call('POST', '/townhall/perks', { perkId: 'foreman' }, token)).status).toBe(404);
+    expect((await call('POST', '/townhall/respec', undefined, token)).status).toBe(404);
   });
 
   test('spending more than the balance fails with 402', async () => {

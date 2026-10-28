@@ -1,6 +1,6 @@
 # HyperEmpire
 
-Trade on Hyperliquid, grow a pixel-art empire. Every builder fee you pay through the Exchange earns $aura; $aura levels up your Townhall, earns perk points, unlocks new buildings and climbs the Season 0 leaderboard. Your empire is your trader identity card.
+Trade on Hyperliquid, grow a pixel-art empire. Every builder fee you pay through the Exchange earns $aura; $aura levels up your Townhall, which raises every building's Mastery cap, unlocks new buildings and climbs the Season 0 leaderboard. Your empire is your trader identity card.
 
 ## Contents
 

@@ -24,8 +24,6 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | POST | [`/exchange/orders`](#post-exchangeorders) | Report orders placed through our Exchange |
 | GET | [`/townhall`](#get-townhall) | Townhall state |
 | POST | [`/townhall/upgrade`](#post-townhallupgrade) | Try to level up |
-| POST | [`/townhall/perks`](#post-townhallperks) | Add a perk rank |
-| POST | [`/townhall/respec`](#post-townhallrespec) | Reset all perks |
 | GET | [`/mine`](#get-mine) | Pools, Miners, Picks, rush wins |
 | POST | [`/mine/recruit`](#post-minerecruit) | Recruit a Miner |
 | POST | [`/mine/miners/merge`](#post-mineminersmerge) | Merge two Miners |
@@ -95,7 +93,7 @@ Settles finished mining blocks, reads new fills (at most every 30 s) and settles
 | --- | --- |
 | `aura` | Current balance |
 | `level` | Townhall level |
-| `slots` | Miners that can be deployed at once: 3 + Foreman ranks |
+| `slots` | Miners that can be deployed at once: 3 (Mine Mastery will add more) |
 | `pendingAura` | Exchange $aura not settled yet: today's estimated share, plus finished days still waiting (on mainnet, for Hyperliquid's file) |
 
 ### `POST /me/sync`
@@ -158,15 +156,28 @@ Called by the Exchange right after each order or close. It also rereads the last
 All Townhall endpoints return a **Townhall view**:
 
 ```json
-{ "level": 2, "ranks": { "foreman": 1 }, "respecs": 0, "aura": 2234, "nextCost": 5800, "points": 1, "respecCost": 5500 }
+{
+  "level": 2,
+  "aura": 1969,
+  "nextCost": 5800,
+  "masteryCap": 2,
+  "masteryXpBonus": 0.02,
+  "masteries": [
+    { "id": "exchange", "level": 0, "xp": 0, "live": false },
+    { "id": "mine", "level": 0, "xp": 0, "live": false },
+    { "id": "tavern", "level": 0, "xp": 0, "live": false },
+    { "id": "workshop", "level": 0, "xp": 0, "live": false },
+    { "id": "garden", "level": 0, "xp": 0, "live": false }
+  ]
+}
 ```
 
 | Field | What |
 | --- | --- |
-| `ranks` | Perk id → rank. Perk ids are in `PERKS` (`src/server/src/rules/empire.ts`) |
 | `nextCost` | Full cost of the next level |
-| `points` | Perk points not spent yet (one per level) |
-| `respecCost` | What a respec costs now |
+| `masteryCap` | Highest level any building's Mastery can reach: the Townhall level |
+| `masteryXpBonus` | Extra Mastery XP in every building, as a fraction (+1% per level) |
+| `masteries` | Each building's Mastery level and XP. `live: false` until that building's Mastery is built; names, XP sources and planned perks are in `MASTERIES` (`src/server/src/rules/empire.ts`) |
 
 ### `GET /townhall`
 
@@ -185,26 +196,6 @@ Burns `chance`% of `nextCost` (rounded), then rolls. `ok: true` means the level 
 
 - `400`: a chance that isn't 10–100 in steps of 10.
 - `402 not_enough_aura`.
-
-### `POST /townhall/perks`
-
-```json
-{ "perkId": "foreman" }
-```
-
-Adds one rank and returns the Townhall view.
-
-- `400`: unknown perk.
-- `409 no_points`: no perk points left.
-- `409 max_rank`: already at its top rank.
-- `409 tier_locked`: not enough points in that branch for this tier (tier 2 needs 5, tier 3 needs 15).
-
-### `POST /townhall/respec`
-
-No body. Clears every rank, burns `respecCost`, and returns the Townhall view.
-
-- `402 not_enough_aura`.
-- `409 nothing_to_reset`: no ranks to clear.
 
 ## Mine
 

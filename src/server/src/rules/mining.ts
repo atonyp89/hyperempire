@@ -30,9 +30,8 @@ export const GRADE: Record<Grade, GradeRow> = {
 export const RECRUIT_COST = 1_000;
 export const CRAFT_COST = 600;
 
-/** Miner slots: base, plus one per rank of the Crafter perk Foreman. */
+/** Miner slots everyone starts with. The Foreman perk (Mine Mastery, not built yet) will add more. */
 export const BASE_SLOTS = 3;
-export const FOREMAN_PERK = 'foreman';
 
 /** A Miner's energy drains from 100 to 0 over this many blocks of mining. */
 export const ENERGY_BLOCKS = 1_440;

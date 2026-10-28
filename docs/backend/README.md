@@ -43,7 +43,7 @@ Limit of development mode: the data lives on one device and is lost if the site'
 | `src/contract.ts` | The API contract: request and response types and the rules the client shows. The only server module the web app imports (plus `local.ts`) |
 | `src/app.ts` | `createApp(deps)`: CORS, routes, error handling |
 | `src/routes/` | `auth.ts`, `me.ts`, `townhall.ts`, `mining.ts`, `admin.ts` |
-| `src/rules/` | Pure game rules with no I/O: `empire.ts` (levels, perks, respec), `mining.ts` (grades, merges, upkeep, pools), `exchange.ts` (the daily $aura pool and shares), `aura.ts` (units) |
+| `src/rules/` | Pure game rules with no I/O: `empire.ts` (Townhall levels, the Mastery list, cap and XP bonus), `mining.ts` (grades, merges, upkeep, pools), `exchange.ts` (the daily $aura pool and shares), `aura.ts` (units) |
 | `src/ledger.ts` | Balances and the ledger |
 | `src/exchange.ts` | Exchange rewards: tracks builder fees per day, settles each finished day into $aura shares |
 | `src/hyperliquid.ts`, `src/lz4.ts` | Reads a wallet's fills and Hyperliquid's daily builder-fill files (LZ4-compressed CSV) |
@@ -87,7 +87,7 @@ The first sign-in creates the account with its 5,000 starter $aura. The network 
 | `fee` | + | fill trade id | Old fixed-rate credits (500 per $1), before the daily pool; no longer written |
 | `mine` | + | `<first block>-<last block>` | Mining payouts for a settled range |
 | `townhall:upgrade` | − | | Upgrade attempt, success or not |
-| `townhall:respec` | − | | Perk reset |
+| `townhall:respec` | − | | Old perk resets, before Mastery; no longer written |
 | `tavern:recruit` | − | | Recruit a Miner |
 | `mine:feed` | − | | Feed a Miner |
 | `workshop:craft` | − | | Craft a Pick |
@@ -118,11 +118,11 @@ Days settle in order, at most 31 per call. Inserting the `exchange_days` row is 
 
 ## Townhall
 
-Rules are in `src/rules/empire.ts`: level costs, perk points per level, tier gates, respec costs.
+Rules are in `src/rules/empire.ts`: level costs, the Mastery list, the Mastery cap and the XP bonus.
 
 - **Upgrade:** the player picks a chance from 10% to 100% in steps of 10 and pays that share of the next level's cost. The server rolls; the $aura burns either way.
-- **Perks:** one rank per call. The server checks for a free point, the perk's max rank and the tier gate (points already spent in that branch).
-- **Respec:** clears every rank for a cost that grows with level and with each respec.
+- **What the level gives:** every building's Mastery is capped at the Townhall level (`masteryCap`), and Mastery XP gets +1% per level (`masteryXpBonus`). See [Mastery](../economy/game-design.md#mastery-redesign-oct-28-2026-not-built-yet).
+- **Mastery isn't built yet:** the Townhall view lists all five Masteries at level 0 with `live: false`. Each will be filled in as its building's Mastery ships. The old perk tree and respec were removed (migration `0003` drops their columns).
 
 ## Mining
 
@@ -130,7 +130,7 @@ Rules are in `src/rules/mining.ts`. What each grade does and costs is in [the ga
 
 **Things:** a **Miner** has a grade, energy (0–100), a pool (or none), the block it arrives at, and an optional Pick. A **Pick** has a grade and durability (0–100). The Tavern recruits Miners, the Workshop crafts and repairs Picks, and both merge two of a grade into a chance at the next one (a failed merge loses both).
 
-**Power:** Miner power × the Pick's multiplier while the Pick has durability left. A Miner mines only after it has arrived (`ready_height ≤ block`, 3 blocks of walking after a deploy) and while it has energy. Deployed Miners are capped by slots: 3 + 1 per rank of the Foreman perk.
+**Power:** Miner power × the Pick's multiplier while the Pick has durability left. A Miner mines only after it has arrived (`ready_height ≤ block`, 3 blocks of walking after a deploy) and while it has energy. Deployed Miners are capped by slots: 3 for now; Foreman (Mine Mastery) will add more.
 
 **Blocks:** block `h` covers `GENESIS + h × 60 s` to the next minute. Each reward has a per-block prize, split between a shared and a rush pool (50/50 for $aura).
 
@@ -162,7 +162,7 @@ At most 10,080 blocks (a week) are replayed at once, so a long gap can't stall a
 | `ledger` | `id`; unique `(address, kind, ref)` | Every balance change |
 | `nonces` | `nonce` | Pending sign-ins, 10-minute expiry |
 | `sessions` | `token` | Session tokens, 30-day expiry |
-| `townhalls` | `address` | `level`, `ranks` (JSON: perk id → rank), `respecs` |
+| `townhalls` | `address` | `level` |
 | `miners` | `id` | `address`, `grade` (0–4), `energy`, `pool`, `ready_height`, `pick_id` |
 | `picks` | `id` | `address`, `grade` (0–4), `durability` |
 | `chain` | `id` (always 1) | `settled_height`, the last settled block |
@@ -203,7 +203,7 @@ Every error is JSON with an HTTP status: `{ "error": "<code>", "message": "<read
 | 402 | `not_enough_aura` | The balance can't cover it |
 | 404 | `not_found` | No such endpoint, or not your Miner or Pick |
 | 429 | `too_many_attempts` | Too many wrong admin logins; wait 15 minutes |
-| 409 | `no_points`, `max_rank`, `tier_locked`, `nothing_to_reset`, `no_slots`, `grade_mismatch`, `deployed`, `equipped`, `max_grade`, `full` | A game rule says no (see [endpoints.md](endpoints.md)) |
+| 409 | `no_slots`, `grade_mismatch`, `deployed`, `equipped`, `max_grade`, `full` | A game rule says no (see [endpoints.md](endpoints.md)) |
 | 500 | `internal` | A bug; details only in the server log |
 
 ## Planned around the backend
@@ -216,8 +216,8 @@ Data path: HyperCore fills with our builder code → the indexer totals fees per
 | --- | --- | --- | --- |
 | Game backend | Off-chain | $aura ledger; Townhall state; Miners and Picks; rolls; 60 s block draws | **Built** (`src/server`); commit-reveal still to do |
 | Fee indexer | Off-chain | Reads HyperEmpire's builder fills and computes rewards; later posts roots, then multi-signer | **Built** for the daily pool (mainnet builder files, testnet reported orders); Merkle roots still to do |
-| EmpireNFT (ERC-721) | HyperEVM | $10 mint with starter $aura; Townhall level and perk ranks | Planned |
-| Townhall | HyperEVM | Burns $aura for levels, risky upgrades (VRF or commit-reveal) and respecs | Planned (runs in the backend for now) |
+| EmpireNFT (ERC-721) | HyperEVM | $10 mint with starter $aura; Townhall level | Planned |
+| Townhall | HyperEVM | Burns $aura for levels and risky upgrades (VRF or commit-reveal) | Planned (runs in the backend for now) |
 | AURA (ERC-20) | HyperEVM | Transfers off in Season 0; burns on spend | Planned |
 | RewardDistributor | HyperEVM | Merkle claims per epoch; daily cap per empire; leaderboard prizes | Planned |
 | Tavern + HeroNFT | HyperEVM | Tiered recruits, rerolls, hero stats | Phase 3 |

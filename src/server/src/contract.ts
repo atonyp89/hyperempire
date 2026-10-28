@@ -16,14 +16,22 @@ export type SessionResponse = { token: string; address: string; expiresAt: numbe
 
 export type MeView = { address: string; aura: number; level: number; slots: number; /** Exchange $aura not settled yet. */ pendingAura: number };
 
+export type MasteryView = {
+  id: import('./rules/empire').MasteryId;
+  level: number;
+  xp: number;
+  /** False until this building's Mastery is built. */
+  live: boolean;
+};
 export type TownhallView = {
   level: number;
-  ranks: Record<string, number>;
-  respecs: number;
   aura: number;
   nextCost: number;
-  points: number;
-  respecCost: number;
+  /** Highest level any building's Mastery can reach: the Townhall level. */
+  masteryCap: number;
+  /** Extra Mastery XP everywhere, as a fraction (0.05 = +5%). */
+  masteryXpBonus: number;
+  masteries: MasteryView[];
 };
 export type UpgradeResponse = { ok: boolean; spent: number; chance: number; townhall: TownhallView };
 

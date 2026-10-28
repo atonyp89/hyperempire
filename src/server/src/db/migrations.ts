@@ -94,6 +94,14 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
       CREATE INDEX exchange_rewards_address ON exchange_rewards (address);
     `,
   },
+  {
+    // The Townhall perk tree is replaced by per-building Mastery; its ranks were test data.
+    id: '0003_drop_townhall_perks',
+    sql: `
+      ALTER TABLE townhalls DROP COLUMN ranks;
+      ALTER TABLE townhalls DROP COLUMN respecs;
+    `,
+  },
 ];
 
 export async function migrate(db: Db) {

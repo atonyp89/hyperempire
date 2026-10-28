@@ -8,7 +8,7 @@ What the game is and how its economy works: what players do, what earns and burn
 
 | Doc | What |
 | --- | --- |
-| [game-design.md](economy/game-design.md) | The game design: player types, buildings, $aura economy, Townhall and perks, mining, heroes, crafting, leaderboard, Season 0 rules, roadmap, current status, open questions |
+| [game-design.md](economy/game-design.md) | The game design: player types, buildings, $aura economy, Townhall and Mastery, mining, heroes, crafting, leaderboard, Season 0 rules, roadmap, current status, open questions |
 | [decisions.md](economy/decisions.md) | How each rule was decided and why, with the farming math and the builder-fee comparison |
 
 ## [Graphics and design](graphics/)

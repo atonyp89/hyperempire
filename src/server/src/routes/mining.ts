@@ -15,7 +15,6 @@ import {
   blockHeight,
   BLOCK_MS,
   CRAFT_COST,
-  FOREMAN_PERK,
   GRADE,
   GRADES,
   isPoolId,
@@ -30,15 +29,14 @@ import {
   type PoolId,
 } from '../rules/mining';
 import type { MineView, MinerView, PickView, PoolView } from '../contract';
-import { loadTownhall } from './townhall';
 
 const BLOCKS_PER_DAY = (24 * 60 * 60_000) / BLOCK_MS;
 const gradeOf = (n: number) => GRADES[n] as Grade;
 const gradeIndex = (g: Grade) => GRADES.indexOf(g);
 
-async function slots(tx: Conn, address: string) {
-  const t = await loadTownhall(tx, address);
-  return BASE_SLOTS + (t.ranks[FOREMAN_PERK] ?? 0);
+// Miner slots will grow with Mine Mastery (Foreman); until then everyone has the base slots.
+async function slots(_tx: Conn, _address: string) {
+  return BASE_SLOTS;
 }
 
 async function ownMiner(tx: Conn, address: string, id: number) {

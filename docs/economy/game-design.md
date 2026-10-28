@@ -8,7 +8,7 @@ HyperEmpire turns Hyperliquid trading into an empire builder: every fee you pay 
 
 - **Who:** existing Hyperliquid traders who enjoy a game layer. Long term, a social layer for trading as esport, starting with markets like Korea.
 - **How we earn:** builder-code fees on every fill routed through the Exchange, plus the $10 empire mint.
-- **Phase 1 scope:** the Exchange (trading UI with our builder code), $aura from fees, empire mint with starter $aura, Townhall leveling with risky upgrades and the perk tree (Trader branch live), a Season 0 leaderboard by Townhall level, creator referral codes.
+- **Phase 1 scope:** the Exchange (trading UI with our builder code), $aura from fees, empire mint with starter $aura, Townhall leveling with risky upgrades, Exchange Mastery, a Season 0 leaderboard by Townhall level, creator referral codes.
 
 ## Player types
 
@@ -18,7 +18,7 @@ The economy needs four groups at once: traders supply $aura, whales bring the mo
 | --- | --- | --- | --- | --- |
 | Why they come | Good execution, low cost | Status, competition, showing off | Thrill of luck, money from small capital | Income, audience, content |
 | What they bring | Most fee revenue; $aura supply | Big spending; demand for top gear and $aura | Activity, crafted gear, an audience for whales | New players, a stage for whales |
-| What keeps them | A trading UI good enough to stay; fee discounts from the Exchange and Trader perks | Rivals and an audience | Regular small wins, a fair shot, a low entry price | Referral income (USDC), gifts, going live daily |
+| What keeps them | A trading UI good enough to stay; fee discounts from Exchange Mastery | Rivals and an audience | Regular small wins, a fair shot, a low entry price | Referral income (USDC), gifts, going live daily |
 | What makes them leave | Fees not worth it; worthless $aura | Nobody to beat or impress | Being outspent and outrolled every time | Gifts they can't cash out; viewers who never convert |
 
 Every new mechanic is checked against six questions:
@@ -36,8 +36,8 @@ The main screen is a top-down town. Each building is a hotspot: hovering highlig
 
 | Building | What it does | Phase |
 | --- | --- | --- |
-| **Townhall** | Main progression: level up with $aura, earn perk points, set every other building's level cap | 1 |
-| **Exchange** | The trading UI: Hyperliquid perps with our builder code; every fill earns $aura. Levels add a fee discount | 1 |
+| **Townhall** | Main progression: level up with $aura; caps every building's Mastery and boosts Mastery XP | 1 |
+| **Exchange** | The trading UI: Hyperliquid perps with our builder code; fees earn a share of the daily $aura pool. Its Mastery adds a fee discount | 1 |
 | **Tavern** | Recruit characters with random grades: Miners first, heroes later | 2 |
 | **Workshop** | Craft Picks for Miners (later: gear); repair worn Picks | 2 |
 | **Mine** | Send Miners to dig; a block of rewards every 60 s, split by mining power | 2 |
@@ -47,10 +47,10 @@ The main screen is a top-down town. Each building is a hotspot: hovering highlig
 
 | Phase | Adds |
 | --- | --- |
-| 1 (now) | Exchange (trading UI, builder code); $aura from fees; empire mint with 5,000 starter $aura; Townhall leveling, risky upgrades, perk tree (Trader branch live); Season 0 leaderboard by Townhall level; creator referral codes |
-| 2 | **Mining:** Tavern recruits Miners, Workshop crafts and repairs Picks, the Mine pays block rewards; the game backend; the Foreman perk goes live |
-| 3 | Tavern heroes: tiered recruits and rerolls, hero stats, adventures and the free daily run; Fighter perks go live |
-| 4 | Garden, materials, gear crafting and gear NFTs (5 slots, SPD); the rest of the Crafter perks go live |
+| 1 (now) | Exchange (trading UI, builder code); $aura from fees; empire mint with 5,000 starter $aura; Townhall leveling, risky upgrades, Exchange Mastery; Season 0 leaderboard by Townhall level; creator referral codes |
+| 2 | **Mining:** Tavern recruits Miners, Workshop crafts and repairs Picks, the Mine pays block rewards; the game backend; Mine, Tavern and Workshop Mastery |
+| 3 | Tavern heroes: tiered recruits and rerolls, hero stats, adventures and the free daily run; Tavern Mastery's hero perks |
+| 4 | Garden, materials, gear crafting and gear NFTs (5 slots, SPD); Garden Mastery and the rest of Workshop Mastery |
 | 5 | Creator live gifting and overlay, $aura transfers and a liquidity pool, PvP |
 
 Phases 3–5 keep their old order behind mining; their order is still open.
@@ -58,8 +58,7 @@ Phases 3–5 keep their old order behind mining; their order is still open.
 Phase 1 details:
 
 - **Exchange:** Hyperliquid perps with our builder code; one-time builder-fee approval at the 0.1% cap, 0.05% charged at launch; market and limit orders, TP/SL, leverage, positions and PnL, "$aura earned" on every fill. Core trading features are never locked behind levels.
-- **Sinks:** Townhall levels, failed upgrade attempts and perk respecs. Leaderboard prizes put $aura back, so the prize pool stays small next to what they burn.
-- **Banked perk points:** Fighter and Crafter points can be spent now and start working when their features ship (Foreman with mining in Phase 2).
+- **Sinks:** Townhall levels, failed upgrade attempts and Mastery respecs. Leaderboard prizes put $aura back, so the prize pool stays small next to what they burn.
 - **Creator referral codes:** a referrer earns a share of the builder fees from traders they bring in, paid in USDC. Share to decide, 10–20%.
 
 ## Core loop
@@ -67,12 +66,12 @@ Phase 1 details:
 ```mermaid
 flowchart LR
   X["Exchange<br/>trade perps with our builder code"] --> E["Earn $aura<br/>share of the daily pool"]
-  E --> T["Townhall<br/>level up (burns $aura), +1 perk point"]
-  T --> P["Perk tree<br/>Trader / Fighter / Crafter"]
-  P -- "Trader perks: lower fees, more $aura" --> X
+  E --> T["Townhall<br/>level up (burns $aura): Mastery cap, +XP"]
+  X -- "fees" --> MX["Exchange Mastery<br/>fee discount, pool weight"]
+  T -- "caps" --> MX
   T --> B["Leaderboard<br/>top 1,000 by Townhall level"]
   B -- "prizes from fee pool" --> E
-  T -- "caps, Foreman perk: miner slots" --> V["Tavern · Workshop · Mine (P2)"]
+  T -- "caps each Mastery" --> V["Tavern · Workshop · Mine (P2)"]
   V -- "block rewards" --> E
 ```
 
@@ -96,39 +95,52 @@ Example: on a day with $200 of builder fees in total, a trader who paid $20 of t
 
 **Why a pool, not a fixed rate:** a fixed rate (it was 500 $aura per $1) pins what $aura must be worth for trading to make sense: at a 0.05% fee, $0.002 per $aura. If $aura is worth less, there's no reason to trade here. With a fixed pool, $aura per $1 floats. When few people trade, each $1 earns more, which draws traders back. When many trade, total emission stays the same, so supply is predictable and never grows with volume.
 
-**Fee discount:** Exchange building levels and Trader perks (Lower fees, −1% per rank) stack, capped at −40% in total. $aura is earned on the fee actually paid, so the farming math is unchanged. Perks that add $aura (Streak, Market maker) are capped at about +10% in total so emissions stay under the farming break-even.
+**Fee discount:** the Lower fees perk in Exchange Mastery (−1% per rank) is capped at −40% in total. Your share of the pool counts the fee at the list rate, so a discount never shrinks it. Perks that add pool weight (Streak, Market maker) are capped at about +10% in total; since the pool is fixed they only shift shares between players.
 
 **Farming guardrail:** wash trading can't raise emission, since the pool is fixed. A farmer who pays F of a day's T in fees gets F ÷ T of the pool, and every dollar they pay is builder revenue. Farming only pays while the pool is worth more than the fees it takes to win a share of it. When that happens more farmers join, which pushes fees up until it no longer does.
 
 ## Townhall
 
-The empire is a $10 NFT on HyperEVM that comes with 5,000 starter $aura and a level 1 Townhall. The Townhall is the main progression: its level ranks you on the leaderboard and caps every other building.
+The empire is a $10 NFT on HyperEVM that comes with 5,000 starter $aura and a level 1 Townhall. The Townhall is the main progression: its level ranks you on the leaderboard, caps every building's Mastery, and speeds up Mastery everywhere.
 
 - **Level cost:** going from level L to L + 1 costs 1,000 × (L + 1)^1.6 $aura, all burned.
 - **Risky upgrade:** pay 10–100% of the cost (10% steps) for the same percentage chance of success. If a level costs 10,000 $aura, 5,000 gives a 50% chance and 3,000 a 30% chance. The $aura burns either way; 100% is a sure level. Expected cost per level equals the full price, so the burn is unchanged. Attempts below 100% use commit-reveal or a VRF.
-- **Building caps:** no building can be a higher level than the Townhall. The Tavern unlocks at Townhall LV 20 and the Garden at LV 30 (placeholders).
+- **Mastery cap:** no building's Mastery can be higher than the Townhall level. Mastery XP keeps building up past the cap, but the level waits until the Townhall is upgraded; nothing is lost.
+- **Mastery bonus:** +1% Mastery XP in every building per Townhall level.
+- **Unlocks:** buildings open at Townhall levels (Tavern LV 20 and Garden LV 30 are placeholders).
+- **Later:** the Townhall looks grander at certain levels in the town scene (status). Not now.
 
-| Reach level | Cumulative $aura | Builder fees at 500/$1 | Volume filled at 0.1% |
-| --- | --- | --- | --- |
-| 10 | \~150k | \~$300 | \~$300k |
-| 20 | \~1M | \~$2k | \~$2M |
-| 50 | \~10M | \~$20k | \~$20M |
-| 100 | \~61M | \~$122k | \~$122M |
+| Reach level | Cumulative $aura |
+| --- | --- |
+| 10 | \~150k |
+| 20 | \~1M |
+| 50 | \~10M |
+| 100 | \~61M |
 
-### Perk tree
+How much trading that takes depends on the daily pool (see [Earning $aura](#earning-aura)).
 
-Each Townhall level gives **1 perk point**. Players spend points on perk ranks in three branches, one per player type. Deeper tiers open as you invest in a branch: tier 2 after 5 points in it, tier 3 after 15. **Respec** costs 5,000 × 1.5^n × (1 + level / 20) $aura, rising with every respec.
+### Mastery (redesign, Oct 28, 2026; not built yet)
 
-| Tier | Trader (live in Phase 1) | Fighter (Phase 2) | Crafter (Phase 3) |
-| --- | --- | --- | --- |
-| 1 | **Lower fees** −1% builder fee per rank (0/5) | **Drill** +1 ATK and DEF for all heroes per rank (0/5) | **Green thumb** −5% garden growth time per rank (0/5) |
-| 1 | **Streak** +1% $aura per rank for each day of your trading streak, 7 days max (0/3) | **Barracks** +1 hero slot in the Tavern per rank (0/3) | **Salvager** +5% materials from salvage per rank (0/5) |
-| 1 | — | — | **Foreman** +1 Miner slot per rank (0/5); live in Phase 2 |
-| 2 | **Market maker** +5% $aura on maker fills per rank (0/3) | **Scout** +3% adventure success odds per rank (0/5) | **Steady hands** +3% craft quality odds per rank (0/5) |
-| 2 | **Patron** +5% referral share per rank (0/3) | **Swift march** −5% adventure lock time per rank (0/3) | **Bulk forge** −5% $aura cost to craft per rank (0/3) |
-| 3 | **Whale's ear** once a day, 10% of one trade's builder fee back as $aura (0/1) | **Warlord** heroes start every adventure with a free buff (0/1) | **Master artisan** crafts can roll one extra affix (0/1) |
+Mastery replaces the Townhall perk tree, where every Townhall level gave a point to spend in one of three branches. Instead, **each building has its own Mastery, earned only by doing what that building is for**: traders progress by trading, gamblers by pulling and merging, cozy players by gardening.
 
-Points spent in Fighter or Crafter before their features ship are banked and start working when they arrive. Foreman is the first Crafter perk to go live, with mining.
+- **Levels:** XP from the building's own actions raises its Mastery level, up to the Townhall level. XP needed rises with each level (curve to tune, e.g. 100 × level^1.5).
+- **Points:** each Mastery level gives 1 point to spend in **that building's** perk tree. Tiers open as you invest: tier 2 after 5 points in that building, tier 3 after 15.
+- **Respec:** per building, costing $aura and rising with each respec.
+- **Capacity lives in Mastery:** slots and plots come from each building's own tree (Miner slots from Mine Mastery, hero slots from Tavern Mastery, plots from Garden Mastery), not from the Townhall.
+- **Carries over:** Mastery doesn't reset between seasons; only the leaderboard does.
+- **Losing still counts:** failed merges and bad pulls earn Mastery XP too.
+
+| Building | Mastery XP from (amounts to tune) | Perk tree (first draft) |
+| --- | --- | --- |
+| **Exchange** | Builder fees paid, counted at the list rate (e.g. 1 XP per $0.01) | **Lower fees** −1% builder fee per rank; **Streak** and **Market maker** add weight to your fees in the daily pool; **Patron** +referral share; **Whale's ear** |
+| **Tavern** | Recruits and merges, successful or not; adventures later | **Barracks** +1 hero slot per rank; **Drill**; **Scout**; **Swift march**; **Warlord** |
+| **Workshop** | Crafts, repairs and Pick merges, successful or not | **Steady hands**; **Bulk forge**; **Salvager**; **Master artisan**; a cheaper-repairs perk |
+| **Garden** | Harvests | **Green thumb** −5% growth time per rank; **more plots**; rarer seeds; decorations |
+| **Mine** | Mining: blocks mined by your Miners | **Foreman** +1 Miner slot per rank (moved here); less energy drain; shorter walks between pools |
+
+**Exchange perks and the daily pool:** the pool is fixed, so Exchange perks change a player's **weight** in it rather than minting extra $aura. Streak and Market maker add a percentage to the fees you're counted for; they shift shares between players and never raise emission. Lower fees cuts what you pay but your share still counts the fee at the list rate, so a discount never shrinks your share. The −40% discount cap stays.
+
+**Existing progress:** today's Townhall perk ranks are test data and reset when Mastery ships.
 
 ## Exchange
 
@@ -136,7 +148,7 @@ The Exchange building is the trading UI. It opens from the scene (or `#exchange`
 
 - **Trading:** Hyperliquid perps with our builder code on every order, close and TP/SL.
 - **Onboarding:** two one-time signatures, no gas: approve the builder fee, then approve a browser trading key (it can trade, never withdraw).
-- **Levels:** Exchange levels add a fee discount, shared with Trader perks under the −40% cap. Exchange level can't exceed Townhall level.
+- **Mastery:** trading levels up Exchange Mastery (see [Mastery](#mastery-redesign-oct-28-2026-not-built-yet)); its perks add the fee discount, capped at −40%.
 - **Never gated:** market and limit orders, TP/SL and all markets are available from level 1.
 
 ## Mining (Phase 2)
@@ -146,7 +158,7 @@ Players recruit **Miners**, equip them with **Picks**, and send them to the **Mi
 ```mermaid
 flowchart LR
   EX["Exchange<br/>trade → $aura"] --> A(("$aura"))
-  A --> TH["Townhall<br/>levels, Foreman perk = slots"]
+  A --> TH["Townhall<br/>levels cap Mine Mastery"]
   A --> TV["Tavern<br/>recruit Miners"]
   A --> WS["Workshop<br/>craft and repair Picks"]
   A --> FD["Food<br/>recharge Miners"]
@@ -181,7 +193,7 @@ Miners and Picks share five grades. Mythic is kept for heroes.
 ### Power and slots
 
 - **Power:** a Miner's power = Miner power × Pick multiplier. One Pick per Miner; with no Pick, or a broken one, the Miner mines at ×1.
-- **Slots:** only Miners in a slot mine. A Townhall starts with **3 slots**; the Foreman perk adds 1 per rank, **8 at most**.
+- **Slots:** only Miners in a slot mine. Everyone starts with **3 slots**; the Foreman perk (Mine Mastery) adds 1 per rank, **8 at most**.
 - **No cap:** one player's total power is not capped.
 
 ### Upkeep
@@ -329,7 +341,7 @@ Built in `src/web` (Vite + React + wagmi + the Hyperliquid TS SDK):
 
 - **Empire scene:** a PixelLab-generated town (`design/scene/townhall-pixellab.png`); building hotspots with shape-following hover highlights from cut-out sprites.
 - **Exchange modal:** live trading on Hyperliquid testnet with the builder code, builder-fee and agent onboarding, positions, orders and fills with $aura per fill.
-- **Townhall modal:** level and progress, risky upgrade, the three-branch perk tree with PixelLab icons, respec and building caps.
+- **Townhall modal:** level and progress, risky upgrade, what the level gives (Mastery cap, +1% Mastery XP per level), and a card per building Mastery. The perk tree is gone; Mastery itself isn't built yet, so every building shows LV 0.
 - **Town:** a 480×180 world with a camera that follows a walkable knight hero: the original town, where the Garden grows wheat in two small plots, and an east strip where the Workshop and the Mine already stand as "coming soon" buildings. The town stays compact: each building opens its own screen (like the Exchange) for its full feature, so the Garden's fields will live on a Garden screen, not in the town.
 
 **Where $aura lives today:** in the game backend's ledger (`src/server`). Each UTC day the API shares the day's 100,000 $aura pool by builder fees paid through our Exchange. On mainnet, fees come from Hyperliquid's daily file for our builder, so other builders' fees never count. On testnet, they come from fills of orders our Exchange placed. It also records every spend; Townhall level and perks live there too. During development the backend runs inside the browser on PGlite, so data stays on that device; production moves the same code and its Postgres database to AWS. The perk fee discount is display-only. The AURA token, Townhall contract, fee indexer and RewardDistributor are the next things to build.
