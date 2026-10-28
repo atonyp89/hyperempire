@@ -6,6 +6,8 @@ import type { Grade, PoolId, PoolKind } from './rules/mining';
 
 export * from './rules/empire';
 export { DAILY_EMISSION, marginalShare } from './rules/exchange';
+export { EXCHANGE_PERKS, MASTERY_PERKS, WHALE_DAILY_VOLUME, XP_PER_USD_FEE, xpForLevel, xpToNext } from './rules/mastery';
+export type { ExchangePerkId, MasteryPerk } from './rules/mastery';
 export { GRADES, GRADE, RECRUIT_COST, CRAFT_COST, BASE_SLOTS, WALK_BLOCKS, ENERGY_BLOCKS, BLOCK_MS, REWARDS } from './rules/mining';
 export type { Grade, PoolId, PoolKind, RewardConfig, RewardId } from './rules/mining';
 
@@ -16,13 +18,6 @@ export type SessionResponse = { token: string; address: string; expiresAt: numbe
 
 export type MeView = { address: string; aura: number; level: number; slots: number; /** Exchange $aura not settled yet. */ pendingAura: number };
 
-export type MasteryView = {
-  id: import('./rules/empire').MasteryId;
-  level: number;
-  xp: number;
-  /** False until this building's Mastery is built. */
-  live: boolean;
-};
 export type TownhallView = {
   level: number;
   aura: number;
@@ -31,7 +26,6 @@ export type TownhallView = {
   masteryCap: number;
   /** Extra Mastery XP everywhere, as a fraction (0.05 = +5%). */
   masteryXpBonus: number;
-  masteries: MasteryView[];
 };
 export type UpgradeResponse = { ok: boolean; spent: number; chance: number; townhall: TownhallView };
 
@@ -110,15 +104,40 @@ export type ExchangeView = {
   day: string;
   /** When today's pool closes (ms). */
   endsAt: number;
+  /** The builder fee to put on your orders, in tenths of a basis point, after your Exchange Mastery discount. */
+  feeTenthsBps: number;
   /** $aura shared out per day. */
   emission: number;
   source: 'file' | 'fills';
   /** Builder fees seen so far today (USD), across players who synced. The final total can be higher. */
   totalFees: number;
   yourFees: number;
+  /** Pool weights so far today (USD): counted fees with Exchange Mastery perks. Shares are split by weight. */
+  totalWeight: number;
+  yourWeight: number;
   /** Your share of today's pool if the day ended now. */
   yourEstimate: number;
   /** $aura not settled yet: today's estimate plus finished days still waiting to settle. */
   pendingAura: number;
   history: ExchangeDayView[];
+};
+
+/** One building's Mastery for the signed-in player (GET /mastery/:building). */
+export type MasteryDetail = {
+  building: import('./rules/empire').MasteryId;
+  /** The level that counts (capped by the Townhall), and what the XP alone would give. */
+  level: number;
+  uncappedLevel: number;
+  cap: number;
+  xp: number;
+  xpIntoLevel: number;
+  xpForNext: number;
+  /** +% Mastery XP from the Townhall (0.02 = +2%). */
+  xpBonus: number;
+  points: number;
+  ranks: Record<string, number>;
+  respecCost: number;
+  /** Exchange only: your builder-fee discount (0.1 = −10%) and the fee to charge, in tenths of a basis point. */
+  feeDiscount?: number;
+  feeTenthsBps?: number;
 };

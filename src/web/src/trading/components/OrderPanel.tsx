@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { BUILDER_ADDRESS, BUILDER_FEE_RATE, BUILDER_MAX_FEE_RATE, MARKET_SLIPPAGE } from '../config';
+import { useBuilderFee } from '../rewards';
 import type { Market } from '../hooks/useMarkets';
 import type { useOnboarding } from '../hooks/useOnboarding';
 import { useActiveAsset, useBook, useClearinghouse, useUserFees } from '../hooks/useTraderData';
@@ -115,6 +116,7 @@ const fmtRate = (r: number) => `${(r * 100).toFixed(4)}%`;
 function OrderForm({ market, user, onboarding, pick }: { market: Market; user: `0x${string}`; onboarding: Onboarding; pick?: BookPick | null }) {
   const qc = useQueryClient();
   const rewards = useTradingRewards();
+  const builderFeeNow = useBuilderFee();
   const active = useActiveAsset(user, market.name);
   const ch = useClearinghouse(user);
   const fees = useUserFees(user).data ?? DEFAULT_FEES;
@@ -159,7 +161,7 @@ function OrderForm({ market, user, onboarding, pick }: { market: Market; user: `
     : estLiquidationPx({ px, size, isLong: isBuy, leverage, maxLeverage: market.maxLeverage, isCross, freeUsd: (available ?? 0) - margin });
   const slip = kind === 'market' && book.data ? estSlippage(isBuy ? book.data.asks : book.data.bids, size, market.midPx) : null;
   const exchangeFee = notional * (kind === 'market' ? fees.taker : fees.maker);
-  const builderFee = notional * BUILDER_FEE_RATE;
+  const builderFee = notional * builderFeeNow.rate;
 
   /** Show `coins` in the size box, in the current unit. */
   const showSize = (coins: number, inUnit = unit) =>
@@ -206,6 +208,7 @@ function OrderForm({ market, user, onboarding, pick }: { market: Market; user: `
         reduceOnly,
         takeProfit: tpsl && num(tp.px) > 0 ? num(tp.px) : undefined,
         stopLoss: tpsl && num(sl.px) > 0 ? num(sl.px) : undefined,
+        builderFeeTenths: builderFeeNow.tenths,
       });
       setResult({ ok: true, text: placed.text });
       // Report the orders (and any TP/SL, read back) so their fees earn $aura. Best effort: trading never waits on it.
@@ -354,7 +357,10 @@ function OrderForm({ market, user, onboarding, pick }: { market: Market; user: `
         )}
         <div title={`Hyperliquid taker ${fmtRate(fees.taker)} / maker ${fmtRate(fees.maker)}, plus the HyperEmpire builder fee`}>
           <dt>Fees</dt>
-          <dd className="mono">{fmtRate(fees.taker)} / {fmtRate(fees.maker)} + {fmtRate(BUILDER_FEE_RATE)}</dd>
+          <dd className="mono">
+            {fmtRate(fees.taker)} / {fmtRate(fees.maker)} + {fmtRate(builderFeeNow.rate)}
+            {builderFeeNow.rate < BUILDER_FEE_RATE && <span className="muted"> (−{Math.round((1 - builderFeeNow.rate / BUILDER_FEE_RATE) * 100)}% Mastery)</span>}
+          </dd>
         </div>
         {notional > 0 && <div><dt>Est. fees on this order</dt><dd className="mono">{fmtUsd(exchangeFee + builderFee, 4)}</dd></div>}
         <AuraLine fee={notional * BUILDER_FEE_RATE} />

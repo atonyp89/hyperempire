@@ -6,14 +6,16 @@
 //            orders placed through our Exchange give today's estimate (pending $aura).
 //   testnet: no files exist, so fills of orders our Exchange reported, at no more than our fee rate, count.
 
-import { and, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import type { Conn } from './db';
-import { accounts, exchangeDays, exchangeFees, exchangeOrders, exchangeRewards, ledger } from './db/schema';
+import { accounts, exchangeDays, exchangeFees, exchangeOrders, exchangeRewards } from './db/schema';
 import { rows } from './db/migrations';
 import type { BuilderFill, Deps } from './deps';
+import { addXp, loadMastery, ranksOf } from './mastery';
 import { credit } from './ledger';
 import { fromUnits, toUnits } from './rules/aura';
-import { DAILY_EMISSION, DAY_MS, dayOf, dayStart, fromMicro, nextDay, shareOf, toMicro } from './rules/exchange';
+import { DAILY_EMISSION, DAY_MS, dayOf, dayStart, fromMicro, MICRO, nextDay, shareOf, toMicro } from './rules/exchange';
+import { countedFee, discountedFeeTenths, fillWeight, WHALE_DAILY_VOLUME, XP_PER_USD_FEE } from './rules/mastery';
 import type { ExchangeView } from './contract';
 
 /** Don't re-read Hyperliquid for the same wallet more often than this. */
@@ -77,7 +79,16 @@ export async function syncFills(deps: Deps, address: string, force = false): Pro
       if (!(notional > 0) || fee / notional > builder.feeRate * 1.0001) continue;
       const row = await tx
         .insert(exchangeFees)
-        .values({ day: dayOf(f.time), ref: `fill:${address}:${f.tid}`, address, source: 'fill', feeMicro: toMicro(fee), time: f.time })
+        .values({
+          day: dayOf(f.time),
+          ref: `fill:${address}:${f.tid}`,
+          address,
+          source: 'fill',
+          feeMicro: toMicro(fee),
+          time: f.time,
+          notionalMicro: toMicro(notional),
+          crossed: f.crossed,
+        })
         .onConflictDoNothing()
         .returning({ ref: exchangeFees.ref });
       recorded += row.length;
@@ -131,26 +142,42 @@ async function settleDay(deps: Deps, day: string, file: BuilderFill[] | null): P
   return deps.db.transaction(async (tx) => {
     if (file) {
       for (let i = 0; i < file.length; i += 500) {
-        const chunk = file.slice(i, i + 500).map((f, j) => ({ day, ref: `file:${i + j}`, address: f.user, source: 'file', feeMicro: f.feeMicro, time: f.time }));
+        const chunk = file.slice(i, i + 500).map((f, j) => ({
+          day,
+          ref: `file:${i + j}`,
+          address: f.user,
+          source: 'file',
+          feeMicro: f.feeMicro,
+          time: f.time,
+          notionalMicro: f.notionalMicro,
+          crossed: f.crossed,
+        }));
         if (chunk.length) await tx.insert(exchangeFees).values(chunk).onConflictDoNothing();
       }
     }
-    const source = file ? 'file' : 'fill';
-    const byAddress = rows<{ address: string; fee: number | string }>(
-      await tx.execute(sql`SELECT address, sum(fee_micro)::bigint AS fee FROM exchange_fees WHERE day = ${day} AND source = ${source} GROUP BY address`),
-    ).map((r) => ({ address: r.address, fee: Number(r.fee) }));
+    const byAddress = await weighDay(tx, day, file ? 'file' : 'fill', deps.builder!.feeRate);
     const total = byAddress.reduce((s, r) => s + r.fee, 0);
+    const totalWeight = byAddress.reduce((s, r) => s + r.weight, 0);
     const emission = toUnits(DAILY_EMISSION);
     const claimed = await tx
       .insert(exchangeDays)
-      .values({ day, emission, totalFeeMicro: total, players: byAddress.length, source: file ? 'file' : 'fills' })
+      .values({ day, emission, totalFeeMicro: total, totalWeightMicro: Math.round(totalWeight), players: byAddress.length, source: file ? 'file' : 'fills' })
       .onConflictDoNothing()
       .returning({ day: exchangeDays.day });
     if (!claimed.length) return false; // settled by another request meanwhile
     if (byAddress.length) {
       await tx
         .insert(exchangeRewards)
-        .values(byAddress.map((r) => ({ day, address: r.address, feeMicro: r.fee, units: Math.floor(shareOf(emission, r.fee, total)) })))
+        .values(
+          byAddress.map((r) => ({
+            day,
+            address: r.address,
+            feeMicro: r.fee,
+            weightMicro: Math.round(r.weight),
+            units: Math.floor(shareOf(emission, r.weight, totalWeight)),
+            xp: Math.floor((r.counted / MICRO) * XP_PER_USD_FEE),
+          })),
+        )
         .onConflictDoNothing();
     }
     await creditRewards(tx);
@@ -158,15 +185,56 @@ async function settleDay(deps: Deps, day: string, file: BuilderFill[] | null): P
   });
 }
 
-/** Credit settled shares to players who have an account (all of them, or one). Idempotent per day. */
+export type DayWeight = { address: string; fee: number; counted: number; weight: number; volume: number };
+
+/**
+ * Each player's fees and pool weight for a day, from one source of fee rows ('file' or 'fill'). Weight = the
+ * counted fee of every fill (see countedFee) with that player's Exchange Mastery perks; Whale applies on days
+ * their volume reaches WHALE_DAILY_VOLUME. Perks are read as they are now.
+ */
+export async function weighDay(tx: Conn, day: string, source: 'file' | 'fill', listRate: number): Promise<DayWeight[]> {
+  const fills = await tx
+    .select({ address: exchangeFees.address, fee: exchangeFees.feeMicro, notional: exchangeFees.notionalMicro, crossed: exchangeFees.crossed })
+    .from(exchangeFees)
+    .where(and(eq(exchangeFees.day, day), eq(exchangeFees.source, source)));
+  const addresses = [...new Set(fills.map((f) => f.address))];
+  const ranks = await ranksOf(tx, 'exchange', addresses);
+  const volume = new Map<string, number>();
+  for (const f of fills) volume.set(f.address, (volume.get(f.address) ?? 0) + (f.notional ?? 0));
+  const out = new Map<string, DayWeight>();
+  for (const f of fills) {
+    const r = ranks.get(f.address) ?? {};
+    const counted = countedFee(f.fee, f.notional, listRate, r);
+    const whaleDay = (volume.get(f.address) ?? 0) >= WHALE_DAILY_VOLUME * MICRO;
+    const w = out.get(f.address) ?? { address: f.address, fee: 0, counted: 0, weight: 0, volume: volume.get(f.address) ?? 0 };
+    w.fee += f.fee;
+    w.counted += counted;
+    w.weight += fillWeight(counted, f.crossed, r, whaleDay);
+    out.set(f.address, w);
+  }
+  return [...out.values()];
+}
+
+/**
+ * Credit settled shares ($aura and Exchange Mastery XP) to players who have an account: all of them, or one.
+ * Each day is credited once (the `credited` flag is the claim); players who sign up later are credited then.
+ */
 export async function creditRewards(tx: Conn, address?: string) {
   const due = await tx
-    .select({ day: exchangeRewards.day, address: exchangeRewards.address, units: exchangeRewards.units })
+    .select({ day: exchangeRewards.day, address: exchangeRewards.address })
     .from(exchangeRewards)
     .innerJoin(accounts, eq(accounts.address, exchangeRewards.address))
-    .leftJoin(ledger, and(eq(ledger.address, exchangeRewards.address), eq(ledger.kind, 'exchange'), eq(ledger.ref, exchangeRewards.day)))
-    .where(and(isNull(ledger.id), address ? eq(exchangeRewards.address, address) : undefined));
-  for (const r of due) await credit(tx, r.address, r.units, 'exchange', r.day);
+    .where(and(eq(exchangeRewards.credited, false), address ? eq(exchangeRewards.address, address) : undefined));
+  for (const d of due) {
+    const [r] = await tx
+      .update(exchangeRewards)
+      .set({ credited: true })
+      .where(and(eq(exchangeRewards.day, d.day), eq(exchangeRewards.address, d.address), eq(exchangeRewards.credited, false)))
+      .returning({ units: exchangeRewards.units, xp: exchangeRewards.xp });
+    if (!r) continue;
+    await credit(tx, d.address, r.units, 'exchange', d.day);
+    await addXp(tx, d.address, 'exchange', r.xp);
+  }
 }
 
 /** Today's pool and the player's place in it, their unsettled $aura, and recent days. */
@@ -174,14 +242,28 @@ export async function exchangeView(deps: Deps, address: string): Promise<Exchang
   const { db } = deps;
   const today = dayOf(deps.now());
   const settled = new Set((await db.select({ day: exchangeDays.day }).from(exchangeDays)).map((d) => d.day));
-  // Live totals per unsettled day, from fills seen so far.
-  const live = rows<{ day: string; total: number | string; yours: number | string }>(
-    await db.execute(sql`
-      SELECT day, sum(fee_micro)::bigint AS total, coalesce(sum(fee_micro) FILTER (WHERE address = ${address}), 0)::bigint AS yours
-      FROM exchange_fees WHERE source = 'fill' AND day >= ${dayOf(deps.now() - MAX_DAYS * DAY_MS)} GROUP BY day`),
-  ).map((r) => ({ day: r.day, total: Number(r.total), yours: Number(r.yours) }));
-  const t = live.find((d) => d.day === today) ?? { day: today, total: 0, yours: 0 };
-  const pending = live.filter((d) => !settled.has(d.day)).reduce((s, d) => s + shareOf(DAILY_EMISSION, d.yours, d.total), 0);
+  // Live estimates for unsettled days, from fills seen so far, weighted the same way settlement will weigh them.
+  const openDays = rows<{ day: string }>(
+    await db.execute(sql`SELECT DISTINCT day FROM exchange_fees WHERE source = 'fill' AND day >= ${dayOf(deps.now() - MAX_DAYS * DAY_MS)}`),
+  )
+    .map((r) => r.day)
+    .filter((d) => !settled.has(d));
+  const listRate = deps.builder?.feeRate ?? 0;
+  const live = await Promise.all(
+    openDays.map(async (day) => {
+      const w = await weighDay(db, day, 'fill', listRate);
+      const mine = w.find((x) => x.address === address);
+      return {
+        day,
+        total: w.reduce((s, x) => s + x.fee, 0),
+        totalWeight: w.reduce((s, x) => s + x.weight, 0),
+        yours: mine?.fee ?? 0,
+        yourWeight: mine?.weight ?? 0,
+      };
+    }),
+  );
+  const t = live.find((d) => d.day === today) ?? { day: today, total: 0, totalWeight: 0, yours: 0, yourWeight: 0 };
+  const pending = live.reduce((s, d) => s + shareOf(DAILY_EMISSION, d.yourWeight, d.totalWeight), 0);
 
   const history = rows<{ day: string; emission: number | string; total_fee_micro: number | string; players: number; source: string; fee_micro: number | string | null; units: number | string | null }>(
     await db.execute(sql`
@@ -189,14 +271,18 @@ export async function exchangeView(deps: Deps, address: string): Promise<Exchang
       FROM exchange_days d LEFT JOIN exchange_rewards r ON r.day = d.day AND r.address = ${address}
       ORDER BY d.day DESC LIMIT 14`),
   );
+  const own = await loadMastery(db, address, 'exchange');
   return {
     day: today,
     endsAt: dayStart(today) + DAY_MS,
+    feeTenthsBps: discountedFeeTenths(Math.round(listRate * 100_000), own.ranks),
     emission: DAILY_EMISSION,
     source: deps.builderFills ? 'file' : 'fills',
     totalFees: fromMicro(t.total),
     yourFees: fromMicro(t.yours),
-    yourEstimate: shareOf(DAILY_EMISSION, t.yours, t.total),
+    totalWeight: fromMicro(t.totalWeight),
+    yourWeight: fromMicro(t.yourWeight),
+    yourEstimate: shareOf(DAILY_EMISSION, t.yourWeight, t.totalWeight),
     pendingAura: pending,
     history: history.map((h) => ({
       day: h.day,

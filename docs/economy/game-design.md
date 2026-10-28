@@ -95,7 +95,7 @@ Example: on a day with $200 of builder fees in total, a trader who paid $20 of t
 
 **Why a pool, not a fixed rate:** a fixed rate (it was 500 $aura per $1) pins what $aura must be worth for trading to make sense: at a 0.05% fee, $0.002 per $aura. If $aura is worth less, there's no reason to trade here. With a fixed pool, $aura per $1 floats. When few people trade, each $1 earns more, which draws traders back. When many trade, total emission stays the same, so supply is predictable and never grows with volume.
 
-**Fee discount:** the Lower fees perk in Exchange Mastery (−1% per rank) is capped at −40% in total. Your share of the pool counts the fee at the list rate, so a discount never shrinks it. Perks that add pool weight (Streak, Market maker) are capped at about +10% in total; since the pool is fixed they only shift shares between players.
+**Fee discount:** the Lower fees perk in Exchange Mastery takes up to −20% off the builder fee (−2% per rank, 10 ranks). Your share of the pool counts the fee at the list rate, so a discount never shrinks it. Perks that add pool weight (Market maker, Taker, Whale) add at most +30% to any one fill; since the pool is fixed they only shift shares between players.
 
 **Farming guardrail:** wash trading can't raise emission, since the pool is fixed. A farmer who pays F of a day's T in fees gets F ÷ T of the pool, and every dollar they pay is builder revenue. Farming only pays while the pool is worth more than the fees it takes to win a share of it. When that happens more farmers join, which pushes fees up until it no longer does.
 
@@ -119,11 +119,11 @@ The empire is a $10 NFT on HyperEVM that comes with 5,000 starter $aura and a le
 
 How much trading that takes depends on the daily pool (see [Earning $aura](#earning-aura)).
 
-### Mastery (redesign, Oct 28, 2026; not built yet)
+### Mastery
 
-Mastery replaces the Townhall perk tree, where every Townhall level gave a point to spend in one of three branches. Instead, **each building has its own Mastery, earned only by doing what that building is for**: traders progress by trading, gamblers by pulling and merging, cozy players by gardening.
+Mastery (designed Oct 28, 2026) replaces the Townhall perk tree, where every Townhall level gave a point to spend in one of three branches. Instead, **each building has its own Mastery, earned only by doing what that building is for**: traders progress by trading, gamblers by pulling and merging, cozy players by gardening.
 
-- **Levels:** XP from the building's own actions raises its Mastery level, up to the Townhall level. XP needed rises with each level (curve to tune, e.g. 100 × level^1.5).
+- **Levels:** XP from the building's own actions raises its Mastery level, up to the Townhall level. Everyone starts at level 1; going from level n to n + 1 takes 100 × n² XP (the same curve for every building).
 - **Points:** each Mastery level gives 1 point to spend in **that building's** perk tree. Tiers open as you invest: tier 2 after 5 points in that building, tier 3 after 15.
 - **Respec:** per building, costing $aura and rising with each respec.
 - **Capacity lives in Mastery:** slots and plots come from each building's own tree (Miner slots from Mine Mastery, hero slots from Tavern Mastery, plots from Garden Mastery), not from the Townhall.
@@ -132,13 +132,36 @@ Mastery replaces the Townhall perk tree, where every Townhall level gave a point
 
 | Building | Mastery XP from (amounts to tune) | Perk tree (first draft) |
 | --- | --- | --- |
-| **Exchange** | Builder fees paid, counted at the list rate (e.g. 1 XP per $0.01) | **Lower fees** −1% builder fee per rank; **Streak** and **Market maker** add weight to your fees in the daily pool; **Patron** +referral share; **Whale's ear** |
+| **Exchange** (built) | Builder fees paid: 100 XP per $1, counted at the list rate | **Lower fees**, **Market maker**, **Taker**, **Whale** (see below) |
 | **Tavern** | Recruits and merges, successful or not; adventures later | **Barracks** +1 hero slot per rank; **Drill**; **Scout**; **Swift march**; **Warlord** |
 | **Workshop** | Crafts, repairs and Pick merges, successful or not | **Steady hands**; **Bulk forge**; **Salvager**; **Master artisan**; a cheaper-repairs perk |
 | **Garden** | Harvests | **Green thumb** −5% growth time per rank; **more plots**; rarer seeds; decorations |
 | **Mine** | Mining: blocks mined by your Miners | **Foreman** +1 Miner slot per rank (moved here); less energy drain; shorter walks between pools |
 
-**Exchange perks and the daily pool:** the pool is fixed, so Exchange perks change a player's **weight** in it rather than minting extra $aura. Streak and Market maker add a percentage to the fees you're counted for; they shift shares between players and never raise emission. Lower fees cuts what you pay but your share still counts the fee at the list rate, so a discount never shrinks your share. The −40% discount cap stays.
+#### Exchange Mastery (built Oct 28, 2026)
+
+XP: 100 per $1 of builder fee, counted at the list rate, credited when each day's pool settles (with the Townhall's +1% per level). With the 100 × n² curve:
+
+| Reach Exchange Mastery | XP | Builder fees | Volume at 0.05% |
+| --- | --- | --- | --- |
+| 5 | 3,000 | $30 | $60k |
+| 10 | 28,500 | $285 | $570k |
+| 20 | 247,000 | $2.5k | $4.9M |
+| 25 (every perk) | 490,000 | $4.9k | $9.8M |
+| 30 | 855,500 | $8.6k | $17M |
+
+| Perk | Effect | Ranks |
+| --- | --- | --- |
+| **Lower fees** | −2% builder fee per rank | 10 (−20%) |
+| **Market maker** | +3% pool weight on your maker fills per rank | 5 (+15%) |
+| **Taker** | +3% pool weight on your taker fills per rank | 5 (+15%) |
+| **Whale** | +3% pool weight on all your fees per rank, on UTC days you trade $100k or more | 5 (+15%) |
+
+No tier gates; maxing all four takes 25 points. Market maker and Taker never apply to the same fill, so a fill gets at most +30% (with Whale).
+
+**How perks meet the daily pool:** the pool is fixed, so weight perks shift shares between players and never add $aura. Every perk is computed from Hyperliquid's builder file (`crossed` says taker or maker; price × size gives volume), so the same rules work on mainnet. A fill counts its fee scaled back up by the discount you earned, never more than the list-rate fee: a discount keeps your full weight, and paying less than you're entitled to (a modified client) only lowers it.
+
+Dropped from the first draft: Streak (the daily pool already rewards trading every day, and dust trades could farm it), Disciplined, Explorer, Patron, VIP and Whale's ear (it would mint $aura outside the pool).
 
 **Existing progress:** today's Townhall perk ranks are test data and reset when Mastery ships.
 
@@ -148,7 +171,7 @@ The Exchange building is the trading UI. It opens from the scene (or `#exchange`
 
 - **Trading:** Hyperliquid perps with our builder code on every order, close and TP/SL.
 - **Onboarding:** two one-time signatures, no gas: approve the builder fee, then approve a browser trading key (it can trade, never withdraw).
-- **Mastery:** trading levels up Exchange Mastery (see [Mastery](#mastery-redesign-oct-28-2026-not-built-yet)); its perks add the fee discount, capped at −40%.
+- **Mastery:** trading levels up Exchange Mastery (see [Exchange Mastery](#exchange-mastery-built-oct-28-2026)): a lower builder fee (up to −20%) and more pool weight for your trading style.
 - **Never gated:** market and limit orders, TP/SL and all markets are available from level 1.
 
 ## Mining (Phase 2)
@@ -341,7 +364,8 @@ Built in `src/web` (Vite + React + wagmi + the Hyperliquid TS SDK):
 
 - **Empire scene:** a PixelLab-generated town (`design/scene/townhall-pixellab.png`); building hotspots with shape-following hover highlights from cut-out sprites.
 - **Exchange modal:** live trading on Hyperliquid testnet with the builder code, builder-fee and agent onboarding, positions, orders and fills with $aura per fill.
-- **Townhall modal:** level and progress, risky upgrade, what the level gives (Mastery cap, +1% Mastery XP per level), and a card per building Mastery. The perk tree is gone; Mastery itself isn't built yet, so every building shows LV 0.
+- **Townhall modal:** level and progress, risky upgrade, and what the level gives (Mastery cap, +1% Mastery XP per level). Each building shows its own Mastery inside that building, not in the Townhall. The perk tree is gone.
+- **Exchange Mastery:** a MASTERY tab in the Exchange: XP from settled days, the four perks, the discounted builder fee on orders and the pool weights at settlement. The other buildings' Mastery isn't built yet.
 - **Town:** a 480×180 world with a camera that follows a walkable knight hero: the original town, where the Garden grows wheat in two small plots, and an east strip where the Workshop and the Mine already stand as "coming soon" buildings. The town stays compact: each building opens its own screen (like the Exchange) for its full feature, so the Garden's fields will live on a Garden screen, not in the town.
 
 **Where $aura lives today:** in the game backend's ledger (`src/server`). Each UTC day the API shares the day's 100,000 $aura pool by builder fees paid through our Exchange. On mainnet, fees come from Hyperliquid's daily file for our builder, so other builders' fees never count. On testnet, they come from fills of orders our Exchange placed. It also records every spend; Townhall level and perks live there too. During development the backend runs inside the browser on PGlite, so data stays on that device; production moves the same code and its Postgres database to AWS. The perk fee discount is display-only. The AURA token, Townhall contract, fee indexer and RewardDistributor are the next things to build.

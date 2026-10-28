@@ -79,7 +79,7 @@ describe('auth', () => {
 });
 
 /** A fill of $100 notional at `fee` USD of builder fee (0.05 = exactly our 0.05% rate). */
-const fill = (tid: number, oid: number, time: number, fee = '0.05'): Fill => ({ tid, oid, time, px: '100', sz: '1', builderFee: fee });
+const fill = (tid: number, oid: number, time: number, fee = '0.05', px = '100', crossed = true): Fill => ({ tid, oid, time, px, sz: '1', crossed, builderFee: fee });
 
 /** Give `who` $aura through the Exchange: one fill of a reported order, then let the day settle. */
 async function earn(token: string, who = wallet, fee = '0.05') {
@@ -160,8 +160,8 @@ describe('exchange rewards (mainnet: daily builder file)', () => {
 
     // Published: our wallet paid $0.30, someone who hasn't signed up yet paid $0.10.
     files[day] = [
-      { time: clock - DAY_MS + 1_000, user: wallet.address.toLowerCase(), feeMicro: 300_000 },
-      { time: clock - DAY_MS + 2_000, user: second.address.toLowerCase(), feeMicro: 100_000 },
+      { time: clock - DAY_MS + 1_000, user: wallet.address.toLowerCase(), feeMicro: 300_000, notionalMicro: 600_000_000, crossed: true },
+      { time: clock - DAY_MS + 2_000, user: second.address.toLowerCase(), feeMicro: 100_000, notionalMicro: 200_000_000, crossed: false },
     ];
     clock += 11 * 60_000; // past the retry wait
     expect((await call('GET', '/me', undefined, token)).json).toMatchObject({ aura: 5_000 + 75_000, pendingAura: 0 });
@@ -178,6 +178,51 @@ describe('exchange rewards (mainnet: daily builder file)', () => {
     const overview = (await call('GET', '/exchange', undefined, token)).json;
     expect(overview.history.length).toBeGreaterThan(0);
     expect(overview.history.every((d: any) => d.totalFees === 0)).toBe(true);
+  });
+});
+
+describe('exchange mastery', () => {
+  test('settled fees give XP; the level is capped by the Townhall and counts once it rises', async () => {
+    const token = await signIn();
+    // $10 of builder fee on a $20k trade: 1,000 XP, +1% from Townhall LV 1.
+    fills[wallet.address.toLowerCase()] = [fill(1, 1, clock + 1_000, '10', '20000')];
+    await call('POST', '/exchange/orders', { oids: [1] }, token);
+    clock += DAY_MS;
+    await call('GET', '/me', undefined, token);
+    const m = (await call('GET', '/mastery/exchange', undefined, token)).json;
+    expect(m).toMatchObject({ xp: 1_010, uncappedLevel: 3, level: 1, cap: 1, points: 1 });
+    for (let i = 0; i < 2; i++) await call('POST', '/townhall/upgrade', { chance: 100 }, token);
+    const after = (await call('GET', '/mastery/exchange', undefined, token)).json;
+    expect(after).toMatchObject({ level: 3, cap: 3, points: 3 });
+    expect((await call('GET', '/mastery/garden', undefined, token)).status).toBe(404);
+  });
+
+  test('perks spend points, lower the order fee, and respec costs $aura', async () => {
+    const token = await signIn();
+    expect((await call('POST', '/mastery/exchange/perks', { perkId: 'lower-fees' }, token)).json).toMatchObject({ points: 0, feeDiscount: 0.02, feeTenthsBps: 49 });
+    expect((await call('POST', '/mastery/exchange/perks', { perkId: 'taker' }, token)).status).toBe(409);
+    expect((await call('POST', '/mastery/exchange/perks', { perkId: 'streak' }, token)).status).toBe(400);
+    expect((await call('GET', '/exchange', undefined, token)).json.feeTenthsBps).toBe(49);
+    // A respec at Mastery 1 costs 5,250: more than the starter, so trade first.
+    expect((await call('POST', '/mastery/exchange/respec', undefined, token)).status).toBe(402);
+    await earn(token);
+    const r = (await call('POST', '/mastery/exchange/respec', undefined, token)).json;
+    expect(r).toMatchObject({ points: 1, ranks: {}, feeTenthsBps: 50 });
+    expect((await call('GET', '/me', undefined, token)).json.aura).toBe(105_000 - 5_250);
+  });
+
+  test('style perks add pool weight: a Taker splits an equal day 1.03 : 1', async () => {
+    const [ta, tb] = [await signIn(), await signIn(second)];
+    await call('POST', '/mastery/exchange/perks', { perkId: 'taker' }, ta);
+    fills[wallet.address.toLowerCase()] = [fill(1, 1, clock + 1_000)];
+    fills[second.address.toLowerCase()] = [fill(2, 2, clock + 1_000)];
+    await call('POST', '/exchange/orders', { oids: [1] }, ta);
+    await call('POST', '/exchange/orders', { oids: [2] }, tb);
+    await call('GET', '/exchange', undefined, tb);
+    expect((await call('GET', '/exchange', undefined, ta)).json.yourEstimate).toBeCloseTo((100_000 * 1.03) / 2.03, 3);
+    clock += DAY_MS;
+    expect((await call('GET', '/me', undefined, ta)).json.aura).toBeCloseTo(5_000 + (100_000 * 1.03) / 2.03, 0);
+    expect((await call('GET', '/me', undefined, tb)).json.aura).toBeCloseTo(5_000 + 100_000 / 2.03, 0);
   });
 });
 
@@ -199,12 +244,10 @@ describe('townhall', () => {
     expect(json.townhall.aura).toBe(5_000 - 1_516);
   });
 
-  test('the level caps every Mastery and adds Mastery XP; perks and respec are gone', async () => {
+  test('the level caps every Mastery and adds Mastery XP; Townhall perks and respec are gone', async () => {
     const token = await signIn();
     const { json } = await call('GET', '/townhall', undefined, token);
     expect(json).toMatchObject({ level: 1, masteryCap: 1, masteryXpBonus: 0.01 });
-    expect(json.masteries.map((m: any) => m.id)).toEqual(['exchange', 'mine', 'tavern', 'workshop', 'garden']);
-    expect(json.masteries.every((m: any) => m.level === 0 && !m.live)).toBe(true);
     await earn(token);
     const up = (await call('POST', '/townhall/upgrade', { chance: 100 }, token)).json.townhall;
     expect(up).toMatchObject({ level: 2, masteryCap: 2, masteryXpBonus: 0.02 });

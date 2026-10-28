@@ -22,11 +22,14 @@ export type OrderInput = {
   reduceOnly: boolean;
   takeProfit?: number;
   stopLoss?: number;
+  /** The player's builder fee after their Exchange Mastery discount (tenths of a bp). Defaults to the list rate. */
+  builderFeeTenths?: number;
 };
 
-function builder() {
+/** Our builder code, at the player's fee (tenths of a basis point; never above the list rate). */
+function builder(feeTenths = BUILDER_FEE_TENTHS_BPS) {
   if (!BUILDER_ADDRESS) throw new Error('Builder address is not configured (VITE_BUILDER_ADDRESS).');
-  return { b: BUILDER_ADDRESS, f: BUILDER_FEE_TENTHS_BPS };
+  return { b: BUILDER_ADDRESS, f: Math.max(0, Math.min(BUILDER_FEE_TENTHS_BPS, Math.round(feeTenths))) };
 }
 
 /** Price for an aggressive order that crosses the book by MARKET_SLIPPAGE. */
@@ -103,13 +106,13 @@ export async function placeOrder(trader: ExchangeClient, o: OrderInput): Promise
   const res = await trader.order({
     orders,
     grouping: orders.length > 1 ? 'normalTpsl' : 'na',
-    builder: builder(),
+    builder: builder(o.builderFeeTenths),
   });
   return placed(res.response.data.statuses);
 }
 
 /** Close a position with a reduce-only market order. `szi` is the signed position size. */
-export async function closePosition(trader: ExchangeClient, m: Market, szi: number): Promise<Placed> {
+export async function closePosition(trader: ExchangeClient, m: Market, szi: number, builderFeeTenths?: number): Promise<Placed> {
   const isBuy = szi < 0;
   const res = await trader.order({
     orders: [
@@ -123,7 +126,7 @@ export async function closePosition(trader: ExchangeClient, m: Market, szi: numb
       },
     ],
     grouping: 'na',
-    builder: builder(),
+    builder: builder(builderFeeTenths),
   });
   return placed(res.response.data.statuses);
 }

@@ -43,9 +43,10 @@ Limit of development mode: the data lives on one device and is lost if the site'
 | `src/contract.ts` | The API contract: request and response types and the rules the client shows. The only server module the web app imports (plus `local.ts`) |
 | `src/app.ts` | `createApp(deps)`: CORS, routes, error handling |
 | `src/routes/` | `auth.ts`, `me.ts`, `townhall.ts`, `mining.ts`, `admin.ts` |
-| `src/rules/` | Pure game rules with no I/O: `empire.ts` (Townhall levels, the Mastery list, cap and XP bonus), `mining.ts` (grades, merges, upkeep, pools), `exchange.ts` (the daily $aura pool and shares), `aura.ts` (units) |
+| `src/rules/` | Pure game rules with no I/O: `empire.ts` (Townhall levels, the Mastery list, cap and XP bonus), `mining.ts` (grades, merges, upkeep, pools), `exchange.ts` (the daily $aura pool and shares), `mastery.ts` (the Mastery curve and Exchange perks: discount, counted fee, pool weight), `aura.ts` (units) |
 | `src/ledger.ts` | Balances and the ledger |
-| `src/exchange.ts` | Exchange rewards: tracks builder fees per day, settles each finished day into $aura shares |
+| `src/exchange.ts` | Exchange rewards: tracks builder fees per day, weighs them with Exchange Mastery perks, settles each finished day into $aura shares and XP |
+| `src/mastery.ts` | Mastery storage: XP and perk ranks per player and building, the level capped by the Townhall, adding XP with the Townhall bonus |
 | `src/hyperliquid.ts`, `src/lz4.ts` | Reads a wallet's fills and Hyperliquid's daily builder-fill files (LZ4-compressed CSV) |
 | `src/blocks.ts` | Mining block settlement |
 | `src/db/` | Drizzle schema, SQL migrations, shared types |
@@ -87,6 +88,7 @@ The first sign-in creates the account with its 5,000 starter $aura. The network 
 | `fee` | + | fill trade id | Old fixed-rate credits (500 per $1), before the daily pool; no longer written |
 | `mine` | + | `<first block>-<last block>` | Mining payouts for a settled range |
 | `townhall:upgrade` | − | | Upgrade attempt, success or not |
+| `mastery:exchange:respec` | − | | Reset of Exchange Mastery perks |
 | `townhall:respec` | − | | Old perk resets, before Mastery; no longer written |
 | `tavern:recruit` | − | | Recruit a Miner |
 | `mine:feed` | − | | Feed a Miner |
@@ -104,13 +106,16 @@ Each UTC day has a fixed pool (`DAILY_EMISSION`, 100,000 $aura per network) shar
 | Mainnet | Hyperliquid's daily builder-fill file: `stats-data.hyperliquid.xyz/Mainnet/builder_fills/<our builder, lowercase>/<YYYYMMDD>.csv.lz4` | Lists every fill that paid **our** builder (columns `time,user,coin,side,px,sz,…,builder_fee`; no trade or order id). Published the next day; a day with no fills gets no file (the bucket answers 403) |
 | Testnet | Fills of orders placed through our Exchange | Hyperliquid publishes no testnet files. After each order, the client reports its order ids (`POST /exchange/orders`, including TP/SL read back from open orders); only fills of those orders at our fee rate or less count |
 
-**Through the day (pending).** On `GET /me` and `GET /exchange` (at most every 30 s per wallet), the API reads the wallet's new fills from `accounts.fills_synced_until`. That starts at sign-up, so older trades never count. Fees of reported orders go into `exchange_fees` as `fill` rows. These give each player's live estimate, `pool × yours ÷ total`, shown as **pending $aura**. Nothing is credited yet.
+**Through the day (pending).** On `GET /me` and `GET /exchange` (at most every 30 s per wallet), the API reads the wallet's new fills from `accounts.fills_synced_until`. That starts at sign-up, so older trades never count. Fees of reported orders go into `exchange_fees` as `fill` rows. These give each player's live estimate, `pool × your weight ÷ total weight`, shown as **pending $aura**. Nothing is credited yet.
 
 **After the day (settled).** `settleDays()` runs lazily on `/me` and `/exchange`, and on a server every 15 minutes. For each finished day not settled yet:
 1. **Mainnet:** download and decompress the day's file and store its rows as `file` rows. The live `fill` rows are ignored from here on. If the file isn't out yet, wait and retry every 10 minutes. If it's still missing 36 hours after the day ended, the day had no fills.
 2. **Testnet:** use the day's `fill` rows.
-3. Sum fees per wallet. Write `exchange_days` (pool, total, players, source) and `exchange_rewards`: each wallet gets `floor(pool × fee ÷ total)`.
-4. Credit each share to the ledger (`kind = 'exchange'`, `ref = day`; idempotent). A wallet without an account yet keeps its share in `exchange_rewards`, credited when it signs in. On mainnet the file lists everyone who traded through our builder, signed in or not.
+3. Weigh each fill (`weighDay`) with that wallet's Exchange Mastery perks as they are now:
+   - its **counted fee** = fee paid ÷ (1 − earned discount), never more than the trade's list-rate fee (price × size × list rate);
+   - its **weight** = counted fee × (1 + Market maker or Taker bonus for that fill + Whale bonus if the wallet's volume that day is $100k+).
+4. Write `exchange_days` (pool, total fees, total weight, players, source) and `exchange_rewards`: each wallet gets `floor(pool × weight ÷ total weight)` and `100 XP × counted fee in $`.
+5. Credit each share: $aura to the ledger (`kind = 'exchange'`, `ref = day`) and XP to Exchange Mastery (with the Townhall's +1% per level). `exchange_rewards.credited` is the claim, so each day is credited once. A wallet without an account yet keeps its share, credited when it signs in. On mainnet the file lists everyone who traded through our builder, signed in or not.
 
 Days settle in order, at most 31 per call. Inserting the `exchange_days` row is the claim, so two requests never settle the same day twice.
 
@@ -121,8 +126,18 @@ Days settle in order, at most 31 per call. Inserting the `exchange_days` row is 
 Rules are in `src/rules/empire.ts`: level costs, the Mastery list, the Mastery cap and the XP bonus.
 
 - **Upgrade:** the player picks a chance from 10% to 100% in steps of 10 and pays that share of the next level's cost. The server rolls; the $aura burns either way.
-- **What the level gives:** every building's Mastery is capped at the Townhall level (`masteryCap`), and Mastery XP gets +1% per level (`masteryXpBonus`). See [Mastery](../economy/game-design.md#mastery-redesign-oct-28-2026-not-built-yet).
-- **Mastery isn't built yet:** the Townhall view lists all five Masteries at level 0 with `live: false`. Each will be filled in as its building's Mastery ships. The old perk tree and respec were removed (migration `0003` drops their columns).
+- **What the level gives:** every building's Mastery is capped at the Townhall level (`masteryCap`), and Mastery XP gets +1% per level (`masteryXpBonus`). See [Mastery](../economy/game-design.md#mastery).
+- **Masteries live in their buildings:** the Townhall reports only its level, the cap and the bonus; each building's Mastery is read from `/mastery/:building`. The old perk tree and respec were removed (migration `0003` drops their columns).
+
+## Mastery
+
+Each player has a row per building in `masteries`: total XP (never capped), perk ranks and respecs. The level is derived: everyone starts at 1, level n → n+1 takes 100 × n² XP, and the level that counts is capped at the Townhall level (XP past it is kept). Each level gives 1 point for that building's perks; a respec costs 5,000 × 1.5^respecs × (1 + level / 20) $aura.
+
+**Exchange Mastery** (`rules/mastery.ts`) is the first one built. XP comes from settled days (above). Its perks:
+- **Lower fees:** −2% builder fee per rank, up to −20%. The API returns the player's fee (`feeTenthsBps`, in Hyperliquid's tenths of a basis point) on `/exchange` and `/mastery/exchange`; the Exchange puts it on every order.
+- **Market maker, Taker, Whale:** pool weight, applied at settlement.
+
+Other buildings' Mastery answers 404 until built.
 
 ## Mining
 
@@ -156,9 +171,10 @@ At most 10,080 blocks (a week) are replayed at once, so a long gap can't stall a
 | --- | --- | --- |
 | `accounts` | `address` | Balance (milli-$aura), `fills_synced_until` (starts at sign-up) |
 | `exchange_orders` | `(address, oid)` | Orders placed through our Exchange, reported by the client |
-| `exchange_fees` | `(day, ref)` | Builder fees per day: `fill` rows (live, from reported orders) and `file` rows (mainnet's daily file), in micro-USD |
-| `exchange_days` | `day` | Settled days: pool, total fees, players, source |
-| `exchange_rewards` | `(day, address)` | Each wallet's fees and share of a settled day (milli-$aura) |
+| `exchange_fees` | `(day, ref)` | Builder fees per day: `fill` rows (live, from reported orders) and `file` rows (mainnet's daily file), in micro-USD, with the trade's value and taker/maker for Mastery weights |
+| `exchange_days` | `day` | Settled days: pool, total fees, total weight, players, source |
+| `exchange_rewards` | `(day, address)` | Each wallet's fees, weight, share (milli-$aura) and XP for a settled day, and whether it's credited yet |
+| `masteries` | `(address, building)` | Mastery XP (uncapped), perk ranks and respecs per building |
 | `ledger` | `id`; unique `(address, kind, ref)` | Every balance change |
 | `nonces` | `nonce` | Pending sign-ins, 10-minute expiry |
 | `sessions` | `token` | Session tokens, 30-day expiry |
@@ -203,7 +219,7 @@ Every error is JSON with an HTTP status: `{ "error": "<code>", "message": "<read
 | 402 | `not_enough_aura` | The balance can't cover it |
 | 404 | `not_found` | No such endpoint, or not your Miner or Pick |
 | 429 | `too_many_attempts` | Too many wrong admin logins; wait 15 minutes |
-| 409 | `no_slots`, `grade_mismatch`, `deployed`, `equipped`, `max_grade`, `full` | A game rule says no (see [endpoints.md](endpoints.md)) |
+| 409 | `no_points`, `max_rank`, `nothing_to_reset`, `no_slots`, `grade_mismatch`, `deployed`, `equipped`, `max_grade`, `full` | A game rule says no (see [endpoints.md](endpoints.md)) |
 | 500 | `internal` | A bug; details only in the server log |
 
 ## Planned around the backend

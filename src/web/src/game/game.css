@@ -194,26 +194,10 @@
 .game .th-gives-table th { font-family: var(--pixel); font-size: 10px; letter-spacing: 1px; color: var(--muted); font-weight: 400; text-align: left; padding: 0 10px 6px 0; }
 .game .th-gives-table td { padding: 10px 10px 10px 0; border-top: 1px solid var(--slate-700); vertical-align: top; }
 .game .th-gives-table td.mono { font-size: 15px; white-space: nowrap; width: 140px; }
-.game .th-masteries { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
-.game .th-masteries-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
-.game .masteries { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px; }
-.game .mastery { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: var(--slate-900); border: 2px solid var(--ink); box-shadow: inset 0 0 0 2px var(--slate-700); }
-.game .mastery.soon .mastery-sprite { filter: saturate(0.6); }
-.game .mastery-head { display: flex; align-items: center; gap: 10px; }
-.game .mastery-sprite { width: 64px; height: 56px; object-fit: contain; image-rendering: pixelated; flex-shrink: 0; }
-.game .mastery-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.game .mastery-name { font-family: var(--pixel); font-size: 13px; letter-spacing: 1px; color: var(--gold); }
-.game .mastery-bar { height: 10px; background: var(--ink-2); border: 2px solid var(--ink); }
-.game .mastery-bar-fill { height: 100%; background: var(--teal); }
-.game .mastery-perks { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 2px; flex: 1; }
-.game .phase { font-family: var(--pixel); font-size: 9px; letter-spacing: 1px; padding: 3px 6px; border: 2px solid var(--ink); background: var(--slate-700); color: var(--muted); white-space: nowrap; }
-.game .phase.live { background: var(--grass); color: var(--parchment); }
-.game .mastery .phase { align-self: flex-start; }
 .game .th-note { padding: 0 14px 12px; margin: 0; }
 @media (max-width: 1000px) {
   .game .th-grid { grid-template-columns: minmax(0, 1fr); }
-  .game .masteries { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
+  }
 @media (max-width: 760px) {
   .game .th-overview { flex-direction: column; align-items: stretch; }
   .game .th-sprite { width: 140px; align-self: center; }
@@ -221,4 +205,30 @@
   .game .header { padding: 10px 16px; gap: 12px; }
   .game .nav .soon { display: none; }
   .game .plate { padding: 3px 6px; }
+}
+
+/* ---------------------------------------------------------- Exchange: tabs and Mastery */
+.game .ex-tabs { display: flex; gap: 4px; padding: 8px 10px 0; }
+.game .ex-tab { padding: 8px 16px; border: 2px solid var(--ink); border-bottom: 0; background: var(--slate-900); color: var(--muted); font-family: var(--pixel); font-size: 11px; letter-spacing: 1px; cursor: pointer; }
+.game .ex-tab.on { background: var(--slate-700); color: var(--gold); box-shadow: inset 0 3px 0 var(--teal); }
+.game .ex-mastery { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 10px; }
+.game .ex-mastery-empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px; text-align: center; }
+.game .ex-mastery-head { grid-column: 1 / -1; display: flex; gap: 16px; align-items: center; padding: 16px; }
+.game .ex-mastery-sprite { width: 120px; height: auto; image-rendering: pixelated; flex-shrink: 0; }
+.game .ex-perks-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.game .ex-mastery-level { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+.game .ex-mastery-perks, .game .ex-mastery-now { display: flex; flex-direction: column; gap: 10px; padding: 16px; }
+.game .ex-mastery-dl { margin: 0; display: flex; flex-direction: column; gap: 8px; }
+.game .ex-mastery-dl div { display: flex; justify-content: space-between; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--slate-700); }
+.game .ex-mastery-dl dt { color: var(--muted); }
+.game .ex-mastery-dl dd { margin: 0; text-align: right; }
+.game .perk { display: flex; align-items: center; gap: 10px; padding: 6px; border: 2px solid transparent; }
+.game .perk.has { border-color: var(--slate-600); background: var(--slate-800); }
+.game .perk-body { flex: 1; min-width: 0; }
+.game .perk-name { font-weight: 600; font-size: 13px; }
+.game .perk .rank { color: var(--gold); }
+@media (max-width: 760px) {
+  .game .ex-mastery { grid-template-columns: minmax(0, 1fr); }
+  .game .ex-mastery-head { flex-direction: column; align-items: stretch; }
+  .game .ex-mastery-sprite { align-self: center; }
 }

@@ -26,10 +26,11 @@ export function useExchangeRewards() {
           .then(() => setTimeout(() => void qc.invalidateQueries({ queryKey: ['exchange', NETWORK] }).then(() => qc.invalidateQueries({ queryKey: ['me', NETWORK] })), 3_000))
           .catch(() => undefined);
       },
-      auraForFee: (fee) => (view ? marginalShare(view.emission, view.yourFees, view.totalFees, fee) : null),
+      auraForFee: (fee) => (view ? marginalShare(view.emission, view.yourWeight, view.totalWeight, fee) : null),
       howItWorks: view
         ? `Each day ${fmtAura(view.emission)} $aura is shared by everyone's builder fees that day.`
         : 'Each day a fixed pool of $aura is shared by everyone’s builder fees that day.',
+      feeTenthsBps: view?.feeTenthsBps ?? null,
     }),
     [session, qc, view],
   );

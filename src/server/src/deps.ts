@@ -6,10 +6,10 @@ import type { PoolId } from './rules/mining';
 export type Network = 'mainnet' | 'testnet';
 
 /** A Hyperliquid fill, as far as $aura cares. */
-export type Fill = { tid: number; oid: number; time: number; px: string; sz: string; builderFee?: string };
+export type Fill = { tid: number; oid: number; time: number; px: string; sz: string; crossed: boolean; builderFee?: string };
 
 /** One row of Hyperliquid's daily builder-fill file: a fill that paid our builder. */
-export type BuilderFill = { time: number; user: string; feeMicro: number };
+export type BuilderFill = { time: number; user: string; feeMicro: number; notionalMicro: number; crossed: boolean };
 
 /** HyperEmpire's builder code: fills that pay it earn Exchange rewards. */
 export type Builder = { address: string; /** The fee we charge, as a fraction (0.0005 = 0.05%). */ feeRate: number };

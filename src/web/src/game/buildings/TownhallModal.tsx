@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DAILY_EMISSION, MASTERIES, STARTER_AURA } from '@server/contract';
+import { DAILY_EMISSION, STARTER_AURA } from '@server/contract';
 import { fmtAura } from '../../shared/format';
 import { API_MODE } from '../../shared/api';
 import type { UpgradeResult, useTownhall } from '../hooks/useTownhall';
@@ -16,7 +16,6 @@ export function TownhallModal({ open, onClose, townhall: t }: Props) {
           <Overview t={t} />
           <Upgrade t={t} />
           <Gives t={t} />
-          <Masteries t={t} />
         </div>
       ) : (
         <SignIn t={t} />
@@ -168,50 +167,6 @@ function Gives({ t }: { t: Townhall }) {
         </tbody>
       </table>
       <div className="small muted">Coming later: your Townhall grows grander in the town as it levels up.</div>
-    </section>
-  );
-}
-
-/** Every building's Mastery: earned by using that building, capped by the Townhall level. */
-function Masteries({ t }: { t: Townhall }) {
-  return (
-    <section className="panel th-masteries" aria-label="Mastery">
-      <div className="th-masteries-head">
-        <span className="label">MASTERY · EARNED BY USING EACH BUILDING · CAPPED AT LV {t.masteryCap}</span>
-      </div>
-      <div className="masteries">
-        {MASTERIES.map((m) => {
-          const v = t.masteries.find((x) => x.id === m.id);
-          const level = v?.level ?? 0;
-          const locked = m.opensAt !== undefined && t.level < m.opensAt;
-          return (
-            <article key={m.id} className={`mastery ${v?.live ? 'live' : 'soon'}`} aria-label={`${m.name} Mastery`}>
-              <div className="mastery-head">
-                <img className="mastery-sprite" src={m.sprite} alt="" aria-hidden="true" />
-                <div className="mastery-title">
-                  <span className="mastery-name">{m.name}</span>
-                  <span className="mono small">
-                    LV {level} <span className="muted">/ {t.masteryCap}</span>
-                  </span>
-                </div>
-              </div>
-              <div className="mastery-bar" role="progressbar" aria-label={`${m.name} Mastery toward the cap`} aria-valuemin={0} aria-valuemax={t.masteryCap} aria-valuenow={level}>
-                <div className="mastery-bar-fill" style={{ width: `${t.masteryCap ? Math.min(100, (level / t.masteryCap) * 100) : 0}%` }} />
-              </div>
-              <div className="small">
-                <span className="muted">XP from </span>
-                {m.xpFrom}
-              </div>
-              <ul className="mastery-perks small muted">
-                {m.perks.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-              <span className={`phase ${v?.live ? 'live' : ''}`}>{v?.live ? 'LIVE' : locked ? `OPENS AT LV ${m.opensAt}` : 'COMING SOON'}</span>
-            </article>
-          );
-        })}
-      </div>
     </section>
   );
 }

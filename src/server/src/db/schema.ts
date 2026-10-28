@@ -1,7 +1,7 @@
 // Database schema (Drizzle, Postgres). The same tables run on PGlite in the browser during development and on
 // Postgres in production; migrations.ts creates them. One database per Hyperliquid network.
 
-import { bigint, doublePrecision, index, integer, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { bigint, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 /** One row per wallet that has signed in. `balance` is in milli-$aura (see rules/aura.ts). */
 export const accounts = pgTable('accounts', {
@@ -115,6 +115,9 @@ export const exchangeFees = pgTable(
     source: text('source').notNull(),
     feeMicro: bigint('fee_micro', { mode: 'number' }).notNull(),
     time: bigint('time', { mode: 'number' }).notNull(),
+    /** The trade's value (price × size) in micro-USD, and whether it was a taker fill. Null on rows from before Mastery. */
+    notionalMicro: bigint('notional_micro', { mode: 'number' }),
+    crossed: boolean('crossed'),
   },
   (t) => [primaryKey({ columns: [t.day, t.ref] }), index('exchange_fees_address').on(t.address, t.day)],
 );
@@ -124,6 +127,8 @@ export const exchangeDays = pgTable('exchange_days', {
   day: text('day').primaryKey(),
   emission: bigint('emission', { mode: 'number' }).notNull(),
   totalFeeMicro: bigint('total_fee_micro', { mode: 'number' }).notNull(),
+  /** Sum of every player's pool weight (counted fees with Mastery perks); shares are split by weight. */
+  totalWeightMicro: bigint('total_weight_micro', { mode: 'number' }),
   players: integer('players').notNull(),
   source: text('source').notNull(),
   settledAt: timestamp('settled_at', { withTimezone: true }).notNull().defaultNow(),
@@ -136,7 +141,26 @@ export const exchangeRewards = pgTable(
     day: text('day').notNull(),
     address: text('address').notNull(),
     feeMicro: bigint('fee_micro', { mode: 'number' }).notNull(),
+    /** This player's pool weight that day. */
+    weightMicro: bigint('weight_micro', { mode: 'number' }),
     units: bigint('units', { mode: 'number' }).notNull(),
+    /** Exchange Mastery XP earned that day, before the Townhall bonus. */
+    xp: bigint('xp', { mode: 'number' }).notNull().default(0),
+    /** Set once the $aura and XP are credited (the player may sign up after the day settles). */
+    credited: boolean('credited').notNull().default(false),
   },
   (t) => [primaryKey({ columns: [t.day, t.address] }), index('exchange_rewards_address').on(t.address)],
+);
+
+/** Each player's Mastery per building: total XP (uncapped), perk ranks and respecs. The level is derived. */
+export const masteries = pgTable(
+  'masteries',
+  {
+    address: text('address').notNull(),
+    building: text('building').notNull(),
+    xp: bigint('xp', { mode: 'number' }).notNull().default(0),
+    ranks: jsonb('ranks').$type<Record<string, number>>().notNull().default({}),
+    respecs: integer('respecs').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.address, t.building] })],
 );

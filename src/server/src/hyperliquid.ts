@@ -10,7 +10,7 @@ export function fillsReader(network: Network) {
   const info = new InfoClient({ transport: new HttpTransport({ isTestnet: network === 'testnet' }) });
   return async (address: `0x${string}`, sinceMs: number): Promise<Fill[]> => {
     const fills = await info.userFillsByTime({ user: address, startTime: sinceMs });
-    return fills.map((f) => ({ tid: f.tid, oid: f.oid, time: f.time, px: f.px, sz: f.sz, builderFee: f.builderFee }));
+    return fills.map((f) => ({ tid: f.tid, oid: f.oid, time: f.time, px: f.px, sz: f.sz, crossed: f.crossed, builderFee: f.builderFee }));
   };
 }
 
@@ -38,9 +38,15 @@ export function parseBuilderFills(csv: string): BuilderFill[] {
     if (i < 0) throw new Error(`Builder fills: no "${name}" column.`);
     return i;
   };
-  const [time, user, fee] = [col('time'), col('user'), col('builder_fee')];
+  const [time, user, fee, px, sz, crossed] = [col('time'), col('user'), col('builder_fee'), col('px'), col('sz'), col('crossed')];
   return lines.map((line) => {
     const c = line.split(',');
-    return { time: Date.parse(c[time]), user: c[user].toLowerCase(), feeMicro: toMicro(c[fee]) };
+    return {
+      time: Date.parse(c[time]),
+      user: c[user].toLowerCase(),
+      feeMicro: toMicro(c[fee]),
+      notionalMicro: toMicro(Number(c[px]) * Number(c[sz])),
+      crossed: c[crossed] === 'true',
+    };
   });
 }

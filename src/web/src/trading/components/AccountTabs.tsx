@@ -6,7 +6,7 @@ import { useClearinghouse, useFills, useOpenOrders } from '../hooks/useTraderDat
 import { errorMessage } from '../lib/hl';
 import { fmtNum, fmtPct, fmtPx, fmtUsd } from '../../shared/format';
 import { cancelOrder, closePosition } from '../lib/orders';
-import { useTradingRewards } from '../rewards';
+import { useBuilderFee, useTradingRewards } from '../rewards';
 
 type Fill = NonNullable<ReturnType<typeof useFills>['data']>[number];
 type Props = { user?: `0x${string}`; markets: Market[]; trader: ExchangeClient | null; fills: Fill[] };
@@ -17,6 +17,7 @@ export function AccountTabs({ user, markets, trader, fills }: Props) {
   const [msg, setMsg] = useState<string | null>(null);
   const qc = useQueryClient();
   const rewards = useTradingRewards();
+  const builderFee = useBuilderFee();
   const ch = useClearinghouse(user);
   const orders = useOpenOrders(user);
   const byName = new Map(markets.map((m) => [m.name, m]));
@@ -75,7 +76,7 @@ export function AccountTabs({ user, markets, trader, fills }: Props) {
                     <td className={`mono ${pnl >= 0 ? 'up' : 'down'}`}>{fmtUsd(pnl)} ({fmtPct(Number(p.returnOnEquity) * 100, 1)})</td>
                     <td className="mono">{p.liquidationPx ? fmtPx(Number(p.liquidationPx)) : '—'}</td>
                     <td>
-                      <button type="button" className="btn ghost small" disabled={!trader || !m} onClick={() => trader && m && run(async () => rewards.onOrders((await closePosition(trader, m, szi)).oids))}>
+                      <button type="button" className="btn ghost small" disabled={!trader || !m} onClick={() => trader && m && run(async () => rewards.onOrders((await closePosition(trader, m, szi, builderFee.tenths)).oids))}>
                         CLOSE
                       </button>
                     </td>

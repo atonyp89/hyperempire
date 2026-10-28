@@ -9,7 +9,7 @@ import type { Env } from '../env';
 import { badRequest } from '../errors';
 import { balanceOf, debit } from '../ledger';
 import { fromUnits, toUnits } from '../rules/aura';
-import { levelCost, MASTERIES, masteryCap, masteryXpBonus } from '../rules/empire';
+import { levelCost, masteryCap, masteryXpBonus } from '../rules/empire';
 import type { TownhallView } from '../contract';
 
 export async function loadTownhall(tx: Conn, address: string) {
@@ -26,8 +26,6 @@ async function view(tx: Conn, address: string): Promise<TownhallView> {
     nextCost: levelCost(t.level),
     masteryCap: masteryCap(t.level),
     masteryXpBonus: masteryXpBonus(t.level),
-    // Mastery isn't built yet: every building is at level 0 until its own Mastery ships.
-    masteries: MASTERIES.map((m) => ({ id: m.id, level: 0, xp: 0, live: false })),
   };
 }
 

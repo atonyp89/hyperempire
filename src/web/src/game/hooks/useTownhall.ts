@@ -41,7 +41,6 @@ export function useTownhall() {
     nextCost: t?.nextCost ?? 0,
     masteryCap: t?.masteryCap ?? 1,
     masteryXpBonus: t?.masteryXpBonus ?? 0,
-    masteries: t?.masteries ?? [],
     upgrade,
   };
 }

@@ -102,6 +102,28 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
       ALTER TABLE townhalls DROP COLUMN respecs;
     `,
   },
+  {
+    // Exchange Mastery: XP and perk ranks per building, and the trade details its pool weights need.
+    id: '0004_mastery',
+    sql: `
+      CREATE TABLE masteries (
+        address text NOT NULL,
+        building text NOT NULL,
+        xp bigint NOT NULL DEFAULT 0,
+        ranks jsonb NOT NULL DEFAULT '{}'::jsonb,
+        respecs integer NOT NULL DEFAULT 0,
+        PRIMARY KEY (address, building)
+      );
+      ALTER TABLE exchange_fees ADD COLUMN notional_micro bigint;
+      ALTER TABLE exchange_fees ADD COLUMN crossed boolean;
+      ALTER TABLE exchange_days ADD COLUMN total_weight_micro bigint;
+      ALTER TABLE exchange_rewards ADD COLUMN weight_micro bigint;
+      ALTER TABLE exchange_rewards ADD COLUMN xp bigint NOT NULL DEFAULT 0;
+      ALTER TABLE exchange_rewards ADD COLUMN credited boolean NOT NULL DEFAULT false;
+      UPDATE exchange_rewards r SET credited = true
+        WHERE EXISTS (SELECT 1 FROM ledger l WHERE l.address = r.address AND l.kind = 'exchange' AND l.ref = r.day);
+    `,
+  },
 ];
 
 export async function migrate(db: Db) {

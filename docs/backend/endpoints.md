@@ -21,6 +21,9 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | GET | [`/me`](#get-me) | Balance, level, Miner slots |
 | POST | [`/me/sync`](#post-mesync) | Read new fills now |
 | GET | [`/exchange`](#get-exchange) | Today's $aura pool, your share, recent days |
+| GET | [`/mastery/:building`](#get-masterybuilding) | A building's Mastery: level, XP, points, perks |
+| POST | [`/mastery/:building/perks`](#post-masterybuildingperks) | Add a perk rank |
+| POST | [`/mastery/:building/respec`](#post-masterybuildingrespec) | Reset that building's perks |
 | POST | [`/exchange/orders`](#post-exchangeorders) | Report orders placed through our Exchange |
 | GET | [`/townhall`](#get-townhall) | Townhall state |
 | POST | [`/townhall/upgrade`](#post-townhallupgrade) | Try to level up |
@@ -114,11 +117,14 @@ How rewards work: [the backend overview](README.md#exchange-rewards).
 {
   "day": "20261027",
   "endsAt": 1793145600000,
+  "feeTenthsBps": 48,
   "emission": 100000,
   "source": "fills",
   "totalFees": 0.4,
   "yourFees": 0.1,
-  "yourEstimate": 25000,
+  "totalWeight": 0.42,
+  "yourWeight": 0.103,
+  "yourEstimate": 24524,
   "pendingAura": 25000,
   "history": [
     { "day": "20261026", "emission": 100000, "totalFees": 2.5, "players": 4, "source": "fills", "yourFees": 0.5, "yourAura": 20000 }
@@ -131,12 +137,14 @@ How rewards work: [the backend overview](README.md#exchange-rewards).
 | `day`, `endsAt` | Today (UTC, `YYYYMMDD`) and when its pool closes (ms) |
 | `emission` | $aura shared out per day |
 | `source` | `file` on mainnet (Hyperliquid's builder file decides), `fills` on testnet |
+| `feeTenthsBps` | The builder fee to put on your orders, after your Exchange Mastery discount (Hyperliquid's unit: 50 = 0.05%) |
 | `totalFees`, `yourFees` | Builder fees seen so far today (USD). On mainnet the final total comes from the file and can be higher |
-| `yourEstimate` | Your share if the day ended now |
+| `totalWeight`, `yourWeight` | Pool weights so far today: counted fees with Exchange Mastery perks. Shares are split by weight |
+| `yourEstimate` | Your share if the day ended now: pool × your weight ÷ total weight |
 | `pendingAura` | Today's estimate plus finished days not settled yet |
 | `history` | The last 14 settled days, with your fees and $aura |
 
-The extra $aura a new fee `f` would add today is `emission × (yourFees + f) ÷ (totalFees + f) − yourEstimate`; `marginalShare` in the contract computes it.
+The extra $aura a new fee `f` (at the list rate) would add today is about `emission × (yourWeight + f) ÷ (totalWeight + f) − yourEstimate`; `marginalShare` in the contract computes it.
 
 ### `POST /exchange/orders`
 
@@ -151,6 +159,59 @@ Called by the Exchange right after each order or close. It also rereads the last
 
 - `400`: not 1–50 positive integer ids.
 
+## Mastery
+
+Only `exchange` is live; other buildings answer `404` until their Mastery ships. How it works: [the backend overview](README.md#mastery).
+
+### `GET /mastery/:building`
+
+```json
+{
+  "building": "exchange",
+  "level": 3,
+  "uncappedLevel": 5,
+  "cap": 3,
+  "xp": 3200,
+  "xpIntoLevel": 200,
+  "xpForNext": 2500,
+  "xpBonus": 0.03,
+  "points": 1,
+  "ranks": { "lower-fees": 2 },
+  "respecCost": 5750,
+  "feeDiscount": 0.04,
+  "feeTenthsBps": 48
+}
+```
+
+| Field | What |
+| --- | --- |
+| `level`, `uncappedLevel`, `cap` | The level that counts (capped by the Townhall), what the XP alone gives, and the cap |
+| `xp`, `xpIntoLevel`, `xpForNext` | Total XP, XP into the uncapped level, and what that level needs (100 × level²) |
+| `xpBonus` | Extra XP from the Townhall (+1% per level) |
+| `points` | Points not spent yet (one per level) |
+| `ranks` | Perk id → rank. Exchange perks: `lower-fees`, `market-maker`, `taker`, `whale` (`EXCHANGE_PERKS` in the contract) |
+| `respecCost` | What a respec costs now ($aura) |
+| `feeDiscount`, `feeTenthsBps` | Exchange only: your discount and the fee to put on orders |
+
+### `POST /mastery/:building/perks`
+
+```json
+{ "perkId": "lower-fees" }
+```
+
+Adds one rank and returns the Mastery view.
+
+- `400`: unknown perk.
+- `409 no_points`: no points left (earn XP, and raise the Townhall if Mastery is at its cap).
+- `409 max_rank`: already at its top rank.
+
+### `POST /mastery/:building/respec`
+
+No body. Clears that building's perks, burns `respecCost`, and returns the Mastery view.
+
+- `402 not_enough_aura`.
+- `409 nothing_to_reset`: no perks to reset.
+
 ## Townhall
 
 All Townhall endpoints return a **Townhall view**:
@@ -161,14 +222,7 @@ All Townhall endpoints return a **Townhall view**:
   "aura": 1969,
   "nextCost": 5800,
   "masteryCap": 2,
-  "masteryXpBonus": 0.02,
-  "masteries": [
-    { "id": "exchange", "level": 0, "xp": 0, "live": false },
-    { "id": "mine", "level": 0, "xp": 0, "live": false },
-    { "id": "tavern", "level": 0, "xp": 0, "live": false },
-    { "id": "workshop", "level": 0, "xp": 0, "live": false },
-    { "id": "garden", "level": 0, "xp": 0, "live": false }
-  ]
+  "masteryXpBonus": 0.02
 }
 ```
 
@@ -177,7 +231,8 @@ All Townhall endpoints return a **Townhall view**:
 | `nextCost` | Full cost of the next level |
 | `masteryCap` | Highest level any building's Mastery can reach: the Townhall level |
 | `masteryXpBonus` | Extra Mastery XP in every building, as a fraction (+1% per level) |
-| `masteries` | Each building's Mastery level and XP. `live: false` until that building's Mastery is built; names, XP sources and planned perks are in `MASTERIES` (`src/server/src/rules/empire.ts`) |
+
+Each building's own Mastery is read from [`/mastery/:building`](#get-masterybuilding), shown in that building.
 
 ### `GET /townhall`
 

@@ -13,7 +13,7 @@ describe('builder fills', () => {
     expect(csv.startsWith('time,user,coin,side,px,sz,')).toBe(true);
     const rows = parseBuilderFills(csv);
     expect(rows.length).toBe(400);
-    expect(rows[0]).toEqual({ time: Date.UTC(2026, 9, 26), user: '0x00000000000000000000000000000000aaaa0000', feeMicro: 40_000 });
+    expect(rows[0]).toEqual({ time: Date.UTC(2026, 9, 26), user: '0x00000000000000000000000000000000aaaa0000', feeMicro: 40_000, notionalMicro: 80_000_000, crossed: true });
     expect(new Set(rows.map((r) => r.user)).size).toBe(3);
   });
 
