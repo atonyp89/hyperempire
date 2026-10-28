@@ -26,6 +26,7 @@ bun run dev              # http://localhost:8787, PGlite in ./data/
 | `PORT` | `8787` | HTTP port |
 | `DATABASE_URL` | none | Postgres connection string. Without it, PGlite in `./data/<network>` (git-ignored). |
 | `ALLOWED_ORIGINS` | none | Comma-separated web origins allowed by CORS, e.g. `https://hyperempire.xyz` |
+| `BUILDER_ADDRESS`, `BUILDER_FEE_TENTHS_BPS` | none, `50` | Our builder code (same as the web app's `VITE_BUILDER_*`). Without the address, Exchange rewards are off. On `NETWORK=mainnet`, Hyperliquid's daily builder-fill files decide the fees |
 | `ADMIN_USER`, `ADMIN_PASSWORD` | none | Login for the read-only [admin dashboard](../../docs/backend/README.md#admin-dashboard). Both needed, password 12+ characters; otherwise `/admin` is off |
 
 To point the web app at it, set `VITE_API_URL=http://localhost:8787` in `src/web/.env.local` and add `ALLOWED_ORIGINS=http://localhost:5173` here.

@@ -9,6 +9,7 @@ import type { Env } from './env';
 import { ApiError } from './errors';
 import { admin } from './routes/admin';
 import { auth, requireAuth } from './routes/auth';
+import { exchange } from './routes/exchange';
 import { me } from './routes/me';
 import { mining } from './routes/mining';
 import { townhall } from './routes/townhall';
@@ -32,9 +33,11 @@ export function createApp(deps: Deps) {
   app.use('/me/*', requireAuth);
   app.use('/townhall/*', requireAuth);
   app.use('/mine/*', requireAuth);
+  app.use('/exchange/*', requireAuth);
   app.route('/me', me);
   app.route('/townhall', townhall);
   app.route('/mine', mining);
+  app.route('/exchange', exchange);
   app.route('/admin', admin);
   return app;
 }

@@ -5,6 +5,7 @@
 import type { Grade, PoolId, PoolKind } from './rules/mining';
 
 export * from './rules/empire';
+export { DAILY_EMISSION, marginalShare } from './rules/exchange';
 export { GRADES, GRADE, RECRUIT_COST, CRAFT_COST, BASE_SLOTS, WALK_BLOCKS, ENERGY_BLOCKS, BLOCK_MS, REWARDS } from './rules/mining';
 export type { Grade, PoolId, PoolKind, RewardConfig, RewardId } from './rules/mining';
 
@@ -13,7 +14,7 @@ export type ApiErrorBody = { error: string; message: string };
 export type NonceResponse = { nonce: string; message: string };
 export type SessionResponse = { token: string; address: string; expiresAt: number };
 
-export type MeView = { address: string; aura: number; level: number; slots: number; synced: number };
+export type MeView = { address: string; aura: number; level: number; slots: number; /** Exchange $aura not settled yet. */ pendingAura: number };
 
 export type TownhallView = {
   level: number;
@@ -83,3 +84,33 @@ export type AdminOverview = {
 };
 export type AdminRows = { table: string; columns: string[]; rows: Record<string, unknown>[]; total: number; limit: number; offset: number };
 export type AdminQueryResult = { columns: string[]; rows: Record<string, unknown>[]; rowCount: number; truncated: boolean; ms: number };
+
+// Exchange rewards: a fixed $aura pool per UTC day, shared by builder fees paid that day.
+
+export type ExchangeDayView = {
+  day: string;
+  emission: number;
+  totalFees: number;
+  players: number;
+  /** Where the day's fees came from: Hyperliquid's builder file (mainnet) or fills seen (testnet). */
+  source: 'file' | 'fills';
+  yourFees: number;
+  yourAura: number;
+};
+export type ExchangeView = {
+  /** Today, as YYYYMMDD (UTC). */
+  day: string;
+  /** When today's pool closes (ms). */
+  endsAt: number;
+  /** $aura shared out per day. */
+  emission: number;
+  source: 'file' | 'fills';
+  /** Builder fees seen so far today (USD), across players who synced. The final total can be higher. */
+  totalFees: number;
+  yourFees: number;
+  /** Your share of today's pool if the day ended now. */
+  yourEstimate: number;
+  /** $aura not settled yet: today's estimate plus finished days still waiting to settle. */
+  pendingAura: number;
+  history: ExchangeDayView[];
+};

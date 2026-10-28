@@ -1,6 +1,6 @@
 # HyperEmpire web app
 
-Phase 1 trading frontend. Users trade Hyperliquid perps through HyperEmpire's builder code, and every fill shows the $aura it earned (500 $aura per $1 of builder fee).
+Phase 1 trading frontend. Users trade Hyperliquid perps through HyperEmpire's builder code, and the builder fees they pay earn a share of each day's $aura pool.
 
 ## Run
 
@@ -26,15 +26,15 @@ Copy `.env.example` to `.env.local` and set `VITE_BUILDER_ADDRESS`. Until it is 
 - **Ambient life** (`game/scene/Ambient.tsx`): three cut-out trees sway from the trunk, wind streaks drift across, and every 7–13 s a gust bends the trees harder and blows 6–10 pixel leaves over the town. The scene image is `public/empire/town-base.png` (the PixelLab town with those trees painted out). All motion stops under `prefers-reduced-motion`.
 - **Hero** (`game/scene/Hero.tsx`): knight #5 starts on the plaza in front of the Townhall door. **WASD or the arrow keys** walk it around the town in 8 directions at 42 scene px/s, snapped to the scene's pixel grid, drawn at 0.8×. It can only walk on the roads: `public/empire/walkable.png` (from `design/scene/walkable.py`) marks the plaza, the path between the pools and the dirt roads, the feet (5px wide) must stay on it, and a blocked diagonal slides along the road edge. Keys are ignored while a building screen is open or a text field has focus. Sheets in `public/empire/heroes/knight5/` are 4 frames × 8 directions of 32×32: `walk.png` (PixelLab skeleton walk, 0.56s loop) and `idle.png` (head, torso and sword dip 1px, 1.6s loop), over an 8×2 pixel shadow (`heroes/shadow.png`). The hero sits above the hotspots so hover highlights never hide it, lets clicks through, and takes a per-phase filter in place of the time-of-day washes.
 - **Time of day** (`game/hooks/useDayPhase.ts`, `game/scene/TimeOfDay.tsx`): follows the player's local clock. Morning (05:00–11:59) adds a soft-light golden grade (keeps pixel contrast), a sun glow, slow diagonal sunbeams, drifting motes, and warm sun glints twinkling on both pools; evening (12:00–18:59) is the scene as painted; night (19:00–04:59) tints the town dark blue and turns on `public/empire/night-lights.png` (lit windows, doorways, clock, lanterns), flickering lamp glows, fireflies, moonlight from the top-right and a silver moonpath of glints on the pools. The header chip shows the phase; clicking it cycles Auto → Morning → Evening → Night to preview (saved in the browser).
-- **Townhall modal** (`/#townhall`): level, $aura progress, risky upgrade (pay 10–100% of the cost for that chance), the three-branch perk tree (Trader live; Fighter and Crafter bank points for Phases 2–3), respec and building caps. Rules live in `src/server/src/rules/empire.ts` (the web app reads them through `@server/contract`). Progress and the $aura balance (5,000 starter + 500 per $1 of builder fee − spending) are kept by the API: the player signs one message (**SIGN IN** in the header), and `useTownhall` reads and changes the Townhall through it. In development the API runs inside the browser; see **API** below. Perk icons in `public/empire/icons/` were generated with PixelLab (Pixflux, scene palette).
-- **Exchange modal** (`/#exchange`, also the header's EXCHANGE link): the trading UI, nearly full screen (up to 1800×980), in three columns. On the left are the market header and account tabs; the market name is a dropdown with search, and Enter picks the first match. In the middle is the **order book**, and on the right the order form. `#exchange` deep-links straight in for players who only trade; Escape or ✕ closes it.
+- **Townhall modal** (`/#townhall`): level, $aura progress, risky upgrade (pay 10–100% of the cost for that chance), the three-branch perk tree (Trader live; Fighter and Crafter bank points for Phases 2–3), respec and building caps. Rules live in `src/server/src/rules/empire.ts` (the web app reads them through `@server/contract`). Progress and the $aura balance (5,000 starter + shares of the daily Exchange pool − spending) are kept by the API: the player signs one message (**SIGN IN** in the header), and `useTownhall` reads and changes the Townhall through it. In development the API runs inside the browser; see **API** below. Perk icons in `public/empire/icons/` were generated with PixelLab (Pixflux, scene palette).
+- **Exchange modal** (`/#exchange`, also the header's EXCHANGE link): the trading UI, nearly full screen (up to 1800×980), in three columns. On the left are the market header and account tabs; the market name is a dropdown with search, and Enter picks the first match. In the middle is the **order book**, and on the right the order form. `#exchange` deep-links straight in for players who only trade; Escape or ✕ closes it. The title bar shows today's $aura pool: hours left, everyone's fees so far, and yours with your estimated share.
 - **Order book** (`trading/components/OrderBook.tsx`): 12 asks above the spread and 12 bids below, with price, size and cumulative total in coin or USD over depth bars. It polls `l2Book` every second. Clicking a row switches the order form to Limit at that price.
 - **Order form** (`trading/components/OrderPanel.tsx`, math in `trading/lib/orderMath.ts`): laid out like Hyperliquid's (without its Pro order types).
   - **Margin mode and leverage:** CROSS / ISOLATED and leverage buttons open small dialogs that apply the change on Hyperliquid right away (`updateLeverage`).
   - **Order:** Market or Limit (with a MID button and GTC / IOC / ALO time in force), and Buy / Long or Sell / Short.
   - **Size:** in USD or coin, with a 0–100% slider of the max trade size.
   - **Options:** reduce only, and TP/SL set by price or by gain/loss on margin, the two kept in sync.
-  - **Summary:** estimated liquidation price, order value, margin required, slippage (estimated from the live book, against the 3% max), the account's own taker and maker fees plus the builder fee, and the $aura earned.
+  - **Summary:** estimated liquidation price, order value, margin required, slippage (estimated from the live book, against the 3% max), the account's own taker and maker fees plus the builder fee, and the $aura this order's fee would add to your share of today's pool (`marginalShare`).
   - **Dev preview:** on the dev server, `/?order-preview#exchange` shows the form without a wallet (zero-address account, nothing can be sent).
 
 The theme in `src/shared/styles/base.css` uses colours sampled from the Empire scene (slate, wood, parchment, gold, teal, grass, roof red), so the modal matches the town.
@@ -69,7 +69,8 @@ The code is split into `src/trading/` (Hyperliquid trading) and `src/game/` (gam
 | `src/trading/lib/hl.ts` | Hyperliquid `InfoClient` / `ExchangeClient` ([@nktkas/hyperliquid](https://www.npmjs.com/package/@nktkas/hyperliquid)) |
 | `src/trading/lib/agent.ts` | Local trading agent key |
 | `src/trading/lib/orders.ts` | Place (market/limit, TP/SL), close, cancel, leverage, all with the builder code |
-| `src/trading/lib/prices.ts`, `rewards.ts`, `orderMath.ts` | Perp price/size rounding, fee → $aura, TP/SL, liquidation and slippage estimates |
+| `src/trading/lib/prices.ts`, `orderMath.ts` | Perp price/size rounding, TP/SL, liquidation and slippage estimates |
+| `src/trading/rewards.ts` | How the terminal talks about $aura without knowing the game: the host passes `onOrders` (report order ids) and `auraForFee` (estimate). `game/hooks/useExchangeRewards.ts` provides them |
 | `src/trading/lib/referral.ts` | Captures `?ref=CODE` for creator referrals |
 | `src/trading/hooks/` | Markets, account data, order book, fees, onboarding (builder fee + agent) |
 | `src/trading/components/` | Market header with the dropdown and 24h chart, order book, order panel, positions / orders / fills |
@@ -79,7 +80,7 @@ The code is split into `src/trading/` (Hyperliquid trading) and `src/game/` (gam
 
 ## Known limits (next steps)
 
-- **$aura credited from fills is an estimate** from each fill's `builderFee` (the API credits it on `/me`). A fill routed through another builder also has a `builderFee`, so the real amount comes from the fee indexer, which only counts HyperEmpire's builder fills.
+- **Exchange $aura is pending until the day settles.** The header shows it as "+N pending". On mainnet it settles once Hyperliquid publishes the day's builder file; on testnet, right after the day ends.
 - **No Mine screen yet.** The API already has the full mining flow (`/mine`: recruit, merge, feed, deploy, picks, block rewards); the UI is next.
 - **Referral codes** are captured, but not yet sent anywhere. Attribution and USDC fee share need the backend.
 - **Hero level fee discount** isn't applied yet: it needs the HeroNFT contract to read the level.

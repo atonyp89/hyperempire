@@ -8,17 +8,22 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { createApp, type App } from './app';
 import { schema, type Db } from './db';
 import { migrate } from './db/migrations';
-import type { Fill } from './deps';
+import type { BuilderFill, Deps, Fill } from './deps';
+import { DAY_MS, dayOf } from './rules/exchange';
 import { BLOCK_MS, GENESIS, WALK_BLOCKS } from './rules/mining';
 
 const ADMIN = { user: 'admin', password: 'correct horse battery' };
 const wallet = privateKeyToAccount('0x59c6995e998f97a5a0044966f0945389dc9e86dae88c7a8412f4603b6b78690d');
+const second = privateKeyToAccount('0x8b3a350cf5c34c9194ca85829a2df0ec3153be0318b5e2d3348e872092edffba');
+const BUILDER = { address: '0x00000000000000000000000000000000000b0b00', feeRate: 0.0005 };
 
 let app: App;
 let db: Db;
 let clock: number;
 let dice: number[];
-let fills: Fill[];
+/** Fake Hyperliquid fills, per lowercase address. */
+let fills: Record<string, Fill[]>;
+let deps: Deps;
 
 async function call<T = any>(method: string, path: string, body?: unknown, token?: string): Promise<{ status: number; json: T }> {
   const res = await app.request(path, {
@@ -29,10 +34,10 @@ async function call<T = any>(method: string, path: string, body?: unknown, token
   return { status: res.status, json: (await res.json()) as T };
 }
 
-async function signIn(): Promise<string> {
-  const { json: n } = await call('POST', '/auth/nonce', { address: wallet.address });
-  const signature = await wallet.signMessage({ message: n.message });
-  const { status, json } = await call('POST', '/auth/verify', { address: wallet.address, nonce: n.nonce, signature });
+async function signIn(who = wallet): Promise<string> {
+  const { json: n } = await call('POST', '/auth/nonce', { address: who.address });
+  const signature = await who.signMessage({ message: n.message });
+  const { status, json } = await call('POST', '/auth/verify', { address: who.address, nonce: n.nonce, signature });
   expect(status).toBe(200);
   return json.token;
 }
@@ -42,15 +47,17 @@ beforeEach(async () => {
   await migrate(db);
   clock = GENESIS + 1_000 * BLOCK_MS + 10;
   dice = [];
-  fills = [];
-  app = createApp({
+  fills = {};
+  deps = {
     db,
     network: 'testnet',
     now: () => clock,
     random: () => dice.shift() ?? 0.5,
-    fills: async (_a, since) => fills.filter((f) => f.time >= since),
+    fills: async (a, since) => (fills[a.toLowerCase()] ?? []).filter((f) => f.time >= since),
+    builder: BUILDER,
     admin: ADMIN,
-  });
+  };
+  app = createApp(deps);
 });
 
 describe('auth', () => {
@@ -71,16 +78,106 @@ describe('auth', () => {
   });
 });
 
-describe('$aura from fees', () => {
-  test('credits 500 $aura per $1 of builder fee, once per fill', async () => {
+/** A fill of $100 notional at `fee` USD of builder fee (0.05 = exactly our 0.05% rate). */
+const fill = (tid: number, oid: number, time: number, fee = '0.05'): Fill => ({ tid, oid, time, px: '100', sz: '1', builderFee: fee });
+
+/** Give `who` $aura through the Exchange: one fill of a reported order, then let the day settle. */
+async function earn(token: string, who = wallet, fee = '0.05') {
+  const a = who.address.toLowerCase();
+  fills[a] = [...(fills[a] ?? []), fill(900 + (fills[a]?.length ?? 0), 77, clock + 1_000, fee)];
+  await call('POST', '/exchange/orders', { oids: [77] }, token);
+  clock += DAY_MS;
+  await call('GET', '/me', undefined, token);
+}
+
+describe('exchange rewards (testnet: fills of reported orders)', () => {
+  test('only fills of our orders at our rate count, after sign-up; the day settles into the pool', async () => {
     const token = await signIn();
-    fills = [
-      { tid: 1, time: 1, builderFee: '0.5' },
-      { tid: 2, time: 2, builderFee: '0' },
+    const a = wallet.address.toLowerCase();
+    fills[a] = [
+      fill(1, 10, clock + 1_000), // ours
+      fill(2, 11, clock + 2_000), // order not placed through our Exchange
+      fill(3, 12, clock + 3_000, '0.5'), // 0.5% fee: another builder's rate
+      fill(4, 10, clock - 60_000), // before sign-up
     ];
-    expect((await call('POST', '/me/sync', undefined, token)).json.credited).toBe(250);
-    expect((await call('POST', '/me/sync', undefined, token)).json.credited).toBe(0);
-    expect((await call('GET', '/me', undefined, token)).json.aura).toBe(5_250);
+    expect((await call('POST', '/exchange/orders', { oids: [10, 12] }, token)).json.tracked).toBe(2);
+    const live = (await call('GET', '/exchange', undefined, token)).json;
+    expect(live.yourFees).toBe(0.05);
+    expect(live.totalFees).toBe(0.05);
+    // Alone today, the whole pool is ours, but only once the day settles.
+    expect(live.yourEstimate).toBe(100_000);
+    expect(live.pendingAura).toBe(100_000);
+    expect((await call('GET', '/me', undefined, token)).json.aura).toBe(5_000);
+
+    clock += DAY_MS;
+    const me = (await call('GET', '/me', undefined, token)).json;
+    expect(me.aura).toBe(105_000);
+    expect(me.pendingAura).toBe(0);
+    const after = (await call('GET', '/exchange', undefined, token)).json;
+    expect(after.history[0]).toMatchObject({ day: dayOf(clock - DAY_MS), players: 1, totalFees: 0.05, yourFees: 0.05, yourAura: 100_000 });
+  });
+
+  test('players split the pool by fees paid', async () => {
+    const [ta, tb] = [await signIn(), await signIn(second)];
+    fills[wallet.address.toLowerCase()] = [fill(1, 1, clock + 1_000, '0.03')];
+    fills[second.address.toLowerCase()] = [fill(2, 2, clock + 1_000, '0.01')];
+    await call('POST', '/exchange/orders', { oids: [1] }, ta);
+    await call('POST', '/exchange/orders', { oids: [2] }, tb);
+    await call('GET', '/exchange', undefined, ta);
+    expect((await call('GET', '/exchange', undefined, tb)).json.yourEstimate).toBe(25_000);
+    clock += DAY_MS;
+    expect((await call('GET', '/me', undefined, ta)).json.aura).toBe(5_000 + 75_000);
+    expect((await call('GET', '/me', undefined, tb)).json.aura).toBe(5_000 + 25_000);
+  });
+
+  test('order reports are checked', async () => {
+    const token = await signIn();
+    expect((await call('POST', '/exchange/orders', { oids: [] }, token)).status).toBe(400);
+    expect((await call('POST', '/exchange/orders', { oids: [-1] }, token)).status).toBe(400);
+    expect((await call('POST', '/exchange/orders', { oids: ['1'] }, token)).status).toBe(400);
+    expect((await call('POST', '/exchange/orders', { oids: [1] })).status).toBe(401);
+  });
+});
+
+describe('exchange rewards (mainnet: daily builder file)', () => {
+  let files: Record<string, BuilderFill[] | null>;
+  beforeEach(() => {
+    files = {};
+    app = createApp({ ...deps, network: 'mainnet', builderFills: async (day) => files[day] ?? null });
+  });
+
+  test('the file decides: fees to other builders never count, and late sign-ups still get their share', async () => {
+    const token = await signIn();
+    const day = dayOf(clock);
+    // A live fill makes today's estimate, but the file is what pays.
+    fills[wallet.address.toLowerCase()] = [fill(1, 5, clock + 1_000)];
+    await call('POST', '/exchange/orders', { oids: [5] }, token);
+    expect((await call('GET', '/exchange', undefined, token)).json.pendingAura).toBe(100_000);
+
+    // Next day, before the file is published: still pending, nothing credited.
+    clock += DAY_MS;
+    expect((await call('GET', '/me', undefined, token)).json).toMatchObject({ aura: 5_000, pendingAura: 100_000 });
+
+    // Published: our wallet paid $0.30, someone who hasn't signed up yet paid $0.10.
+    files[day] = [
+      { time: clock - DAY_MS + 1_000, user: wallet.address.toLowerCase(), feeMicro: 300_000 },
+      { time: clock - DAY_MS + 2_000, user: second.address.toLowerCase(), feeMicro: 100_000 },
+    ];
+    clock += 11 * 60_000; // past the retry wait
+    expect((await call('GET', '/me', undefined, token)).json).toMatchObject({ aura: 5_000 + 75_000, pendingAura: 0 });
+
+    // The other trader signs up later and gets their share on sign-in.
+    const t2 = await signIn(second);
+    expect((await call('GET', '/me', undefined, t2)).json.aura).toBe(5_000 + 25_000);
+  });
+
+  test('a day whose file never appears settles with no fees after the grace period', async () => {
+    const token = await signIn();
+    clock += DAY_MS + 37 * 60 * 60_000;
+    await call('GET', '/me', undefined, token);
+    const overview = (await call('GET', '/exchange', undefined, token)).json;
+    expect(overview.history.length).toBeGreaterThan(0);
+    expect(overview.history.every((d: any) => d.totalFees === 0)).toBe(true);
   });
 });
 
@@ -109,11 +206,10 @@ describe('townhall', () => {
     expect((await call('GET', '/me', undefined, token)).json.slots).toBe(4);
     // A respec at level 1 costs 5,250 $aura: more than the 5,000 starter, until trading adds some.
     expect((await call('POST', '/townhall/respec', undefined, token)).status).toBe(402);
-    fills = [{ tid: 9, time: 9, builderFee: '20' }];
-    await call('POST', '/me/sync', undefined, token);
+    await earn(token);
     const { json } = await call('POST', '/townhall/respec', undefined, token);
     expect(json.ranks).toEqual({});
-    expect(json.aura).toBe(15_000 - 5_250);
+    expect(json.aura).toBe(105_000 - 5_250);
   });
 
   test('spending more than the balance fails with 402', async () => {

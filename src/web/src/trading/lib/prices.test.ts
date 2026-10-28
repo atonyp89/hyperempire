@@ -1,6 +1,5 @@
 import { expect, test } from 'bun:test';
 import { formatPrice, formatSize } from './prices';
-import { auraForNotional } from './rewards';
 
 test('prices follow Hyperliquid perp rules: 5 significant figures, at most 6 - szDecimals decimals', () => {
   expect(formatPrice(81179 * 1.03, 5)).toBe('83614');
@@ -14,8 +13,4 @@ test('prices follow Hyperliquid perp rules: 5 significant figures, at most 6 - s
 test('sizes round down to szDecimals', () => {
   expect(formatSize(0.0123456, 5)).toBe('0.01234');
   expect(formatSize(12.9, 0)).toBe('12');
-});
-
-test('a $10k fill at the 0.05% launch fee earns 2,500 $aura', () => {
-  expect(auraForNotional(10_000)).toBeCloseTo(2_500);
 });

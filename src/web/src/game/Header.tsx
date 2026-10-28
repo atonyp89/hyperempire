@@ -80,9 +80,13 @@ function AuraChip() {
     );
   }
   return (
-    <span className="chip aura" title="Your $aura: starter + builder fees on your fills − what you spend">
+    <span
+      className="chip aura"
+      title={`Your $aura: starter + your share of each day's Exchange pool − what you spend.${me.data?.pendingAura ? ` ${fmtAura(me.data.pendingAura)} more is pending until today's pool settles (after 00:00 UTC).` : ''}`}
+    >
       <span className="gem" aria-hidden="true" />
       {me.data ? fmtAura(me.data.aura) : '…'} <span className="muted">$AURA</span>
+      {me.data && me.data.pendingAura >= 1 && <span className="muted">+{fmtAura(me.data.pendingAura)} pending</span>}
     </span>
   );
 }

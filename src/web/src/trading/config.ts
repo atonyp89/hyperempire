@@ -20,9 +20,6 @@ export const BUILDER_MAX_FEE_TENTHS_BPS = Math.round(parseFloat(BUILDER_MAX_FEE_
 /** Builder fee as a fraction of notional (50 tenths of a bp = 0.0005). */
 export const BUILDER_FEE_RATE = BUILDER_FEE_TENTHS_BPS / 100_000;
 
-/** $aura emitted per $1 of builder fee paid (k = 0.5 notional, x1,000 multiplier). */
-export const AURA_PER_USD_FEE = 500;
-
 /** Slippage bound used to price market orders and market TP/SL triggers. */
 export const MARKET_SLIPPAGE = 0.03;
 export const TRIGGER_SLIPPAGE = 0.1;

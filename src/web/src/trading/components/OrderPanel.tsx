@@ -5,11 +5,11 @@ import type { Market } from '../hooks/useMarkets';
 import type { useOnboarding } from '../hooks/useOnboarding';
 import { useActiveAsset, useBook, useClearinghouse, useUserFees } from '../hooks/useTraderData';
 import { errorMessage } from '../lib/hl';
-import { auraForNotional } from '../lib/rewards';
+import { useTradingRewards } from '../rewards';
 import { fmtAura, fmtNum, fmtPx, fmtUsd } from '../../shared/format';
 import { formatPrice, formatSize } from '../lib/prices';
 import { estLiquidationPx, estSlippage, priceForRoe, roeForPrice } from '../lib/orderMath';
-import { placeOrder, setLeverage } from '../lib/orders';
+import { placeOrder, setLeverage, triggerOids } from '../lib/orders';
 
 type Onboarding = ReturnType<typeof useOnboarding>;
 /** A price picked from a market's order book; `n` changes on every pick so picking the same price again still applies. */
@@ -41,6 +41,7 @@ export function OrderPanel({ market, user, onboarding, pick }: Props) {
 }
 
 function Onboarding({ onboarding: o }: { onboarding: Onboarding }) {
+  const rewards = useTradingRewards();
   return (
     <div className="onboarding">
       <div className="label">SET UP TRADING · ONE TIME</div>
@@ -48,7 +49,7 @@ function Onboarding({ onboarding: o }: { onboarding: Onboarding }) {
         n={1}
         done={o.builderApproved}
         title="Approve the HyperEmpire builder fee"
-        body={`Lets HyperEmpire add its fee to your orders, up to ${BUILDER_MAX_FEE_RATE}. Every $1 of fee earns 500 $aura.`}
+        body={`Lets HyperEmpire add its fee to your orders, up to ${BUILDER_MAX_FEE_RATE}. ${rewards.howItWorks}`}
         action={o.approveBuilder}
         busy={o.busy === 'builder'}
         disabled={!o.canSign}
@@ -113,6 +114,7 @@ const fmtRate = (r: number) => `${(r * 100).toFixed(4)}%`;
  */
 function OrderForm({ market, user, onboarding, pick }: { market: Market; user: `0x${string}`; onboarding: Onboarding; pick?: BookPick | null }) {
   const qc = useQueryClient();
+  const rewards = useTradingRewards();
   const active = useActiveAsset(user, market.name);
   const ch = useClearinghouse(user);
   const fees = useUserFees(user).data ?? DEFAULT_FEES;
@@ -194,7 +196,7 @@ function OrderForm({ market, user, onboarding, pick }: { market: Market; user: `
     setBusy(true);
     setResult(null);
     try {
-      const text = await placeOrder(trader, {
+      const placed = await placeOrder(trader, {
         market,
         isBuy,
         kind,
@@ -205,7 +207,13 @@ function OrderForm({ market, user, onboarding, pick }: { market: Market; user: `
         takeProfit: tpsl && num(tp.px) > 0 ? num(tp.px) : undefined,
         stopLoss: tpsl && num(sl.px) > 0 ? num(sl.px) : undefined,
       });
-      setResult({ ok: true, text });
+      setResult({ ok: true, text: placed.text });
+      // Report the orders (and any TP/SL, read back) so their fees earn $aura. Best effort: trading never waits on it.
+      void (async () => {
+        const extra = placed.hasTriggers ? await triggerOids(user, market.name).catch(() => []) : [];
+        const oids = [...new Set([...placed.oids, ...extra])];
+        if (oids.length) rewards.onOrders(oids);
+      })();
       setSizeIn('');
       setTp({ px: '', roe: '' });
       setSl({ px: '', roe: '' });
@@ -349,7 +357,7 @@ function OrderForm({ market, user, onboarding, pick }: { market: Market; user: `
           <dd className="mono">{fmtRate(fees.taker)} / {fmtRate(fees.maker)} + {fmtRate(BUILDER_FEE_RATE)}</dd>
         </div>
         {notional > 0 && <div><dt>Est. fees on this order</dt><dd className="mono">{fmtUsd(exchangeFee + builderFee, 4)}</dd></div>}
-        <div className="aura-line"><dt>$aura earned on this fill</dt><dd className="mono">+{fmtAura(auraForNotional(notional))}</dd></div>
+        <AuraLine fee={notional * BUILDER_FEE_RATE} />
       </dl>
 
       {dialog === 'leverage' && (
@@ -459,5 +467,17 @@ function MarginDialog({ market, isCross, onClose, onApply }: { market: Market; i
       </div>
       <p className="muted small">The mode can't change while you have an open {market.name} position.</p>
     </MiniDialog>
+  );
+}
+
+/** The $aura this order's builder fee would add to the player's share of today's pool. */
+function AuraLine({ fee }: { fee: number }) {
+  const rewards = useTradingRewards();
+  const aura = fee > 0 ? rewards.auraForFee(fee) : 0;
+  return (
+    <div className="aura-line" title={rewards.howItWorks}>
+      <dt>$aura from this order</dt>
+      <dd className="mono">{aura === null ? 'sign in to earn' : fee > 0 ? `≈ +${fmtAura(aura)}` : '—'}</dd>
+    </div>
   );
 }

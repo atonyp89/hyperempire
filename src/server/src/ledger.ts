@@ -6,9 +6,9 @@ import { accounts, ledger } from './db/schema';
 import { notEnoughAura } from './errors';
 import { fromUnits, STARTER_AURA, toUnits } from './rules/aura';
 
-/** Create the account on first sight, with its starter $aura. */
-export async function ensureAccount(tx: Conn, address: string) {
-  const created = await tx.insert(accounts).values({ address }).onConflictDoNothing().returning({ address: accounts.address });
+/** Create the account on first sight, with its starter $aura. Fills before `now` never count toward rewards. */
+export async function ensureAccount(tx: Conn, address: string, now: number) {
+  const created = await tx.insert(accounts).values({ address, fillsSyncedUntil: now, createdAt: new Date(now) }).onConflictDoNothing().returning({ address: accounts.address });
   if (created.length) await credit(tx, address, toUnits(STARTER_AURA), 'starter', 'starter');
 }
 

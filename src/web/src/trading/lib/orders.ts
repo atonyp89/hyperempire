@@ -5,6 +5,7 @@ import type { OrderParameters } from '@nktkas/hyperliquid/api/exchange';
 import { BUILDER_ADDRESS, BUILDER_FEE_TENTHS_BPS, MARKET_SLIPPAGE, TRIGGER_SLIPPAGE } from '../config';
 import type { Market } from '../hooks/useMarkets';
 import { fmtNum } from '../../shared/format';
+import { info } from './hl';
 import { formatPrice, formatSize } from './prices';
 
 type OrderSpec = OrderParameters['orders'][number];
@@ -43,8 +44,32 @@ function triggerOrder(m: Market, closeIsBuy: boolean, size: string, triggerPx: n
   };
 }
 
+/** What an order action returns: a human summary, and the ids of the orders it created (for $aura). */
+export type Placed = { text: string; oids: number[]; hasTriggers: boolean };
+
+type Statuses = Awaited<ReturnType<ExchangeClient['order']>>['response']['data']['statuses'];
+
+function placed(statuses: Statuses): Placed {
+  const oids: number[] = [];
+  for (const s of statuses) {
+    if (typeof s === 'string') continue;
+    if ('filled' in s) oids.push(s.filled.oid);
+    else if ('resting' in s) oids.push(s.resting.oid);
+  }
+  return { text: describe(statuses), oids, hasTriggers: statuses.some((s) => s === 'waitingForTrigger') };
+}
+
+/**
+ * Ids of the user's waiting TP/SL orders on this asset. Hyperliquid doesn't return them when placing
+ * ("waitingForTrigger"), so they're read back from the open orders.
+ */
+export async function triggerOids(user: `0x${string}`, coin: string): Promise<number[]> {
+  const open = await info.frontendOpenOrders({ user });
+  return open.filter((o) => o.coin === coin && o.isTrigger).map((o) => o.oid);
+}
+
 /** Human summary of the order statuses Hyperliquid returns. */
-function describe(statuses: Awaited<ReturnType<ExchangeClient['order']>>['response']['data']['statuses']): string {
+function describe(statuses: Statuses): string {
   return statuses
     .map((s) => {
       if (typeof s === 'string') return s === 'waitingForTrigger' ? 'TP/SL set' : 'Waiting for fill';
@@ -55,7 +80,7 @@ function describe(statuses: Awaited<ReturnType<ExchangeClient['order']>>['respon
     .join(' · ');
 }
 
-export async function placeOrder(trader: ExchangeClient, o: OrderInput): Promise<string> {
+export async function placeOrder(trader: ExchangeClient, o: OrderInput): Promise<Placed> {
   const m = o.market;
   const size = formatSize(o.size, m.szDecimals);
   if (Number(size) <= 0) throw new Error(`Size rounds to 0 at ${m.szDecimals} decimals.`);
@@ -80,11 +105,11 @@ export async function placeOrder(trader: ExchangeClient, o: OrderInput): Promise
     grouping: orders.length > 1 ? 'normalTpsl' : 'na',
     builder: builder(),
   });
-  return describe(res.response.data.statuses);
+  return placed(res.response.data.statuses);
 }
 
 /** Close a position with a reduce-only market order. `szi` is the signed position size. */
-export async function closePosition(trader: ExchangeClient, m: Market, szi: number): Promise<string> {
+export async function closePosition(trader: ExchangeClient, m: Market, szi: number): Promise<Placed> {
   const isBuy = szi < 0;
   const res = await trader.order({
     orders: [
@@ -100,7 +125,7 @@ export async function closePosition(trader: ExchangeClient, m: Market, szi: numb
     grouping: 'na',
     builder: builder(),
   });
-  return describe(res.response.data.statuses);
+  return placed(res.response.data.statuses);
 }
 
 export async function cancelOrder(trader: ExchangeClient, asset: number, oid: number): Promise<void> {

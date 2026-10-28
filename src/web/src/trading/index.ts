@@ -3,4 +3,5 @@
 
 export { TradingTerminal } from './TradingTerminal';
 export { captureReferral } from './lib/referral';
-export { AURA_PER_USD_FEE, BUILDER_FEE_RATE } from './config';
+export { BUILDER_FEE_RATE } from './config';
+export type { TradingRewards } from './rewards';

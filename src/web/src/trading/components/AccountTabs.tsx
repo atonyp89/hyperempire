@@ -4,8 +4,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { Market } from '../hooks/useMarkets';
 import { useClearinghouse, useFills, useOpenOrders } from '../hooks/useTraderData';
 import { errorMessage } from '../lib/hl';
-import { fmtAura, fmtNum, fmtPct, fmtPx, fmtUsd } from '../../shared/format';
+import { fmtNum, fmtPct, fmtPx, fmtUsd } from '../../shared/format';
 import { cancelOrder, closePosition } from '../lib/orders';
+import { useTradingRewards } from '../rewards';
 
 type Fill = NonNullable<ReturnType<typeof useFills>['data']>[number];
 type Props = { user?: `0x${string}`; markets: Market[]; trader: ExchangeClient | null; fills: Fill[] };
@@ -15,6 +16,7 @@ export function AccountTabs({ user, markets, trader, fills }: Props) {
   const [tab, setTab] = useState<Tab>('positions');
   const [msg, setMsg] = useState<string | null>(null);
   const qc = useQueryClient();
+  const rewards = useTradingRewards();
   const ch = useClearinghouse(user);
   const orders = useOpenOrders(user);
   const byName = new Map(markets.map((m) => [m.name, m]));
@@ -32,9 +34,9 @@ export function AccountTabs({ user, markets, trader, fills }: Props) {
     }
   }
 
-  if (!user) return <div className="muted pad">Connect a wallet to see positions, orders and $aura earned.</div>;
+  if (!user) return <div className="muted pad">Connect a wallet to see positions, orders and fills.</div>;
 
-  const totalAura = fills.reduce((s, f) => s + f.aura, 0);
+  const totalBuilderFees = fills.reduce((s, f) => s + f.builderFeeUsd, 0);
   const summary = ch.data?.marginSummary;
 
   return (
@@ -73,7 +75,7 @@ export function AccountTabs({ user, markets, trader, fills }: Props) {
                     <td className={`mono ${pnl >= 0 ? 'up' : 'down'}`}>{fmtUsd(pnl)} ({fmtPct(Number(p.returnOnEquity) * 100, 1)})</td>
                     <td className="mono">{p.liquidationPx ? fmtPx(Number(p.liquidationPx)) : '—'}</td>
                     <td>
-                      <button type="button" className="btn ghost small" disabled={!trader || !m} onClick={() => trader && m && run(() => closePosition(trader, m, szi))}>
+                      <button type="button" className="btn ghost small" disabled={!trader || !m} onClick={() => trader && m && run(async () => rewards.onOrders((await closePosition(trader, m, szi)).oids))}>
                         CLOSE
                       </button>
                     </td>
@@ -113,13 +115,13 @@ export function AccountTabs({ user, markets, trader, fills }: Props) {
         {tab === 'fills' && (
           <>
             <div className="aura-total">
-              <span className="gem" aria-hidden="true" /> {fmtAura(totalAura)} $aura earned from builder fees
-              <span className="muted small"> · estimate until the epoch is settled and claimable</span>
+              <span className="gem" aria-hidden="true" /> {fmtUsd(totalBuilderFees, 4)} in builder fees on these fills
+              <span className="muted small"> · {rewards.howItWorks}</span>
             </div>
             <table>
-              <thead><tr><th>Time</th><th>Market</th><th>Direction</th><th>Price</th><th>Size</th><th>Builder fee</th><th>$aura</th></tr></thead>
+              <thead><tr><th>Time</th><th>Market</th><th>Direction</th><th>Price</th><th>Size</th><th>Builder fee</th></tr></thead>
               <tbody>
-                {fills.length === 0 && <tr><td colSpan={7} className="muted">No fills yet. Every fill through HyperEmpire earns $aura.</td></tr>}
+                {fills.length === 0 && <tr><td colSpan={6} className="muted">No fills yet. Builder fees on fills through HyperEmpire earn $aura.</td></tr>}
                 {fills.slice(0, 100).map((f) => (
                   <tr key={`${f.tid}-${f.oid}`}>
                     <td className="mono small">{new Date(f.time).toLocaleString()}</td>
@@ -128,7 +130,6 @@ export function AccountTabs({ user, markets, trader, fills }: Props) {
                     <td className="mono">{fmtPx(Number(f.px))}</td>
                     <td className="mono">{f.sz}</td>
                     <td className="mono">{f.builderFeeUsd > 0 ? fmtUsd(f.builderFeeUsd, 4) : '—'}</td>
-                    <td className="mono aura">{f.aura > 0 ? `+${fmtAura(f.aura)}` : '—'}</td>
                   </tr>
                 ))}
               </tbody>

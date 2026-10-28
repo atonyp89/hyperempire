@@ -57,6 +57,43 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
       CREATE UNIQUE INDEX rush_wins_block ON rush_wins (height, pool);
     `,
   },
+  {
+    id: '0002_exchange_rewards',
+    sql: `
+      CREATE TABLE exchange_orders (
+        address text NOT NULL,
+        oid bigint NOT NULL,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        PRIMARY KEY (address, oid)
+      );
+      CREATE TABLE exchange_fees (
+        day text NOT NULL,
+        ref text NOT NULL,
+        address text NOT NULL,
+        source text NOT NULL,
+        fee_micro bigint NOT NULL,
+        time bigint NOT NULL,
+        PRIMARY KEY (day, ref)
+      );
+      CREATE INDEX exchange_fees_address ON exchange_fees (address, day);
+      CREATE TABLE exchange_days (
+        day text PRIMARY KEY,
+        emission bigint NOT NULL,
+        total_fee_micro bigint NOT NULL,
+        players integer NOT NULL,
+        source text NOT NULL,
+        settled_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE TABLE exchange_rewards (
+        day text NOT NULL,
+        address text NOT NULL,
+        fee_micro bigint NOT NULL,
+        units bigint NOT NULL,
+        PRIMARY KEY (day, address)
+      );
+      CREATE INDEX exchange_rewards_address ON exchange_rewards (address);
+    `,
+  },
 ];
 
 export async function migrate(db: Db) {

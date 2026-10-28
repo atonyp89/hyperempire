@@ -6,6 +6,3 @@ export const fromUnits = (units: number) => units / UNITS;
 
 /** Starter $aura that comes with every new empire. */
 export { STARTER_AURA } from './empire';
-
-/** $aura per $1 of builder fee paid (k = 0.5 notional, ×1,000 multiplier). */
-export const AURA_PER_USD_FEE = 500;

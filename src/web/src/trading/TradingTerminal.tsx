@@ -11,6 +11,7 @@ import { OrderPanel, type BookPick } from './components/OrderPanel';
 import { useMarkets } from './hooks/useMarkets';
 import { useOnboarding } from './hooks/useOnboarding';
 import { useFills } from './hooks/useTraderData';
+import { TradingRewardsContext, type TradingRewards } from './rewards';
 import { ErrorBoundary } from '../shared/ui/ErrorBoundary';
 import './trading.css';
 
@@ -24,7 +25,8 @@ const savedCoin = () => {
   }
 };
 
-export function TradingTerminal() {
+/** `rewards` connects the terminal to whatever pays $aura for its fees (the game); without it, fees earn nothing. */
+export function TradingTerminal({ rewards }: { rewards?: TradingRewards }) {
   const { address } = useConnection();
   const markets = useMarkets();
   const onboarding = useOnboarding(address);
@@ -42,7 +44,7 @@ export function TradingTerminal() {
 
   const market = useMemo(() => markets.data?.find((m) => m.name === coin) ?? markets.data?.[0], [markets.data, coin]);
 
-  return (
+  const body = (
     <div className="trading">
       <div className="layout">
         <section className="center">
@@ -74,4 +76,5 @@ export function TradingTerminal() {
       </div>
     </div>
   );
+  return rewards ? <TradingRewardsContext.Provider value={rewards}>{body}</TradingRewardsContext.Provider> : body;
 }

@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { AURA_PER_USD_FEE, BUILDER_FEE_RATE } from '../../trading';
-import { BRANCHES, BUILDING_CAPS, STARTER_AURA, FEE_DISCOUNT_CAP, PERKS, TIER_POINTS, branchSpent } from '@server/contract';
+import { BUILDER_FEE_RATE } from '../../trading';
+import { BRANCHES, BUILDING_CAPS, DAILY_EMISSION, STARTER_AURA, FEE_DISCOUNT_CAP, PERKS, TIER_POINTS, branchSpent } from '@server/contract';
 import { fmtAura } from '../../shared/format';
 import { API_MODE } from '../../shared/api';
 import type { UpgradeResult, useTownhall } from '../hooks/useTownhall';
@@ -28,7 +28,7 @@ export function TownhallModal({ open, onClose, townhall: t }: Props) {
         </div>
       )}
       <p className="muted small th-note">
-        $aura = {fmtAura(STARTER_AURA)} starter + {fmtAura(AURA_PER_USD_FEE)} per $1 of builder fees on your fills − what you spend. Progress is kept by
+        $aura = {fmtAura(STARTER_AURA)} starter + your share of each day’s {fmtAura(DAILY_EMISSION)} $aura Exchange pool (split by builder fees paid) − what you spend. Progress is kept by
         the HyperEmpire server{API_MODE === 'local' ? ' (running in this browser while in development)' : ''}.
       </p>
     </BuildingModal>

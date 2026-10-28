@@ -1,6 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
 import { info } from '../lib/hl';
-import { auraForFee } from '../lib/rewards';
 
 type Address = `0x${string}`;
 
@@ -31,7 +30,7 @@ export function useFills(user: Address | undefined) {
       const fills = await info.userFills({ user: user! });
       return fills.map((f) => {
         const builderFee = Number(f.builderFee ?? 0);
-        return { ...f, builderFeeUsd: builderFee, aura: auraForFee(builderFee) };
+        return { ...f, builderFeeUsd: builderFee };
       });
     },
   });

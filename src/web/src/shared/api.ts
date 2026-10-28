@@ -8,6 +8,13 @@ import { NETWORK } from './network';
 const API_URL = (import.meta.env.VITE_API_URL ?? 'local').trim() || 'local';
 export const API_MODE: 'local' | 'remote' = API_URL === 'local' ? 'local' : 'remote';
 
+/** Our builder code, for the in-browser server's Exchange rewards (a deployed server has its own BUILDER_* config). */
+const builderAddress = import.meta.env.VITE_BUILDER_ADDRESS as string | undefined;
+const BUILDER =
+  builderAddress && !/^0x0{40}$/i.test(builderAddress)
+    ? { address: builderAddress.toLowerCase(), feeRate: Number(import.meta.env.VITE_BUILDER_FEE_TENTHS_BPS ?? 50) / 100_000 }
+    : undefined;
+
 export class ApiRequestError extends Error {
   constructor(
     readonly status: number,
@@ -22,7 +29,7 @@ async function send(path: string, init: RequestInit): Promise<Response> {
   if (API_URL === 'local') {
     // Loaded on first use, so a production build pointed at a real server never fetches it.
     const { localServer } = await import('@server/local');
-    const server = await localServer(NETWORK, { admin: __LOCAL_ADMIN__ ?? undefined });
+    const server = await localServer(NETWORK, { admin: __LOCAL_ADMIN__ ?? undefined, builder: BUILDER });
     return server.fetch(new Request(`http://local.hyperempire${path}`, init));
   }
   return fetch(`${API_URL.replace(/\/$/, '')}${path}`, init);

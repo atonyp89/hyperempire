@@ -11,11 +11,11 @@ import { createApp } from './app';
 import type { Db } from './db';
 import { schema } from './db';
 import { migrate } from './db/migrations';
-import { secureRandom, type AdminCredentials, type Network } from './deps';
-import { fillsReader } from './hyperliquid';
+import { secureRandom, type AdminCredentials, type Builder, type Network } from './deps';
+import { builderFillsReader, fillsReader } from './hyperliquid';
 
 export type LocalServer = { fetch: (request: Request) => Promise<Response> };
-export type LocalOptions = { admin?: AdminCredentials };
+export type LocalOptions = { admin?: AdminCredentials; builder?: Builder };
 
 /** Simulated players, so the local Mine isn't empty. A real server has none. */
 const SIMULATED_POWER = { 'aura:shared': 2_000, 'aura:rush': 2_000 } as const;
@@ -52,7 +52,17 @@ async function start(network: Network, opts: LocalOptions): Promise<LocalServer>
       const client = await PGlite.create(`idb://hyperempire-${network}`);
       const db = drizzle(client, { schema }) as unknown as Db;
       await migrate(db);
-      const app = createApp({ db, network, now: Date.now, random: secureRandom, fills: fillsReader(network), simulatedPower: SIMULATED_POWER, admin: opts.admin });
+      const app = createApp({
+        db,
+        network,
+        now: Date.now,
+        random: secureRandom,
+        fills: fillsReader(network),
+        builder: opts.builder,
+        builderFills: opts.builder && network === 'mainnet' ? builderFillsReader(opts.builder.address) : undefined,
+        simulatedPower: SIMULATED_POWER,
+        admin: opts.admin,
+      });
       return (request: Request) => Promise.resolve(app.fetch(request));
     })());
   };

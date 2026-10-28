@@ -43,9 +43,10 @@ Limit of development mode: the data lives on one device and is lost if the site'
 | `src/contract.ts` | The API contract: request and response types and the rules the client shows. The only server module the web app imports (plus `local.ts`) |
 | `src/app.ts` | `createApp(deps)`: CORS, routes, error handling |
 | `src/routes/` | `auth.ts`, `me.ts`, `townhall.ts`, `mining.ts`, `admin.ts` |
-| `src/rules/` | Pure game rules with no I/O: `empire.ts` (levels, perks, respec), `mining.ts` (grades, merges, upkeep, pools), `aura.ts` (units) |
+| `src/rules/` | Pure game rules with no I/O: `empire.ts` (levels, perks, respec), `mining.ts` (grades, merges, upkeep, pools), `exchange.ts` (the daily $aura pool and shares), `aura.ts` (units) |
 | `src/ledger.ts` | Balances and the ledger |
-| `src/aura.ts` | Builder fees → $aura |
+| `src/exchange.ts` | Exchange rewards: tracks builder fees per day, settles each finished day into $aura shares |
+| `src/hyperliquid.ts`, `src/lz4.ts` | Reads a wallet's fills and Hyperliquid's daily builder-fill files (LZ4-compressed CSV) |
 | `src/blocks.ts` | Mining block settlement |
 | `src/db/` | Drizzle schema, SQL migrations, shared types |
 | `src/deps.ts` | Everything the app gets from outside: database, network, clock, randomness, fills reader, simulated power, CORS origins, admin login |
@@ -82,7 +83,8 @@ The first sign-in creates the account with its 5,000 starter $aura. The network 
 | Kind | Sign | Ref | When |
 | --- | --- | --- | --- |
 | `starter` | + | `starter` | First sign-in |
-| `fee` | + | fill trade id | Builder fee on a Hyperliquid fill |
+| `exchange` | + | day (`YYYYMMDD`) | Share of that day's Exchange pool |
+| `fee` | + | fill trade id | Old fixed-rate credits (500 per $1), before the daily pool; no longer written |
 | `mine` | + | `<first block>-<last block>` | Mining payouts for a settled range |
 | `townhall:upgrade` | − | | Upgrade attempt, success or not |
 | `townhall:respec` | − | | Perk reset |
@@ -91,11 +93,28 @@ The first sign-in creates the account with its 5,000 starter $aura. The network 
 | `workshop:craft` | − | | Craft a Pick |
 | `workshop:repair` | − | | Repair a Pick |
 
-## $aura from trading
+## Exchange rewards
 
-On `GET /me` (at most every 30 s per wallet) and on `POST /me/sync`, the API reads the wallet's Hyperliquid fills newer than `accounts.fills_synced_until` and credits **500 $aura per $1 of `builderFee`** on each, with the fill's trade id as the ref. Then it moves `fills_synced_until` forward.
+Each UTC day has a fixed pool (`DAILY_EMISSION`, 100,000 $aura per network) shared by builder fees paid that day. The economics are in [the game design](../economy/game-design.md#earning-aura).
 
-Known limit: a fill reports a `builderFee` but not which builder took it, so fees paid through other builders count too. Reading only HyperEmpire's builder fills, through the fee indexer, will fix it.
+**Which fees count.** A Hyperliquid fill reports a `builderFee` but not which builder took it, so fills alone can't tell our fees from Phantom's.
+
+| Network | Source of truth | How |
+| --- | --- | --- |
+| Mainnet | Hyperliquid's daily builder-fill file: `stats-data.hyperliquid.xyz/Mainnet/builder_fills/<our builder, lowercase>/<YYYYMMDD>.csv.lz4` | Lists every fill that paid **our** builder (columns `time,user,coin,side,px,sz,…,builder_fee`; no trade or order id). Published the next day; a day with no fills gets no file (the bucket answers 403) |
+| Testnet | Fills of orders placed through our Exchange | Hyperliquid publishes no testnet files. After each order, the client reports its order ids (`POST /exchange/orders`, including TP/SL read back from open orders); only fills of those orders at our fee rate or less count |
+
+**Through the day (pending).** On `GET /me` and `GET /exchange` (at most every 30 s per wallet), the API reads the wallet's new fills from `accounts.fills_synced_until`. That starts at sign-up, so older trades never count. Fees of reported orders go into `exchange_fees` as `fill` rows. These give each player's live estimate, `pool × yours ÷ total`, shown as **pending $aura**. Nothing is credited yet.
+
+**After the day (settled).** `settleDays()` runs lazily on `/me` and `/exchange`, and on a server every 15 minutes. For each finished day not settled yet:
+1. **Mainnet:** download and decompress the day's file and store its rows as `file` rows. The live `fill` rows are ignored from here on. If the file isn't out yet, wait and retry every 10 minutes. If it's still missing 36 hours after the day ended, the day had no fills.
+2. **Testnet:** use the day's `fill` rows.
+3. Sum fees per wallet. Write `exchange_days` (pool, total, players, source) and `exchange_rewards`: each wallet gets `floor(pool × fee ÷ total)`.
+4. Credit each share to the ledger (`kind = 'exchange'`, `ref = day`; idempotent). A wallet without an account yet keeps its share in `exchange_rewards`, credited when it signs in. On mainnet the file lists everyone who traded through our builder, signed in or not.
+
+Days settle in order, at most 31 per call. Inserting the `exchange_days` row is the claim, so two requests never settle the same day twice.
+
+**Config.** `deps.builder` (`{ address, feeRate }`) turns rewards on: `BUILDER_ADDRESS` and `BUILDER_FEE_TENTHS_BPS` on a server, or the web app's `VITE_BUILDER_*` in the browser. `deps.builderFills` is set on mainnet only. The file is CORS-open, so the in-browser server can read it too.
 
 ## Townhall
 
@@ -135,7 +154,11 @@ At most 10,080 blocks (a week) are replayed at once, so a long gap can't stall a
 
 | Table | Key | What |
 | --- | --- | --- |
-| `accounts` | `address` | Balance (milli-$aura), `fills_synced_until` |
+| `accounts` | `address` | Balance (milli-$aura), `fills_synced_until` (starts at sign-up) |
+| `exchange_orders` | `(address, oid)` | Orders placed through our Exchange, reported by the client |
+| `exchange_fees` | `(day, ref)` | Builder fees per day: `fill` rows (live, from reported orders) and `file` rows (mainnet's daily file), in micro-USD |
+| `exchange_days` | `day` | Settled days: pool, total fees, players, source |
+| `exchange_rewards` | `(day, address)` | Each wallet's fees and share of a settled day (milli-$aura) |
 | `ledger` | `id`; unique `(address, kind, ref)` | Every balance change |
 | `nonces` | `nonce` | Pending sign-ins, 10-minute expiry |
 | `sessions` | `token` | Session tokens, 30-day expiry |
@@ -192,7 +215,7 @@ Data path: HyperCore fills with our builder code → the indexer totals fees per
 | Component | Where | Role | Status |
 | --- | --- | --- | --- |
 | Game backend | Off-chain | $aura ledger; Townhall state; Miners and Picks; rolls; 60 s block draws | **Built** (`src/server`); commit-reveal still to do |
-| Fee indexer | Off-chain | Reads HyperEmpire's builder fills and computes rewards; later posts roots, then multi-signer | Partly: the API credits fees per wallet on demand |
+| Fee indexer | Off-chain | Reads HyperEmpire's builder fills and computes rewards; later posts roots, then multi-signer | **Built** for the daily pool (mainnet builder files, testnet reported orders); Merkle roots still to do |
 | EmpireNFT (ERC-721) | HyperEVM | $10 mint with starter $aura; Townhall level and perk ranks | Planned |
 | Townhall | HyperEVM | Burns $aura for levels, risky upgrades (VRF or commit-reveal) and respecs | Planned (runs in the backend for now) |
 | AURA (ERC-20) | HyperEVM | Transfers off in Season 0; burns on spend | Planned |

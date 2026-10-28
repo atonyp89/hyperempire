@@ -66,7 +66,7 @@ Phase 1 details:
 
 ```mermaid
 flowchart LR
-  X["Exchange<br/>trade perps with our builder code"] --> E["Earn $aura<br/>500 per $1 of fee"]
+  X["Exchange<br/>trade perps with our builder code"] --> E["Earn $aura<br/>share of the daily pool"]
   E --> T["Townhall<br/>level up (burns $aura), +1 perk point"]
   T --> P["Perk tree<br/>Trader / Fighter / Crafter"]
   P -- "Trader perks: lower fees, more $aura" --> X
@@ -80,21 +80,25 @@ $aura has two sources. **Trading** mints it from builder fees, so it's backed by
 
 ## Earning $aura
 
-Every $1 of builder fee paid through the Exchange earns 500 $aura, on opens and closes, win or lose.
+Every UTC day, a fixed pool of $aura is shared by the builder fees paid through the Exchange that day, on opens and closes, win or lose. A player's share is the pool × their fees ÷ everyone's fees.
 
 | Parameter | Value |
 | --- | --- |
-| Emission rate | 500 $aura per $1 builder fee (k = 0.5, ×1,000 multiplier) |
-| Notional value | 1 $aura ≈ $0.001 |
+| Daily pool | 100,000 $aura per network per UTC day, set by the team (`DAILY_EMISSION`) |
+| Share | Pool × your builder fees that day ÷ all builder fees that day |
+| $aura per $1 of fee | Floats: high on quiet days, low on busy ones |
 | Builder fee | Users approve the 0.1% perps cap; launch rate 0.05% (Phantom's level), raise toward 0.1% later |
-| Settlement | Per epoch: indexer totals builder fees per wallet, posts a Merkle root, players claim |
+| Counted fees | Mainnet: only fills in Hyperliquid's daily file for our builder. Testnet: fills of orders placed through our Exchange |
+| Settlement | After each day ends: shares are credited once Hyperliquid publishes the day's file (mainnet) or straight away (testnet). Until then they show as pending $aura |
 | Loss bonus | None (Rage Charge parked) |
 
-Example: a $10k taker round trip at 0.1% pays $20 in builder fees and earns 10,000 $aura.
+Example: on a day with $200 of builder fees in total, a trader who paid $20 of them gets 10% of the pool, 10,000 $aura. On a day with $2,000 in total, the same $20 earns 1,000.
+
+**Why a pool, not a fixed rate:** a fixed rate (it was 500 $aura per $1) pins what $aura must be worth for trading to make sense: at a 0.05% fee, $0.002 per $aura. If $aura is worth less, there's no reason to trade here. With a fixed pool, $aura per $1 floats. When few people trade, each $1 earns more, which draws traders back. When many trade, total emission stays the same, so supply is predictable and never grows with volume.
 
 **Fee discount:** Exchange building levels and Trader perks (Lower fees, −1% per rank) stack, capped at −40% in total. $aura is earned on the fee actually paid, so the farming math is unchanged. Perks that add $aura (Streak, Market maker) are capped at about +10% in total so emissions stay under the farming break-even.
 
-**Farming guardrail:** hedged wash trading only pays if $aura trades above about $0.002 (0.1% fee) or $0.0038 (0.05% fee). Any future liquidity pool launches at or below $0.001.
+**Farming guardrail:** wash trading can't raise emission, since the pool is fixed. A farmer who pays F of a day's T in fees gets F ÷ T of the pool, and every dollar they pay is builder revenue. Farming only pays while the pool is worth more than the fees it takes to win a share of it. When that happens more farmers join, which pushes fees up until it no longer does.
 
 ## Townhall
 
@@ -328,10 +332,11 @@ Built in `src/web` (Vite + React + wagmi + the Hyperliquid TS SDK):
 - **Townhall modal:** level and progress, risky upgrade, the three-branch perk tree with PixelLab icons, respec and building caps.
 - **Town:** a 640×180 world with a camera that follows a walkable knight hero: a west strip with a big Garden (seven plots of wheat), the original town, and an east strip where the Workshop and the Mine already stand as "coming soon" buildings, and the Garden grows wheat.
 
-**Where $aura lives today:** in the game backend's ledger (`src/server`). The API credits each new fill's `builderFee` × 500 (an estimate: it also counts other builders' fees) and records every spend; Townhall level and perks live there too. During development the backend runs inside the browser on PGlite, so data stays on that device; production moves the same code and its Postgres database to AWS. The perk fee discount is display-only. The AURA token, Townhall contract, fee indexer and RewardDistributor are the next things to build.
+**Where $aura lives today:** in the game backend's ledger (`src/server`). Each UTC day the API shares the day's 100,000 $aura pool by builder fees paid through our Exchange. On mainnet, fees come from Hyperliquid's daily file for our builder, so other builders' fees never count. On testnet, they come from fills of orders our Exchange placed. It also records every spend; Townhall level and perks live there too. During development the backend runs inside the browser on PGlite, so data stays on that device; production moves the same code and its Postgres database to AWS. The perk fee discount is display-only. The AURA token, Townhall contract, fee indexer and RewardDistributor are the next things to build.
 
 ## Open questions
 
+- [ ] Sustainability: reward budget as a share of revenue, refundable $10 deposit instead of the mint, no-loss prizes from deposit interest (see [decisions.md](decisions.md#sustainability-ideas-to-explore-oct-27-2026))
 - [ ] Referral share (10–20% of builder fees)
 - [ ] Season 0 length and prize payout cadence
 - [ ] Split of builder fees: $aura backing vs leaderboard pool vs team revenue

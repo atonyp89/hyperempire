@@ -19,7 +19,9 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | POST | [`/auth/verify`](#post-authverify) | Trade the signature for a session token |
 | POST | [`/auth/sign-out`](#post-authsign-out) | End the session |
 | GET | [`/me`](#get-me) | Balance, level, Miner slots |
-| POST | [`/me/sync`](#post-mesync) | Credit new trading fees now |
+| POST | [`/me/sync`](#post-mesync) | Read new fills now |
+| GET | [`/exchange`](#get-exchange) | Today's $aura pool, your share, recent days |
+| POST | [`/exchange/orders`](#post-exchangeorders) | Report orders placed through our Exchange |
 | GET | [`/townhall`](#get-townhall) | Townhall state |
 | POST | [`/townhall/upgrade`](#post-townhallupgrade) | Try to level up |
 | POST | [`/townhall/perks`](#post-townhallperks) | Add a perk rank |
@@ -83,10 +85,10 @@ Send the token in `Authorization`. Ends that session. Always returns `{ "ok": tr
 
 ### `GET /me`
 
-Settles finished mining blocks and credits new trading fees (at most every 30 s), then returns:
+Settles finished mining blocks, reads new fills (at most every 30 s) and settles finished Exchange days, then returns:
 
 ```json
-{ "address": "0x7099…79c8", "aura": 5265, "level": 1, "slots": 3, "synced": 265 }
+{ "address": "0x7099…79c8", "aura": 105000, "level": 1, "slots": 3, "pendingAura": 25000 }
 ```
 
 | Field | What |
@@ -94,15 +96,62 @@ Settles finished mining blocks and credits new trading fees (at most every 30 s)
 | `aura` | Current balance |
 | `level` | Townhall level |
 | `slots` | Miners that can be deployed at once: 3 + Foreman ranks |
-| `synced` | $aura credited from fees by this call (0 if nothing new, or if it synced recently) |
+| `pendingAura` | Exchange $aura not settled yet: today's estimated share, plus finished days still waiting (on mainnet, for Hyperliquid's file) |
 
 ### `POST /me/sync`
 
-Reads new fills now, ignoring the 30 s limit.
+Reads new fills now, ignoring the 30 s limit, then settles finished days. Returns how many new builder fees it recorded.
 
 ```json
-{ "credited": 250 }
+{ "fills": 2 }
 ```
+
+## Exchange
+
+How rewards work: [the backend overview](README.md#exchange-rewards).
+
+### `GET /exchange`
+
+```json
+{
+  "day": "20261027",
+  "endsAt": 1793145600000,
+  "emission": 100000,
+  "source": "fills",
+  "totalFees": 0.4,
+  "yourFees": 0.1,
+  "yourEstimate": 25000,
+  "pendingAura": 25000,
+  "history": [
+    { "day": "20261026", "emission": 100000, "totalFees": 2.5, "players": 4, "source": "fills", "yourFees": 0.5, "yourAura": 20000 }
+  ]
+}
+```
+
+| Field | What |
+| --- | --- |
+| `day`, `endsAt` | Today (UTC, `YYYYMMDD`) and when its pool closes (ms) |
+| `emission` | $aura shared out per day |
+| `source` | `file` on mainnet (Hyperliquid's builder file decides), `fills` on testnet |
+| `totalFees`, `yourFees` | Builder fees seen so far today (USD). On mainnet the final total comes from the file and can be higher |
+| `yourEstimate` | Your share if the day ended now |
+| `pendingAura` | Today's estimate plus finished days not settled yet |
+| `history` | The last 14 settled days, with your fees and $aura |
+
+The extra $aura a new fee `f` would add today is `emission × (yourFees + f) ÷ (totalFees + f) − yourEstimate`; `marginalShare` in the contract computes it.
+
+### `POST /exchange/orders`
+
+```json
+// request: order ids Hyperliquid returned (resting or filled, and TP/SL from open orders)
+{ "oids": [123456789, 123456790] }
+// response: how many were new
+{ "tracked": 2 }
+```
+
+Called by the Exchange right after each order or close. It also rereads the last minute of fills, in case an order filled before it was reported.
+
+- `400`: not 1–50 positive integer ids.
 
 ## Townhall
 

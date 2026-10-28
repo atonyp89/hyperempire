@@ -6,7 +6,13 @@ import type { PoolId } from './rules/mining';
 export type Network = 'mainnet' | 'testnet';
 
 /** A Hyperliquid fill, as far as $aura cares. */
-export type Fill = { tid: number; time: number; builderFee?: string };
+export type Fill = { tid: number; oid: number; time: number; px: string; sz: string; builderFee?: string };
+
+/** One row of Hyperliquid's daily builder-fill file: a fill that paid our builder. */
+export type BuilderFill = { time: number; user: string; feeMicro: number };
+
+/** HyperEmpire's builder code: fills that pay it earn Exchange rewards. */
+export type Builder = { address: string; /** The fee we charge, as a fraction (0.0005 = 0.05%). */ feeRate: number };
 
 export type Deps = {
   db: Db;
@@ -17,6 +23,13 @@ export type Deps = {
   random: () => number;
   /** Reads fills from Hyperliquid for the fee sync. */
   fills: (address: `0x${string}`, sinceMs: number) => Promise<Fill[]>;
+  /** Our builder code. Without it, no fees are tracked and no Exchange rewards are paid. */
+  builder?: Builder;
+  /**
+   * Reads Hyperliquid's daily builder-fill file (null until it's published). Mainnet only: when set, the files
+   * decide each day's fees; when not (testnet), fills of orders placed through our Exchange do.
+   */
+  builderFills?: (day: string) => Promise<BuilderFill[] | null>;
   /**
    * Power added to each pool by simulated players, so a lone developer doesn't win every block. Local and dev
    * only; production leaves it empty.

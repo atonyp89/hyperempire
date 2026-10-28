@@ -9,6 +9,7 @@ import { nonces, sessions } from '../db/schema';
 import { randomHex } from '../deps';
 import type { Env } from '../env';
 import { badRequest, unauthorized } from '../errors';
+import { creditRewards } from '../exchange';
 import { ensureAccount } from '../ledger';
 
 const NONCE_MS = 10 * 60_000;
@@ -45,7 +46,9 @@ export const auth = new Hono<Env>()
     const token = randomHex(32);
     const expiresAt = now() + SESSION_MS;
     await db.transaction(async (tx) => {
-      await ensureAccount(tx, address);
+      await ensureAccount(tx, address, now());
+      // Shares of days settled before this wallet signed up (mainnet files list every fill through our builder).
+      await creditRewards(tx, address);
       await tx.insert(sessions).values({ token, address, expiresAt });
     });
     return c.json({ token, address, expiresAt });

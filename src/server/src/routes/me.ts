@@ -1,7 +1,7 @@
-// The signed-in player: $aura balance (after syncing new trading fees) and Townhall basics.
+// The signed-in player: $aura balance (after settling finished Exchange days) and Townhall basics.
 
 import { Hono } from 'hono';
-import { syncFees } from '../aura';
+import { exchangeView, settleDays, syncFills } from '../exchange';
 import { settle } from '../blocks';
 import type { MeView } from '../contract';
 import type { Env } from '../env';
@@ -14,18 +14,20 @@ export const me = new Hono<Env>()
   .get('/', async (c) => {
     const { deps, address } = c.var;
     await settle(deps);
-    const synced = await syncFees(deps, address).catch(() => 0);
+    await syncFills(deps, address).catch(() => 0);
+    await settleDays(deps).catch((err) => console.error('[exchange]', err));
     const t = await loadTownhall(deps.db, address);
     const body: MeView = {
       address,
       aura: fromUnits(await balanceOf(deps.db, address)),
       level: t.level,
       slots: BASE_SLOTS + (t.ranks[FOREMAN_PERK] ?? 0),
-      synced: fromUnits(synced),
+      pendingAura: (await exchangeView(deps, address)).pendingAura,
     };
     return c.json(body);
   })
   .post('/sync', async (c) => {
-    const credited = await syncFees(c.var.deps, c.var.address, true);
-    return c.json({ credited: fromUnits(credited) });
+    const fills = await syncFills(c.var.deps, c.var.address, true);
+    await settleDays(c.var.deps);
+    return c.json({ fills });
   });

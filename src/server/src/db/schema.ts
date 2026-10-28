@@ -1,13 +1,13 @@
 // Database schema (Drizzle, Postgres). The same tables run on PGlite in the browser during development and on
 // Postgres in production; migrations.ts creates them. One database per Hyperliquid network.
 
-import { bigint, doublePrecision, index, integer, jsonb, pgTable, serial, smallint, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { bigint, doublePrecision, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
 /** One row per wallet that has signed in. `balance` is in milli-$aura (see rules/aura.ts). */
 export const accounts = pgTable('accounts', {
   address: text('address').primaryKey(),
   balance: bigint('balance', { mode: 'number' }).notNull().default(0),
-  /** Time (ms) of the newest Hyperliquid fill already credited, so each sync only reads newer fills. */
+  /** Time (ms) of the newest Hyperliquid fill already read, so each sync only reads newer fills. Starts at sign-up. */
   fillsSyncedUntil: bigint('fills_synced_until', { mode: 'number' }).notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
@@ -91,4 +91,54 @@ export const rushWins = pgTable(
     amount: bigint('amount', { mode: 'number' }).notNull(),
   },
   (t) => [uniqueIndex('rush_wins_block').on(t.height, t.pool)],
+);
+
+/** Orders placed through the HyperEmpire Exchange, reported by the client. On testnet only their fills count. */
+export const exchangeOrders = pgTable(
+  'exchange_orders',
+  {
+    address: text('address').notNull(),
+    oid: bigint('oid', { mode: 'number' }).notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [primaryKey({ columns: [t.address, t.oid] })],
+);
+
+/**
+ * Builder fees paid, per day. `source` is 'file' (Hyperliquid's daily builder-fill file: the truth on mainnet) or
+ * 'fill' (seen live in the player's fills: today's estimate, and the truth on testnet, which has no files).
+ */
+export const exchangeFees = pgTable(
+  'exchange_fees',
+  {
+    day: text('day').notNull(),
+    ref: text('ref').notNull(),
+    address: text('address').notNull(),
+    source: text('source').notNull(),
+    feeMicro: bigint('fee_micro', { mode: 'number' }).notNull(),
+    time: bigint('time', { mode: 'number' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.ref] }), index('exchange_fees_address').on(t.address, t.day)],
+);
+
+/** A settled day: its pool, total fees and where they came from. */
+export const exchangeDays = pgTable('exchange_days', {
+  day: text('day').primaryKey(),
+  emission: bigint('emission', { mode: 'number' }).notNull(),
+  totalFeeMicro: bigint('total_fee_micro', { mode: 'number' }).notNull(),
+  players: integer('players').notNull(),
+  source: text('source').notNull(),
+  settledAt: timestamp('settled_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Each player's share of a settled day, in milli-$aura. Credited to the ledger once the player has an account. */
+export const exchangeRewards = pgTable(
+  'exchange_rewards',
+  {
+    day: text('day').notNull(),
+    address: text('address').notNull(),
+    feeMicro: bigint('fee_micro', { mode: 'number' }).notNull(),
+    units: bigint('units', { mode: 'number' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.day, t.address] }), index('exchange_rewards_address').on(t.address)],
 );

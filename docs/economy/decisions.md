@@ -6,8 +6,9 @@ How the MVP rules in [game-design.md](game-design.md) were reached. As of Oct 26
 
 | Topic | Decision | Why |
 | --- | --- | --- |
-| Reward basis | $aura is earned per $1 of builder fee paid, on opens and closes, win or lose | Rewards stay backed by revenue; no trade-lifecycle accounting needed |
-| Emission rate | 500 $aura per $1 fee (k = 0.5 notional, ×1,000 multiplier) | Bigger, friendlier numbers; 1 $aura ≈ $0.001 notional |
+| Reward basis | $aura is earned by builder fees paid, on opens and closes, win or lose | Rewards stay backed by revenue; no trade-lifecycle accounting needed |
+| Emission (Oct 27, 2026) | A fixed pool per UTC day (100,000 $aura per network, set by the team), shared by builder fees paid that day. Replaces the fixed 500 $aura per $1 | A fixed rate puts a ceiling on $aura: at a 0.05% fee, trading stops paying once $aura is worth less than $0.002. A pool lets $aura per $1 float, draws traders on quiet days, and keeps emission fixed whatever the volume |
+| Which fees count | Mainnet: only fills in Hyperliquid's daily builder-fill file for our builder address. Testnet (no files): fills of orders our Exchange reported, at our fee rate or less | Fills don't say which builder took the fee; the daily file is the only source that does. Testnet $aura has no value, so a weaker check is fine there |
 | One token | Everything runs on $aura; no second currency | Keep the system simple |
 | Loss bonus | Parked for MVP | Farmable, adds accounting edge cases, poor optics |
 | Builder fee | Users approve the 0.1% perps cap; launch rate 0.05%, raise later | Matches Phantom at launch, keeps headroom without re-approval |
@@ -94,6 +95,54 @@ A hedged farmer (long on one wallet, short on another) pays Hyperliquid's fee pl
 3. **Rage Charge** (charge = min(10% of realized loss, 50% of that position's fees), released as +50% on future fees, 72h expiry): bounded and dust-proof, but parked to keep MVP simple.
 
 Possible later, non-economic: battle-scar badges on the hero ("Survived 10 liquidations").
+
+## Sustainability ideas (to explore, Oct 27, 2026)
+
+Not decided yet; to look into soon. The goal: not a ponzi. Most web3 games pay players in a token minted from nothing, rely on its price, and crash when new players stop coming.
+
+**The rule every feature is checked against:** real value paid out ≤ a fixed share of real revenue taken in, per period. Revenue means builder fees, deposit interest and purchases. New players never fund old ones. $aura already fits (non-transferable, earned from fees, no price to pump); real-asset mining prizes, leaderboard prizes and the free starter $aura are where the rule could break.
+
+**Four player types:**
+
+| Type | Wants | Keeps them | Breaks when |
+| --- | --- | --- | --- |
+| Traders | Edge | A published expected return per $1 of fee (e.g. 30–40¢), the Townhall fee discount, execution worth the fee, a cheap extra asset to speculate with | Rewards worth less than the fee and nothing else on offer, so they leave; or more than the fee, so we lose money |
+| Gamblers | Thrill | Gacha where losing still feels like progress | Pure loss, or prizes not tied to revenue |
+| Gamers | Chill, cozy play (Garden; target audience mostly female, so design for cozy) | No loss conditions, collecting, decorating, later visiting gardens | Pressure, timers that punish, pay-to-win |
+| Farmers | Cash out (a mix of gamblers and gamers) | Rewards that scale with the real cost they generate | Anything free that turns into real value |
+
+**Ideas:**
+
+1. **Reward budget:** each period's real-asset prizes (BTC, ETH pools, leaderboard) are a share of that period's revenue, never a fixed amount. If fees drop, prizes drop, so no death spiral.
+2. **Losing still gives something:** a failed merge or a bad roll gives Scrap (for crafting and repairs), pity progress, and a collection-book entry; near misses are shown.
+3. **Loss-free Garden,** earning money through cosmetics bought with USDC rather than $aura.
+4. **Publish the expected return** per $1 of builder fee, for traders.
+5. **Health metrics on the admin dashboard:** payout ratio, $aura created vs spent, revenue per cohort.
+6. **Refundable $10 deposit to create an empire,** replacing the $10 mint. The game feels free, since the deposit comes back, and we keep the interest (about 3.4% APR):
+
+   | Players with a deposit | Money held | Interest per year |
+   | --- | --- | --- |
+   | 10,000 | $100k | $3.4k |
+   | 100,000 | $1M | $34k |
+   | 1,000,000 | $10M | $340k |
+
+   The interest is small; the real value is elsewhere:
+   - **Anti-farming:** every wallet ties up $10. This closes the hole where free starter $aura on many wallets feeds real-asset pools.
+   - **No-loss prizes (like PoolTogether):** real-asset Mine prizes are paid from deposit interest, so they can never exceed it. Larger optional deposits could give more power in those pools; players risk only the interest they give up. A $100/day prize pool needs about $1.07M deposited at 3.4%.
+
+   Risks to design around:
+   - **Yield source:** only tokenized T-bills or established lending. If it loses money we still owe every refund, so keep a reserve.
+   - **Custody:** deposits sit in an audited contract that players withdraw from themselves.
+   - **Rates:** they fall, so prizes are a share of yield, not fixed.
+   - **Legal:** deposit-taking or security rules, and no-loss lotteries by country.
+   - **Mercenary money:** large deposits leave when rates elsewhere rise; harmless while prizes scale with yield.
+
+   Open:
+   - Refund anytime, or after a minimum period (e.g. 30 days)?
+   - What happens to the empire on refund: archived until a new deposit brings it back?
+   - Do larger deposits earn more prize power?
+
+**Still to decide:** what share of builder fees goes back as real-value rewards (30%? 50%?), and whether the Garden earns through cosmetics or stays free with no revenue of its own.
 
 ## Builder fee comparison (perps, on top of Hyperliquid ~0.045% taker / ~0.015% maker)
 
