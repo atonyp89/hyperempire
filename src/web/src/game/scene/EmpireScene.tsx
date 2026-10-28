@@ -18,7 +18,7 @@ type Building = {
   detail: string;
   /** What the building does, shown on hover. */
   about: string;
-  /** Hotspot box as percentages of the 640x180 world. */
+  /** Hotspot box as percentages of the 480x180 world. */
   box: { left: number; top: number; width: number; height: number };
   ready: boolean;
   /** Where the name plate's centre sits, in native scene pixels; the middle of the box when left out. */
@@ -45,12 +45,12 @@ const plateAt = (b: Building) =>
     : undefined;
 
 const BUILDINGS: Building[] = [
-  { id: 'townhall', name: 'TOWNHALL', detail: 'LEVEL UP · PERKS', about: "Your empire's heart. Spend $aura to level up, then put perk points into Trader, Fighter and Crafter.", box: fromCrop(266, 9, 100, 73), ready: true, sprite: '/empire/townhall.png' },
-  { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES', about: 'Recruit heroes and send them on adventures. Coming soon…', box: fromCrop(161, 18, 71, 66), plate: { x: 204, y: 48 }, ready: false, sprite: '/empire/tavern.png' },
-  { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', about: 'Trade Hyperliquid perps. Every $1 of builder fee you pay earns 500 $aura.', box: fromCrop(408, 11, 60, 70), plate: { x: 438, y: 39 }, ready: true, sprite: '/empire/exchange.png' },
-  { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS', about: 'Grow seeds into crafting materials. Coming soon…', box: fromCrop(0, 113, 237, 67), ready: false },
-  { id: 'workshop', name: 'WORKSHOP', detail: 'CRAFT GEAR', about: 'Craft gear from garden materials and salvage. Coming soon…', box: fromCrop(543, 10, 63, 73), ready: false, sprite: '/empire/workshop.png' },
-  { id: 'mine', name: 'MINE', detail: 'SEND MINERS', about: 'Send your miners to dig for resources: BTC, ETH, oil and more. Coming soon…', box: fromCrop(586, 134, 48, 37), plate: { x: 610, y: 139 }, ready: false, sprite: '/empire/mine.png' },
+  { id: 'townhall', name: 'TOWNHALL', detail: 'LEVEL UP · PERKS', about: "Your empire's heart. Spend $aura to level up, then put perk points into Trader, Fighter and Crafter.", box: fromCrop(106, 9, 100, 73), ready: true, sprite: '/empire/townhall.png' },
+  { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES', about: 'Recruit heroes and send them on adventures. Coming soon…', box: fromCrop(1, 18, 71, 66), plate: { x: 44, y: 48 }, ready: false, sprite: '/empire/tavern.png' },
+  { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', about: 'Trade Hyperliquid perps. Every $1 of builder fee you pay earns 500 $aura.', box: fromCrop(248, 11, 60, 70), plate: { x: 278, y: 39 }, ready: true, sprite: '/empire/exchange.png' },
+  { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS', about: 'Grow seeds into crafting materials. Coming soon…', box: fromCrop(0, 113, 77, 67), ready: false },
+  { id: 'workshop', name: 'WORKSHOP', detail: 'CRAFT GEAR', about: 'Craft gear from garden materials and salvage. Coming soon…', box: fromCrop(383, 10, 63, 73), ready: false, sprite: '/empire/workshop.png' },
+  { id: 'mine', name: 'MINE', detail: 'SEND MINERS', about: 'Send your miners to dig for resources: BTC, ETH, oil and more. Coming soon…', box: fromCrop(426, 134, 48, 37), plate: { x: 450, y: 139 }, ready: false, sprite: '/empire/mine.png' },
 ];
 
 /** `heroActive`: WASD moves the hero (off while a building screen is open). */
@@ -63,7 +63,7 @@ export function EmpireScene({ onOpen, phase, heroActive }: { onOpen: (id: Buildi
           <img
             className="scene-img"
             src="/empire/town-base.png"
-            alt="Your empire: the Townhall at the center behind a plaza with statue pools, the Tavern on the left, the Exchange on the right, the big fenced Garden along the bottom left, the Workshop to the east and the Mine below it"
+            alt="Your empire: the Townhall at the center behind a plaza with statue pools, the Tavern on the left, the Exchange on the right, the Garden fields at the bottom left, the Workshop to the east and the Mine below it"
           />
           <Garden />
           <Ambient />

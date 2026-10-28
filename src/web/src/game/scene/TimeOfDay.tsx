@@ -16,26 +16,26 @@ const at = (x: number, y: number, r: number): CSSProperties => ({
 
 /** Warm light pools at night: [x, y, radius] in native scene pixels. */
 const GLOWS: { x: number; y: number; r: number; kind: 'lamp' | 'door' | 'window' }[] = [
-  { x: 255.5, y: 70, r: 16, kind: 'lamp' },
-  { x: 452.5, y: 108, r: 16, kind: 'lamp' },
-  { x: 297, y: 176, r: 15, kind: 'lamp' },
-  { x: 316, y: 80, r: 20, kind: 'door' },
-  { x: 438, y: 76, r: 16, kind: 'door' },
-  { x: 190, y: 72, r: 12, kind: 'window' },
-  { x: 217, y: 72, r: 9, kind: 'window' },
-  { x: 316, y: 57, r: 7, kind: 'window' },
+  { x: 95.5, y: 70, r: 16, kind: 'lamp' },
+  { x: 292.5, y: 108, r: 16, kind: 'lamp' },
+  { x: 137, y: 176, r: 15, kind: 'lamp' },
+  { x: 156, y: 80, r: 20, kind: 'door' },
+  { x: 278, y: 76, r: 16, kind: 'door' },
+  { x: 30, y: 72, r: 12, kind: 'window' },
+  { x: 57, y: 72, r: 9, kind: 'window' },
+  { x: 156, y: 57, r: 7, kind: 'window' },
   // Mine: shaft entrance and the lantern post beside it.
-  { x: 610, y: 155, r: 12, kind: 'door' },
-  { x: 625, y: 156, r: 6, kind: 'window' },
+  { x: 450, y: 155, r: 12, kind: 'door' },
+  { x: 465, y: 156, r: 6, kind: 'window' },
   // Workshop (east strip): door and gable window.
-  { x: 568, y: 74, r: 14, kind: 'door' },
-  { x: 567, y: 51, r: 7, kind: 'window' },
+  { x: 408, y: 74, r: 14, kind: 'door' },
+  { x: 407, y: 51, r: 7, kind: 'window' },
 ];
 
 /** Pool water boxes in native scene pixels (x0, y0, x1, y1); glints are clipped to them. */
 const POOLS = [
-  { x0: 261, y0: 108, x1: 295, y1: 153 },
-  { x0: 341, y0: 108, x1: 375, y1: 153 },
+  { x0: 101, y0: 108, x1: 135, y1: 153 },
+  { x0: 181, y0: 108, x1: 215, y1: 153 },
 ];
 /**
  * Light on the pool water. Top-down, water shows glints, not a mirrored disc: short streaks that
@@ -66,22 +66,22 @@ const box = (x: number, y: number, w: number, h: number, inW: number, inH: numbe
 
 /** Dust motes drifting through the morning sunbeams. */
 const MOTES = [
-  { x: 190, y: 18, d: 0 },
-  { x: 230, y: 8, d: -2.2 },
-  { x: 278, y: 26, d: -4.5 },
-  { x: 208, y: 50, d: -6.1 },
-  { x: 310, y: 12, d: -3.3 },
-  { x: 252, y: 40, d: -7.4 },
+  { x: 30, y: 18, d: 0 },
+  { x: 70, y: 8, d: -2.2 },
+  { x: 118, y: 26, d: -4.5 },
+  { x: 48, y: 50, d: -6.1 },
+  { x: 150, y: 12, d: -3.3 },
+  { x: 92, y: 40, d: -7.4 },
 ];
 
 const FIREFLIES = [
-  { x: 260, y: 50, d: 0 },
-  { x: 246, y: 58, d: -1.4 },
-  { x: 410, y: 128, d: -0.6 },
-  { x: 422, y: 92, d: -2.1 },
-  { x: 200, y: 140, d: -1.1 },
-  { x: 230, y: 160, d: -2.6 },
-  { x: 470, y: 130, d: -0.3 },
+  { x: 100, y: 50, d: 0 },
+  { x: 86, y: 58, d: -1.4 },
+  { x: 250, y: 128, d: -0.6 },
+  { x: 262, y: 92, d: -2.1 },
+  { x: 40, y: 140, d: -1.1 },
+  { x: 70, y: 160, d: -2.6 },
+  { x: 310, y: 130, d: -0.3 },
 ];
 
 export function TimeOfDay({ phase }: { phase: Phase }) {
