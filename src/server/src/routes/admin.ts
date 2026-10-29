@@ -107,15 +107,20 @@ export const admin = new Hono<Env>()
   .use(requireAdmin)
   .get('/overview', async (c) => {
     const { db, network } = c.var.deps;
-    const [supply] = rows<{ s: number | string | null }>(await db.execute(sql`SELECT coalesce(sum(balance), 0)::bigint AS s FROM accounts`));
+    const [supply] = rows<{ s: number | string | null; g: number | string | null }>(
+      await db.execute(sql`SELECT coalesce(sum(balance), 0)::bigint AS s, coalesce(sum(gold), 0)::bigint AS g FROM accounts`),
+    );
     const byKind = rows<{ kind: string; total: number | string; entries: number | string }>(
-      await db.execute(sql`SELECT kind, sum(delta)::bigint AS total, count(*)::int AS entries FROM ledger GROUP BY kind ORDER BY sum(delta) DESC`),
+      await db.execute(
+        sql`SELECT kind, sum(delta)::bigint AS total, count(*)::int AS entries FROM ledger WHERE currency = 'aura' GROUP BY kind ORDER BY sum(delta) DESC`,
+      ),
     );
     const chain = rows<{ settled_height: number | string }>(await db.execute(sql`SELECT settled_height FROM chain WHERE id = 1`));
     const body: AdminOverview = {
       network,
       tables: await tables(db),
       auraSupply: fromUnits(Number(supply?.s ?? 0)),
+      goldSupply: Number(supply?.g ?? 0),
       ledgerByKind: byKind.map((k) => ({ kind: k.kind, total: fromUnits(Number(k.total)), entries: Number(k.entries) })),
       settledHeight: chain[0] ? Number(chain[0].settled_height) : null,
     };

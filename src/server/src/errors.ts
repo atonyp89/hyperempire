@@ -16,5 +16,6 @@ export class ApiError extends Error {
 export const badRequest = (message: string, code = 'bad_request') => new ApiError(400, code, message);
 export const unauthorized = (message = 'Sign in first.') => new ApiError(401, 'unauthorized', message);
 export const notEnoughAura = (needed: number) => new ApiError(402, 'not_enough_aura', `Not enough $aura: this needs ${needed.toLocaleString('en-US')}.`);
+export const notEnoughGold = (needed: number) => new ApiError(402, 'not_enough_gold', `Not enough $gold: this needs ${needed.toLocaleString('en-US')}.`);
 export const notFound = (what: string) => new ApiError(404, 'not_found', `${what} not found.`);
 export const conflict = (message: string, code = 'conflict') => new ApiError(409, code, message);

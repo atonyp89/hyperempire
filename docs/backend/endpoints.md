@@ -20,6 +20,8 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | POST | [`/auth/sign-out`](#post-authsign-out) | End the session |
 | GET | [`/me`](#get-me) | Balance, level, Miner slots |
 | POST | [`/me/sync`](#post-mesync) | Read new fills now |
+| GET | [`/gold`](#get-gold) | $gold balance, and the faucet's size |
+| POST | [`/gold/faucet`](#post-goldfaucet) | Claim $gold for testing (local and testnet only) |
 | GET | [`/exchange`](#get-exchange) | Today's $aura pool, your share, recent days |
 | GET | [`/mastery/:building`](#get-masterybuilding) | A building's Mastery: level, XP, points, perks |
 | POST | [`/mastery/:building/perks`](#post-masterybuildingperks) | Add a perk rank |
@@ -89,12 +91,13 @@ Send the token in `Authorization`. Ends that session. Always returns `{ "ok": tr
 Settles finished mining blocks, reads new fills (at most every 30 s) and settles finished Exchange days, then returns:
 
 ```json
-{ "address": "0x7099…79c8", "aura": 105000, "level": 1, "slots": 3, "pendingAura": 25000 }
+{ "address": "0x7099…79c8", "aura": 105000, "gold": 2000, "level": 1, "slots": 3, "pendingAura": 25000 }
 ```
 
 | Field | What |
 | --- | --- |
 | `aura` | Current balance |
+| `gold` | Current $gold, in whole $gold |
 | `level` | Townhall level |
 | `slots` | Miners that can be deployed at once: 3 (Mine Mastery will add more) |
 | `pendingAura` | Exchange $aura not settled yet: today's estimated share, plus finished days still waiting (on mainnet, for Hyperliquid's file) |
@@ -106,6 +109,22 @@ Reads new fills now, ignoring the 30 s limit, then settles finished days. Return
 ```json
 { "fills": 2 }
 ```
+
+## $gold
+
+$gold is the in-game currency: earned by playing, never transferred or cashed out. Balances are whole $gold, kept next to $aura in `accounts.gold`; its ledger rows have `currency = 'gold'`.
+
+### `GET /gold`
+
+```json
+{ "gold": 2000, "faucet": 1000 }
+```
+
+`faucet` is how much one claim gives, or `null` where there is no faucet.
+
+### `POST /gold/faucet`
+
+Adds `faucet` $gold (ledger kind `faucet`) and returns the same shape as `GET /gold`. For testing only: the in-browser server always has it (1,000 per claim), a server only on testnet with `GOLD_FAUCET` set. Elsewhere it answers `404 not_found`. No cooldown.
 
 ## Exchange
 

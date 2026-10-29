@@ -1,11 +1,11 @@
-// The signed-in player: $aura balance (after settling finished Exchange days) and Townhall basics.
+// The signed-in player: $aura balance (after settling finished Exchange days), $gold and Townhall basics.
 
 import { Hono } from 'hono';
 import { exchangeView, settleDays, syncFills } from '../exchange';
 import { settle } from '../blocks';
 import type { MeView } from '../contract';
 import type { Env } from '../env';
-import { balanceOf } from '../ledger';
+import { balanceOf, goldOf } from '../ledger';
 import { fromUnits } from '../rules/aura';
 import { BASE_SLOTS } from '../rules/mining';
 import { loadTownhall } from './townhall';
@@ -20,6 +20,7 @@ export const me = new Hono<Env>()
     const body: MeView = {
       address,
       aura: fromUnits(await balanceOf(deps.db, address)),
+      gold: await goldOf(deps.db, address),
       level: t.level,
       slots: BASE_SLOTS,
       pendingAura: (await exchangeView(deps, address)).pendingAura,

@@ -3,27 +3,30 @@
 
 import { bigint, boolean, doublePrecision, index, integer, jsonb, pgTable, primaryKey, serial, smallint, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
 
-/** One row per wallet that has signed in. `balance` is in milli-$aura (see rules/aura.ts). */
+/** One row per wallet that has signed in. `balance` is in milli-$aura (see rules/aura.ts); `gold` in whole $gold. */
 export const accounts = pgTable('accounts', {
   address: text('address').primaryKey(),
   balance: bigint('balance', { mode: 'number' }).notNull().default(0),
+  gold: bigint('gold', { mode: 'number' }).notNull().default(0),
   /** Time (ms) of the newest Hyperliquid fill already read, so each sync only reads newer fills. Starts at sign-up. */
   fillsSyncedUntil: bigint('fills_synced_until', { mode: 'number' }).notNull().default(0),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
-/** Every $aura movement, append-only. `ref` makes a credit idempotent (e.g. a fill's trade id). */
+/** Every $aura and $gold movement, append-only. `ref` makes a credit idempotent (e.g. a fill's trade id). */
 export const ledger = pgTable(
   'ledger',
   {
     id: serial('id').primaryKey(),
     address: text('address').notNull(),
     delta: bigint('delta', { mode: 'number' }).notNull(),
+    /** 'aura' (delta in milli-$aura) or 'gold' (delta in whole $gold). */
+    currency: text('currency').notNull().default('aura'),
     kind: text('kind').notNull(),
     ref: text('ref'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
-  (t) => [uniqueIndex('ledger_ref').on(t.address, t.kind, t.ref), index('ledger_address').on(t.address)],
+  (t) => [uniqueIndex('ledger_ref').on(t.address, t.currency, t.kind, t.ref), index('ledger_address').on(t.address)],
 );
 
 export const nonces = pgTable('nonces', {

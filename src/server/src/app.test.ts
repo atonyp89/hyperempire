@@ -330,6 +330,28 @@ describe('mining', () => {
   });
 });
 
+describe('gold', () => {
+  test('starts at 0; the faucet is off unless Deps turns it on', async () => {
+    const token = await signIn();
+    expect((await call('GET', '/me', undefined, token)).json.gold).toBe(0);
+    expect((await call('GET', '/gold', undefined, token)).json).toEqual({ gold: 0, faucet: null });
+    expect((await call('POST', '/gold/faucet', undefined, token)).status).toBe(404);
+    expect((await call('GET', '/gold')).status).toBe(401);
+  });
+
+  test('each faucet claim adds $gold to its own balance and ledger rows, leaving $aura alone', async () => {
+    app = createApp({ ...deps, goldFaucet: 1_000 });
+    const token = await signIn();
+    expect((await call('POST', '/gold/faucet', undefined, token)).json).toEqual({ gold: 1_000, faucet: 1_000 });
+    expect((await call('POST', '/gold/faucet', undefined, token)).json.gold).toBe(2_000);
+    const me = (await call('GET', '/me', undefined, token)).json;
+    expect([me.gold, me.aura]).toEqual([2_000, 5_000]);
+    const rows = await db.select().from(schema.ledger);
+    expect(rows.filter((r) => r.currency === 'gold').map((r) => [r.kind, r.delta])).toEqual([['faucet', 1_000], ['faucet', 1_000]]);
+    expect(rows.filter((r) => r.currency === 'aura').map((r) => r.kind)).toEqual(['starter']);
+  });
+});
+
 describe('admin', () => {
   const basic = (user: string, password: string, ip?: string) => ({
     authorization: `Basic ${btoa(`${user}:${password}`)}`,
@@ -353,14 +375,16 @@ describe('admin', () => {
     expect((await app.request('/admin/overview', { headers: { authorization: `Bearer ${token}` } })).status).toBe(401);
   });
 
-  test('overview: tables, row counts and $aura totals', async () => {
-    await signIn();
+  test('overview: tables, row counts, $aura totals and $gold supply', async () => {
+    app = createApp({ ...deps, goldFaucet: 250 });
+    await call('POST', '/gold/faucet', undefined, await signIn());
     const { status, json } = await adminCall('GET', '/admin/overview');
     expect(status).toBe(200);
     const accounts = json.tables.find((t: any) => t.name === 'accounts');
     expect(accounts.rows).toBe(1);
     expect(accounts.columns.map((c: any) => c.name)).toContain('balance');
     expect(json.auraSupply).toBe(5_000);
+    expect(json.goldSupply).toBe(250);
     expect(json.ledgerByKind).toEqual([{ kind: 'starter', total: 5_000, entries: 1 }]);
   });
 

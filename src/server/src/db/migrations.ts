@@ -124,6 +124,16 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
         WHERE EXISTS (SELECT 1 FROM ledger l WHERE l.address = r.address AND l.kind = 'exchange' AND l.ref = r.day);
     `,
   },
+  {
+    // $gold: a second, in-game currency. Its balance sits next to $aura's and its movements share the ledger.
+    id: '0005_gold',
+    sql: `
+      ALTER TABLE accounts ADD COLUMN gold bigint NOT NULL DEFAULT 0;
+      ALTER TABLE ledger ADD COLUMN currency text NOT NULL DEFAULT 'aura';
+      DROP INDEX ledger_ref;
+      CREATE UNIQUE INDEX ledger_ref ON ledger (address, currency, kind, ref);
+    `,
+  },
 ];
 
 export async function migrate(db: Db) {

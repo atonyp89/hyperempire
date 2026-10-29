@@ -100,6 +100,22 @@ Example: on a day with $200 of builder fees in total, a trader who paid $20 of t
 
 **Farming guardrail:** wash trading can't raise emission, since the pool is fixed. A farmer who pays F of a day's T in fees gets F ÷ T of the pool, and every dollar they pay is builder revenue. Farming only pays while the pool is worth more than the fees it takes to win a share of it. When that happens more farmers join, which pushes fees up until it no longer does.
 
+## $gold
+
+$gold is the in-game currency, next to $aura. $aura is scarce and costs real trading to earn; $gold is what you spend to keep things running, so players who just want to play don't burn $aura on upkeep.
+
+| | $aura | $gold |
+| --- | --- | --- |
+| Earned by | Trading (the daily pool), mining | Playing: gardening first, later quests and daily tasks |
+| Supply | Fixed emission, backed by builder fees | Allowed to inflate |
+| Transfers | Off in Season 0 | Never directly; traded with other players for $aura on the Marketplace (later) |
+| Pays for | Power and status: Townhall levels, recruits, merges, rerolls, respecs, gear | Upkeep and comfort: food, seeds, decorations, Garden plots |
+
+- **Rule:** nothing $gold buys may mint $aura. Trading $gold for $aura between players only moves existing $aura, so total supply stays backed by fees.
+- **Marketplace (later):** players sell $gold, crops and later every item to each other for $aura; sellers pay a 10% tax in $aura (mostly burned). No Mastery and no rewards for trading there.
+- **Sinks:** food and seeds, plus rising-cost sinks (decorations, plot upgrades, building skins) so $gold keeps a use once players have plenty.
+- **Now:** balances and ledger exist (`GET /gold`, `$gold` in the header); nothing earns or spends $gold yet. A testing faucet gives 1,000 per claim in local development and on testnet servers that enable it.
+
 ## Townhall
 
 The empire is a $10 NFT on HyperEVM that comes with 5,000 starter $aura and a level 1 Townhall. The Townhall is the main progression: its level ranks you on the leaderboard, caps every building's Mastery, and speeds up Mastery everywhere.

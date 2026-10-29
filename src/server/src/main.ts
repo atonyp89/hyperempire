@@ -38,6 +38,9 @@ const builder: Builder | undefined = process.env.BUILDER_ADDRESS
   : undefined;
 if (!builder) console.warn('[exchange] BUILDER_ADDRESS is not set; Exchange rewards are off.');
 
+// The $gold faucet is for testing: GOLD_FAUCET=<gold per claim> turns it on, on testnet only.
+const goldFaucet = network === 'testnet' && Number(process.env.GOLD_FAUCET) > 0 ? Math.floor(Number(process.env.GOLD_FAUCET)) : undefined;
+
 const deps: Deps = {
   db,
   network,
@@ -47,6 +50,7 @@ const deps: Deps = {
   builder,
   // Hyperliquid publishes builder-fill files for mainnet only.
   builderFills: builder && network === 'mainnet' ? builderFillsReader(builder.address) : undefined,
+  goldFaucet,
   allowedOrigins,
   admin,
 };

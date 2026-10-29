@@ -35,6 +35,8 @@ export type Deps = {
    * only; production leaves it empty.
    */
   simulatedPower?: Partial<Record<PoolId, number>>;
+  /** $gold per claim of the testing faucet (POST /gold/faucet). Local and testnet only; without it, no faucet. */
+  goldFaucet?: number;
   /** Origins allowed to call the API from a browser (CORS). Not needed when the app runs in-process. */
   allowedOrigins?: string[];
   /** Username and password for the read-only admin dashboard (/admin). Without them, /admin doesn't exist. */

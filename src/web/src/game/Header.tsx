@@ -3,6 +3,7 @@ import { NETWORK, switchNetwork, type Network } from '../shared/network';
 import { fmtAura, shortAddr } from '../shared/format';
 import { useMe, useSession } from '../shared/session';
 import type { useDayPhase } from './hooks/useDayPhase';
+import { useGold } from './hooks/useGold';
 
 type Props = { referral: string | null; onOpen: (id: 'exchange' | 'townhall') => void; day: ReturnType<typeof useDayPhase> };
 
@@ -31,6 +32,7 @@ export function Header({ referral, onOpen, day }: Props) {
         {referral && <span className="chip muted" title="Referral code captured from your link">REF {referral}</span>}
         <NetworkToggle />
         <AuraChip />
+        <GoldChip />
         <ConnectButton />
       </div>
     </header>
@@ -87,6 +89,31 @@ function AuraChip() {
       <span className="gem" aria-hidden="true" />
       {me.data ? fmtAura(me.data.aura) : '…'} <span className="muted">$AURA</span>
       {me.data && me.data.pendingAura >= 1 && <span className="muted">+{fmtAura(me.data.pendingAura)} pending</span>}
+    </span>
+  );
+}
+
+/** The $gold balance once signed in, with a claim button where the API has a testing faucet. */
+function GoldChip() {
+  const s = useSession();
+  const g = useGold();
+  if (!s.signedIn) return null;
+  return (
+    <span className="chip gold" title={g.error ?? 'Your $gold: the in-game currency for upkeep such as food and seeds. It stays in the game.'}>
+      <span className="coin" aria-hidden="true" />
+      {g.gold === null ? '…' : fmtAura(g.gold)} <span className="muted">$GOLD</span>
+      {g.faucet !== null && (
+        <button
+          type="button"
+          className="faucet"
+          disabled={g.claiming}
+          onClick={g.claim}
+          title={`Testing faucet: claim ${fmtAura(g.faucet)} $gold`}
+          aria-label={`Claim ${fmtAura(g.faucet)} $gold from the testing faucet`}
+        >
+          {g.claiming ? '…' : `+${fmtAura(g.faucet)}`}
+        </button>
+      )}
     </span>
   );
 }

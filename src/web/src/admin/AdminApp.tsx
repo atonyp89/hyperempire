@@ -175,6 +175,7 @@ function Overview({ o, open }: { o: AdminOverview; open: (name: string) => void 
         <Stat label="$AURA SUPPLY" value={fmtAura(o.auraSupply)} />
         <Stat label="MINTED" value={fmtAura(minted)} />
         <Stat label="BURNED" value={fmtAura(burned)} />
+        <Stat label="$GOLD SUPPLY" value={fmtAura(o.goldSupply)} />
         <Stat label="MINERS" value={count('miners').toLocaleString('en-US')} />
         <Stat label="PICKS" value={count('picks').toLocaleString('en-US')} />
         <Stat label="LAST SETTLED BLOCK" value={o.settledHeight?.toLocaleString('en-US') ?? '—'} />

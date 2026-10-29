@@ -13,6 +13,7 @@ import { schema } from './db';
 import { migrate } from './db/migrations';
 import { secureRandom, type AdminCredentials, type Builder, type Network } from './deps';
 import { builderFillsReader, fillsReader } from './hyperliquid';
+import { GOLD_FAUCET } from './rules/gold';
 
 export type LocalServer = { fetch: (request: Request) => Promise<Response> };
 export type LocalOptions = { admin?: AdminCredentials; builder?: Builder };
@@ -61,6 +62,7 @@ async function start(network: Network, opts: LocalOptions): Promise<LocalServer>
         builder: opts.builder,
         builderFills: opts.builder && network === 'mainnet' ? builderFillsReader(opts.builder.address) : undefined,
         simulatedPower: SIMULATED_POWER,
+        goldFaucet: GOLD_FAUCET,
         admin: opts.admin,
       });
       return (request: Request) => Promise.resolve(app.fetch(request));

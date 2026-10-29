@@ -6,6 +6,7 @@ import type { Grade, PoolId, PoolKind } from './rules/mining';
 
 export * from './rules/empire';
 export { DAILY_EMISSION, marginalShare } from './rules/exchange';
+export { GOLD_FAUCET } from './rules/gold';
 export { EXCHANGE_PERKS, MASTERY_PERKS, WHALE_DAILY_VOLUME, XP_PER_USD_FEE, xpForLevel, xpToNext } from './rules/mastery';
 export type { ExchangePerkId, MasteryPerk } from './rules/mastery';
 export { GRADES, GRADE, RECRUIT_COST, CRAFT_COST, BASE_SLOTS, WALK_BLOCKS, ENERGY_BLOCKS, BLOCK_MS, REWARDS } from './rules/mining';
@@ -16,7 +17,19 @@ export type ApiErrorBody = { error: string; message: string };
 export type NonceResponse = { nonce: string; message: string };
 export type SessionResponse = { token: string; address: string; expiresAt: number };
 
-export type MeView = { address: string; aura: number; level: number; slots: number; /** Exchange $aura not settled yet. */ pendingAura: number };
+export type MeView = {
+  address: string;
+  aura: number;
+  /** Whole $gold. */
+  gold: number;
+  level: number;
+  slots: number;
+  /** Exchange $aura not settled yet. */
+  pendingAura: number;
+};
+
+/** $gold balance, and how much one faucet claim gives (null where there is no faucet). */
+export type GoldView = { gold: number; faucet: number | null };
 
 export type TownhallView = {
   level: number;
@@ -80,6 +93,8 @@ export type AdminOverview = {
   tables: AdminTable[];
   /** $aura across every balance. */
   auraSupply: number;
+  /** $gold across every balance. */
+  goldSupply: number;
   /** $aura per ledger kind: minted (positive kinds) and burned (negative). */
   ledgerByKind: { kind: string; total: number; entries: number }[];
   settledHeight: number | null;

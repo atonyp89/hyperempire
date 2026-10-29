@@ -46,7 +46,10 @@ code { font-family: var(--mono); color: var(--gold); }
 .app { min-height: 100vh; display: flex; flex-direction: column; }
 .chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 2px solid var(--ink); background: var(--slate-800); box-shadow: var(--bevel); font-size: 12px; }
 .chip.warn { color: var(--gold); }
-.chip.aura { font-weight: 600; }
+.chip.aura, .chip.gold { font-weight: 600; }
+.coin { display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: var(--gold); border: 1px solid var(--ink); box-shadow: inset -2px -2px 0 rgba(0, 0, 0, 0.25); }
+.chip .faucet { margin-left: 2px; padding: 1px 6px; border: 2px solid var(--ink); background: var(--gold); color: var(--ink); font: inherit; font-size: 11px; cursor: pointer; }
+.chip .faucet:disabled { opacity: 0.6; cursor: default; }
 .gem { display: inline-block; width: 9px; height: 9px; background: var(--teal); border: 1px solid var(--ink); transform: rotate(45deg); }
 
 /* ---------------------------------------------------------- Exchange modal */
