@@ -1,5 +1,6 @@
-// Garden rules: a 4x4 field of plots, and the crops that grow in them. A planted seed grows through its stages
-// on the clock (no upkeep yet) and can be harvested once ripe, giving crops into the player's inventory.
+// Garden rules: a 4x4 field of plots, and the crops that grow in them. Seeds are inventory items bought with
+// $gold; a planted seed grows through its stages on the clock (no upkeep yet) and can be harvested once ripe,
+// giving crops into the player's inventory.
 // Design: docs/economy/game-design.md ("Garden").
 
 export const GARDEN_COLS = 4;
@@ -11,7 +12,7 @@ export type CropId = 'wheat';
 export type Crop = {
   id: CropId;
   name: string;
-  /** $gold a seed costs, paid when planting. */
+  /** $gold a seed costs at the Garden. */
   seedGold: number;
   /** Time from planting to ripe, in ms. */
   growMs: number;
@@ -29,6 +30,18 @@ export const CROPS: Record<CropId, Crop> = {
 };
 
 export const isCropId = (v: unknown): v is CropId => typeof v === 'string' && Object.hasOwn(CROPS, v);
+
+/** Most seeds one purchase can buy. */
+export const MAX_SEED_BUY = 99;
+
+/** A crop's seed, as an inventory item id ("wheat-seed"). The crop itself is the item id "wheat". */
+export const seedItem = (crop: CropId) => `${crop}-seed`;
+
+/** The crop a seed item grows, or null if the id isn't a seed. */
+export function cropOfSeed(item: string): CropId | null {
+  const id = item.endsWith('-seed') ? item.slice(0, -'-seed'.length) : null;
+  return isCropId(id) ? id : null;
+}
 
 /** Time a crop takes to ripen: its growing time, divided by the game speed (1, or more on the dev server). */
 export const growTime = (crop: Crop, speed = 1) => crop.growMs / speed;

@@ -1,7 +1,7 @@
 // End-to-end tests of the API on an in-memory PGlite database: real HTTP requests through the Hono app, a real
 // wallet signature, a controllable clock and dice. The same flows run against Postgres in production.
 
-import { beforeEach, describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { PGlite } from '@electric-sql/pglite';
 import { drizzle } from 'drizzle-orm/pglite';
 import { privateKeyToAccount } from 'viem/accounts';
@@ -19,6 +19,8 @@ const BUILDER = { address: '0x00000000000000000000000000000000000b0b00', feeRate
 
 let app: App;
 let db: Db;
+/** This test's database; closed after each test, since 40 open WebAssembly Postgres instances run out of memory. */
+let pg: PGlite;
 let clock: number;
 let dice: number[];
 /** Fake Hyperliquid fills, per lowercase address. */
@@ -43,7 +45,8 @@ async function signIn(who = wallet): Promise<string> {
 }
 
 beforeEach(async () => {
-  db = drizzle(new PGlite(), { schema }) as unknown as Db;
+  pg = new PGlite();
+  db = drizzle(pg, { schema }) as unknown as Db;
   await migrate(db);
   clock = GENESIS + 1_000 * BLOCK_MS + 10;
   dice = [];
@@ -59,6 +62,8 @@ beforeEach(async () => {
   };
   app = createApp(deps);
 });
+
+afterEach(() => pg.close());
 
 describe('auth', () => {
   test('rejects requests without a session, and a wrong signature', async () => {
@@ -354,22 +359,33 @@ describe('gold', () => {
 
 describe('garden', () => {
   const MIN = 60_000;
-  const withGold = async () => {
-    app = createApp({ ...deps, goldFaucet: 100 });
+  /** Signed in with 100 $gold (and, with `seeds`, that many wheat seeds bought from it). */
+  const ready = async (seeds = 0, extra: Partial<Deps> = {}) => {
+    app = createApp({ ...deps, goldFaucet: 100, ...extra });
     const token = await signIn();
     await call('POST', '/gold/faucet', undefined, token);
+    if (seeds) expect((await call('POST', '/garden/buy', { crop: 'wheat', qty: seeds }, token)).status).toBe(200);
     return token;
   };
 
-  test('16 empty plots; planting costs seed $gold and the crop grows through its stages', async () => {
-    const token = await withGold();
+  test('seeds are bought with $gold into the inventory', async () => {
+    const token = await ready();
     const empty = (await call('GET', '/garden', undefined, token)).json;
     expect(empty.plots).toHaveLength(16);
     expect(empty.plots.every((p: any) => p.crop === null)).toBe(true);
+    const bought = (await call('POST', '/garden/buy', { crop: 'wheat', qty: 3 }, token)).json;
+    expect([bought.gold, bought.inventory]).toEqual([70, { 'wheat-seed': 3 }]);
+    const broke = await call('POST', '/garden/buy', { crop: 'wheat', qty: 8 }, token);
+    expect([broke.status, broke.json.error]).toEqual([402, 'not_enough_gold']);
+    expect((await call('POST', '/garden/buy', { crop: 'wheat', qty: 0 }, token)).status).toBe(400);
+    expect((await call('POST', '/garden/buy', { crop: 'rose' }, token)).status).toBe(400);
+  });
 
+  test('planting uses a seed per plot; the crop grows through its stages', async () => {
+    const token = await ready(3);
     const planted = await call('POST', '/garden/plant', { crop: 'wheat', slots: [0, 5] }, token);
     expect(planted.status).toBe(200);
-    expect(planted.json.gold).toBe(80);
+    expect([planted.json.gold, planted.json.inventory]).toEqual([70, { 'wheat-seed': 1 }]);
     expect(planted.json.plots[5]).toMatchObject({ crop: 'wheat', stage: 0, ripe: false, readyAt: clock + 3 * MIN });
 
     const stages = [];
@@ -380,8 +396,8 @@ describe('garden', () => {
     expect(stages).toEqual([1, 2, 3]);
   });
 
-  test('harvest needs a ripe plant, then empties the plot and fills the inventory', async () => {
-    const token = await withGold();
+  test('harvest needs a ripe plant, then empties the plot and adds crops to the inventory', async () => {
+    const token = await ready(2);
     await call('POST', '/garden/plant', { crop: 'wheat', slots: [3, 4] }, token);
     const early = await call('POST', '/garden/harvest', { slot: 3 }, token);
     expect([early.status, early.json.error]).toEqual([409, 'not_ripe']);
@@ -396,17 +412,15 @@ describe('garden', () => {
   });
 
   test('the dev game speed makes crops ripen sooner', async () => {
-    app = createApp({ ...deps, goldFaucet: 100, gameSpeed: 10 });
-    const token = await signIn();
-    await call('POST', '/gold/faucet', undefined, token);
+    const token = await ready(1, { gameSpeed: 10 });
     const planted = (await call('POST', '/garden/plant', { crop: 'wheat', slot: 0 }, token)).json;
     expect([planted.speed, planted.plots[0].readyAt]).toEqual([10, clock + 18_000]);
     clock += 18_000;
     expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 3 });
   });
 
-  test('plots, crops and $gold are checked, all or nothing', async () => {
-    const token = await withGold();
+  test('plots, crops and seeds are checked, all or nothing', async () => {
+    const token = await ready(3);
     await call('POST', '/garden/plant', { crop: 'wheat', slot: 1 }, token);
     const taken = await call('POST', '/garden/plant', { crop: 'wheat', slots: [1, 2] }, token);
     expect([taken.status, taken.json.error]).toEqual([409, 'plot_taken']);
@@ -414,9 +428,10 @@ describe('garden', () => {
     expect((await call('POST', '/garden/plant', { crop: 'rose', slot: 2 }, token)).status).toBe(400);
     expect((await call('POST', '/garden/plant', { crop: 'wheat', slot: 16 }, token)).status).toBe(400);
     expect((await call('POST', '/garden/plant', { crop: 'wheat', slots: [2, 2] }, token)).status).toBe(400);
-    const broke = await call('POST', '/garden/plant', { crop: 'wheat', slots: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }, token);
-    expect([broke.status, broke.json.error]).toEqual([402, 'not_enough_gold']);
-    expect((await call('GET', '/garden', undefined, token)).json.plots.filter((p: any) => p.crop)).toHaveLength(1);
+    const short = await call('POST', '/garden/plant', { crop: 'wheat', slots: [2, 3, 4] }, token);
+    expect([short.status, short.json.error]).toEqual([409, 'not_enough_items']);
+    const after = (await call('GET', '/garden', undefined, token)).json;
+    expect([after.plots.filter((p: any) => p.crop).length, after.inventory]).toEqual([1, { 'wheat-seed': 2 }]);
   });
 });
 

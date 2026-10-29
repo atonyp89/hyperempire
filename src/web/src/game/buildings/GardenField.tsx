@@ -23,7 +23,7 @@ type Props = {
   plots: GardenPlotView[];
   now: number;
   busy: boolean;
-  /** The seed an empty plot plants; null when the player can't afford one. */
+  /** The seed an empty plot plants; null when the player has none picked. */
   seedName: string | null;
   onPlant: (slot: number) => void;
   onHarvest: (slot: number) => void;
@@ -44,7 +44,7 @@ export function GardenField({ plots, now, busy, seedName, onPlant, onHarvest }: 
         const label = !crop
           ? seedName
             ? `Plot ${p.slot + 1}: empty. Plant ${seedName}.`
-            : `Plot ${p.slot + 1}: empty. Not enough $gold for a seed.`
+            : `Plot ${p.slot + 1}: empty. Buy or pick a seed to plant.`
           : p.ripe
             ? `Plot ${p.slot + 1}: ${crop.name} is ripe. Harvest.`
             : `Plot ${p.slot + 1}: ${crop.name} growing, ripe in ${timeLeft(left)}.`;

@@ -8,7 +8,7 @@ import type { Grade, PoolId, PoolKind } from './rules/mining';
 export * from './rules/empire';
 export { DAILY_EMISSION, marginalShare } from './rules/exchange';
 export { GOLD_FAUCET } from './rules/gold';
-export { CROPS, cropStage, GARDEN_COLS, GARDEN_PLOTS, GARDEN_ROWS, growTime } from './rules/garden';
+export { CROPS, cropOfSeed, cropStage, GARDEN_COLS, GARDEN_PLOTS, GARDEN_ROWS, growTime, MAX_SEED_BUY, seedItem } from './rules/garden';
 export type { Crop, CropId } from './rules/garden';
 export { EXCHANGE_PERKS, MASTERY_PERKS, WHALE_DAILY_VOLUME, XP_PER_USD_FEE, xpForLevel, xpToNext } from './rules/mastery';
 export type { ExchangePerkId, MasteryPerk } from './rules/mastery';

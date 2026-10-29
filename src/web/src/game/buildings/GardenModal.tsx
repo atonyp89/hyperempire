@@ -1,13 +1,13 @@
-// The Garden screen: a 4x4 field where seeds bought with $gold grow on the clock and are harvested into the
-// inventory. One crop (wheat) for now; more come later.
+// The Garden screen: a 4x4 field where seeds from the inventory (bought with $gold) grow on the clock and are
+// harvested back into it. One crop (wheat) for now; more come later.
 
 import { useState, type ReactNode } from 'react';
-import { CROPS, GARDEN_PLOTS, growTime, type CropId } from '@server/contract';
+import { CROPS, cropOfSeed, GARDEN_PLOTS, growTime, type CropId } from '@server/contract';
 import { fmtAura } from '../../shared/format';
 import { BuildingModal } from '../../shared/ui/BuildingModal';
 import { useGarden, type Garden } from '../hooks/useGarden';
 import { itemInfo } from '../lib/items';
-import { Inventory, ItemSlot } from '../ui/Inventory';
+import { Inventory, type Stack } from '../ui/Inventory';
 import { GardenField, timeLeft } from './GardenField';
 
 type Props = { open: boolean; onClose: () => void };
@@ -46,17 +46,26 @@ function SignIn({ g }: { g: Garden }) {
   );
 }
 
-const SEEDS = Object.values(CROPS);
+const CROP_LIST = Object.values(CROPS);
+
+/** Seeds first, then everything else, each by name. */
+const order = (a: Stack, b: Stack) => Number(!cropOfSeed(a.id)) - Number(!cropOfSeed(b.id)) || itemInfo(a.id).name.localeCompare(itemInfo(b.id).name);
 
 function Field({ g }: { g: Garden }) {
-  const [seed, setSeed] = useState<CropId>('wheat');
-  const crop = CROPS[seed];
+  const stacks = Object.entries(g.inventory)
+    .map(([id, qty]) => ({ id, qty }))
+    .sort(order);
+  const seeds = stacks.filter((s) => cropOfSeed(s.id));
+  const [pickedId, setPicked] = useState<string | null>(null);
+  // The picked seed, or the first one held when the pick runs out.
+  const picked = seeds.find((s) => s.id === pickedId) ?? seeds[0] ?? null;
+  const crop = picked ? CROPS[cropOfSeed(picked.id) as CropId] : null;
+
   const empty = g.plots.filter((p) => !p.crop).map((p) => p.slot);
   const ripe = g.plots.filter((p) => p.ripe).map((p) => p.slot);
   const growing = g.plots.filter((p) => p.crop && !p.ripe);
   const nextRipe = growing.reduce((m, p) => Math.min(m, p.readyAt ?? Infinity), Infinity);
-  const affordable = Math.min(empty.length, Math.floor(g.gold / crop.seedGold));
-  const stacks = Object.entries(g.inventory).map(([id, qty]) => ({ id, qty }));
+  const plantable = Math.min(empty.length, picked?.qty ?? 0);
 
   return (
     <div className="garden-grid">
@@ -64,8 +73,8 @@ function Field({ g }: { g: Garden }) {
         plots={g.plots}
         now={g.now}
         busy={g.busy}
-        seedName={g.gold >= crop.seedGold ? crop.name : null}
-        onPlant={(slot) => g.plant(seed, [slot])}
+        seedName={crop ? `${crop.name} seed` : null}
+        onPlant={(slot) => crop && g.plant(crop.id, [slot])}
         onHarvest={(slot) => g.harvest([slot])}
       />
       <div className="garden-side">
@@ -85,31 +94,22 @@ function Field({ g }: { g: Garden }) {
             <Stat label="NEXT" value={growing.length ? timeLeft(nextRipe - g.now) : '—'} />
           </div>
           <div className="garden-actions">
-            <button type="button" className="btn primary" disabled={g.busy || affordable === 0} onClick={() => g.plant(seed, empty.slice(0, affordable))}>
-              {empty.length === 0 ? 'ALL PLANTED' : affordable === 0 ? 'NO $GOLD' : `PLANT ${affordable} · ${fmtAura(affordable * crop.seedGold)}`}
+            <button type="button" className="btn primary" disabled={g.busy || !crop || plantable === 0} onClick={() => crop && g.plant(crop.id, empty.slice(0, plantable))}>
+              {empty.length === 0 ? 'ALL PLANTED' : !crop ? 'NO SEEDS' : `PLANT ${plantable} ${crop.name.toUpperCase()}`}
             </button>
             <button type="button" className="btn" disabled={g.busy || ripe.length === 0} onClick={() => g.harvest(ripe)}>
               {ripe.length ? `HARVEST ${ripe.length}` : 'NOTHING RIPE'}
             </button>
           </div>
-        </section>
-
-        <section className="panel garden-panel" aria-label="Seeds">
-          <span className="label">SEEDS</span>
-          <div className="seed-row" role="radiogroup" aria-label="Seed to plant">
-            {SEEDS.map((c) => (
-              <button key={c.id} type="button" role="radio" aria-checked={c.id === seed} className="seed-pick" onClick={() => setSeed(c.id)}>
-                <ItemSlot icon={itemInfo(c.id).icon} title={`${c.name} seed: ${c.seedGold} $gold`} className={c.id === seed ? 'on' : ''}>
-                  <span className="inv-price">
-                    <span className="coin" aria-hidden="true" />
-                    {c.seedGold}
-                  </span>
-                </ItemSlot>
-              </button>
-            ))}
-          </div>
           <div className="small muted">
-            <span className="strong">{crop.name}</span> · ripe in {timeLeft(growTime(crop, g.speed))} · {crop.yield} per plant. Click an empty plot to plant, a ripe one to harvest.
+            {crop ? (
+              <>
+                Planting <span className="strong">{crop.name}</span>: ripe in {timeLeft(growTime(crop, g.speed))}, {crop.yield} per plant. Click an empty plot to plant, a ripe one to
+                harvest.
+              </>
+            ) : (
+              'Buy seeds below, then click an empty plot to plant them.'
+            )}
           </div>
         </section>
 
@@ -122,8 +122,17 @@ function Field({ g }: { g: Garden }) {
               </span>
             )}
           </div>
-          <Inventory stacks={stacks} label="Your items" />
-          <div className="small muted">Crops will sell for $gold and on the Marketplace later.</div>
+          <Inventory stacks={stacks} label="Your items" picked={picked?.id ?? null} canPick={(id) => !!cropOfSeed(id)} onPick={setPicked} />
+          <div className="seed-shop">
+            {CROP_LIST.map((c) =>
+              [1, 10].map((n) => (
+                <button key={`${c.id}-${n}`} type="button" className="btn" disabled={g.busy || g.gold < c.seedGold * n} onClick={() => g.buy(c.id, n)}>
+                  BUY {n} {c.name.toUpperCase()} SEED{n > 1 ? 'S' : ''} · <span className="coin" aria-hidden="true" /> {fmtAura(c.seedGold * n)}
+                </button>
+              )),
+            )}
+          </div>
+          <div className="small muted">Click a seed to plant it. Crops will sell for $gold and on the Marketplace later.</div>
         </section>
       </div>
     </div>

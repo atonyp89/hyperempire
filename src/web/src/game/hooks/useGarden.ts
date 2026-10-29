@@ -1,4 +1,5 @@
-// The Garden, kept by the HyperEmpire API: what grows in each plot, the harvest, and $gold for seeds. The server
+// The Garden, kept by the HyperEmpire API: what grows in each plot, the inventory (seeds and harvest), and $gold
+// for buying seeds. The server
 // decides every stage; between fetches this hook ticks each plant forward on the server's clock, so plants grow
 // on screen without polling.
 
@@ -23,6 +24,10 @@ export function useGarden(enabled = true) {
     void qc.invalidateQueries({ queryKey: ['gold', NETWORK] });
     void qc.invalidateQueries({ queryKey: ['me', NETWORK] });
   };
+  const buyM = useMutation({
+    mutationFn: (v: { crop: CropId; qty: number }) => session.call<GardenView>('/garden/buy', { method: 'POST', body: v }),
+    onSuccess: store,
+  });
   const plantM = useMutation({
     mutationFn: (v: { crop: CropId; slots: number[] }) => session.call<GardenView>('/garden/plant', { method: 'POST', body: v }),
     onSuccess: store,
@@ -58,8 +63,8 @@ export function useGarden(enabled = true) {
     session,
     ready: !!data,
     loading: q.isLoading,
-    busy: plantM.isPending || harvestM.isPending,
-    error: (plantM.error ?? harvestM.error ?? q.error)?.message ?? null,
+    busy: buyM.isPending || plantM.isPending || harvestM.isPending,
+    error: (buyM.error ?? plantM.error ?? harvestM.error ?? q.error)?.message ?? null,
     now,
     plots,
     gold: data?.view.gold ?? 0,
@@ -67,6 +72,7 @@ export function useGarden(enabled = true) {
     speed: data?.view.speed ?? 1,
     inventory: data?.view.inventory ?? {},
     lastHarvest: harvestM.data?.harvested ?? null,
+    buy: (crop: CropId, qty: number) => buyM.mutate({ crop, qty }),
     plant: (crop: CropId, slots: number[]) => plantM.mutate({ crop, slots }),
     harvest: (slots: number[]) => harvestM.mutate(slots),
   };

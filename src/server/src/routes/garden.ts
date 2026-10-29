@@ -1,14 +1,16 @@
-// The Garden: plant seeds (paid in $gold) in a 4x4 field, let them grow on the clock, and harvest ripe plants
-// into the inventory. Plant and harvest take one or many plots at once; each call is all-or-nothing.
+// The Garden: buy seeds with $gold into the inventory, plant them in a 4x4 field, let them grow on the clock, and
+// harvest ripe plants into the inventory. Plant and harvest take one or many plots at once; each call is
+// all-or-nothing.
 
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { Hono } from 'hono';
 import type { Conn } from '../db';
-import { gardenPlots, inventory } from '../db/schema';
+import { gardenPlots } from '../db/schema';
 import type { Env } from '../env';
 import { badRequest, conflict } from '../errors';
+import { addItem, itemsOf, takeItem } from '../inventory';
 import { debitGold, goldOf } from '../ledger';
-import { CROPS, cropStage, GARDEN_PLOTS, growTime, isCropId, type CropId } from '../rules/garden';
+import { CROPS, cropStage, GARDEN_PLOTS, growTime, isCropId, MAX_SEED_BUY, seedItem, type CropId } from '../rules/garden';
 import type { GardenPlotView, GardenView, HarvestResponse } from '../contract';
 
 /** The plots a request names: `slots` (a list) or `slot` (one), each 0-15, no repeats. */
@@ -31,14 +33,30 @@ async function view(tx: Conn, address: string, now: number, speed: number): Prom
     const stage = cropStage(crop, p.plantedAt, readyAt, now);
     return { slot, crop: crop.id, plantedAt: p.plantedAt, readyAt, stage, ripe: stage === crop.stages - 1 };
   });
-  const items = await tx.select().from(inventory).where(eq(inventory.address, address));
-  return { now, speed, plots, inventory: Object.fromEntries(items.filter((i) => i.qty > 0).map((i) => [i.item, i.qty])), gold: await goldOf(tx, address) };
+  return { now, speed, plots, inventory: await itemsOf(tx, address), gold: await goldOf(tx, address) };
 }
 
 export const garden = new Hono<Env>()
   .get('/', async (c) => c.json(await view(c.var.deps.db, c.var.address, c.var.deps.now(), c.var.deps.gameSpeed ?? 1)))
 
-  // Plant one crop in each named plot, paying its seed in $gold. Fails if any plot is taken or $gold runs short.
+  // Buy `qty` seeds of a crop with $gold, into the inventory.
+  .post('/buy', async (c) => {
+    const { db, now, gameSpeed: speed = 1 } = c.var.deps;
+    const address = c.var.address;
+    const body = await c.req.json().catch(() => ({}));
+    if (!isCropId(body.crop)) throw badRequest('Unknown crop.');
+    const qty = body.qty ?? 1;
+    if (!Number.isInteger(qty) || qty < 1 || qty > MAX_SEED_BUY) throw badRequest(`Buy 1 to ${MAX_SEED_BUY} seeds.`);
+    const crop = CROPS[body.crop as CropId];
+    const result = await db.transaction(async (tx) => {
+      await debitGold(tx, address, crop.seedGold * qty, 'garden:seed');
+      await addItem(tx, address, seedItem(crop.id), qty);
+      return view(tx, address, now(), speed);
+    });
+    return c.json(result);
+  })
+
+  // Plant one seed of a crop from the inventory in each named plot. Fails if any plot is taken or seeds run short.
   .post('/plant', async (c) => {
     const { db, now, gameSpeed: speed = 1 } = c.var.deps;
     const address = c.var.address;
@@ -54,7 +72,7 @@ export const garden = new Hono<Env>()
         .onConflictDoNothing()
         .returning({ slot: gardenPlots.slot });
       if (added.length !== slots.length) throw conflict('Something is already growing there.', 'plot_taken');
-      await debitGold(tx, address, crop.seedGold * slots.length, 'garden:seed');
+      await takeItem(tx, address, seedItem(crop.id), slots.length, `${crop.name} seeds`);
       return view(tx, address, t, speed);
     });
     return c.json(result);
@@ -79,12 +97,7 @@ export const garden = new Hono<Env>()
         if (cropStage(crop, p.plantedAt, p.plantedAt + growTime(crop, speed), t) < crop.stages - 1) throw conflict(`${crop.name} isn’t ripe yet.`, 'not_ripe');
         got[crop.id] = (got[crop.id] ?? 0) + crop.yield;
       }
-      for (const [item, qty] of Object.entries(got)) {
-        await tx
-          .insert(inventory)
-          .values({ address, item, qty })
-          .onConflictDoUpdate({ target: [inventory.address, inventory.item], set: { qty: sql`${inventory.qty} + ${qty}` } });
-      }
+      for (const [item, qty] of Object.entries(got)) await addItem(tx, address, item, qty);
       return { harvested: got, garden: await view(tx, address, t, speed) };
     });
     return c.json(result);

@@ -23,7 +23,8 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | GET | [`/gold`](#get-gold) | $gold balance, and the faucet's size |
 | POST | [`/gold/faucet`](#post-goldfaucet) | Claim $gold for testing (local and testnet only) |
 | GET | [`/garden`](#get-garden) | The 16 plots, what grows in them, the harvest |
-| POST | [`/garden/plant`](#post-gardenplant) | Plant seeds, paid in $gold |
+| POST | [`/garden/buy`](#post-gardenbuy) | Buy seeds with $gold |
+| POST | [`/garden/plant`](#post-gardenplant) | Plant seeds from the inventory |
 | POST | [`/garden/harvest`](#post-gardenharvest) | Harvest ripe plants |
 | GET | [`/exchange`](#get-exchange) | Today's $aura pool, your share, recent days |
 | GET | [`/mastery/:building`](#get-masterybuilding) | A building's Mastery: level, XP, points, perks |
@@ -132,7 +133,7 @@ Adds `faucet` $gold (ledger kind `faucet`) and returns the same shape as `GET /g
 
 ## Garden
 
-A 4x4 field (`slot` 0–15, row by row). Seeds are paid in $gold when planted; a plant grows through its stages on the clock and can be harvested once ripe, into the player's `inventory`. Crops are in `rules/garden.ts` (`CROPS`); for now only wheat: 10 $gold a seed, 4 stages, ripe in 3 minutes (a test value), 3 wheat per plant. The in-browser dev server grows crops 10× faster (`Deps.gameSpeed`), so wheat ripens in 18 s there; `speed` in the view says which.
+A 4x4 field (`slot` 0–15, row by row). Seeds are inventory items (`wheat-seed`) bought with $gold; planting uses one per plot; a plant grows through its stages on the clock and can be harvested once ripe, into the player's `inventory`. Crops are in `rules/garden.ts` (`CROPS`); for now only wheat: 10 $gold a seed, 4 stages, ripe in 3 minutes (a test value), 3 wheat per plant. The in-browser dev server grows crops 10× faster (`Deps.gameSpeed`), so wheat ripens in 18 s there; `speed` in the view says which.
 
 ### `GET /garden`
 
@@ -141,16 +142,20 @@ A 4x4 field (`slot` 0–15, row by row). Seeds are paid in $gold when planted; a
   "now": 1793243000000,
   "speed": 1,
   "plots": [{ "slot": 0, "crop": "wheat", "plantedAt": 1793242900000, "readyAt": 1793243080000, "stage": 1, "ripe": false }, { "slot": 1, "crop": null, "plantedAt": null, "readyAt": null, "stage": 0, "ripe": false }],
-  "inventory": { "wheat": 9 },
+  "inventory": { "wheat-seed": 4, "wheat": 9 },
   "gold": 1830
 }
 ```
 
 `plots` always has 16 entries. `stage` runs from 0 (seed) to the crop's last stage (ripe), evenly spaced over its growing time. `now` is the server's clock, so the client can count down without polling.
 
+### `POST /garden/buy`
+
+Body: `{ "crop": "wheat", "qty": 10 }` (1–99, default 1). Takes the seeds' $gold (ledger kind `garden:seed`), adds `wheat-seed` to the inventory and returns the `GET /garden` view. `402 not_enough_gold` if they cost more than the balance.
+
 ### `POST /garden/plant`
 
-Body: `{ "crop": "wheat", "slot": 3 }` or `{ "crop": "wheat", "slots": [3, 4, 5] }`. Takes the seeds' $gold (ledger kind `garden:seed`) and returns the new `GET /garden` view. All or nothing: `409 plot_taken` if any plot is in use, `402 not_enough_gold` if the seeds cost more than the balance, `400` for an unknown crop or bad slots.
+Body: `{ "crop": "wheat", "slot": 3 }` or `{ "crop": "wheat", "slots": [3, 4, 5] }`. Uses one `wheat-seed` from the inventory per plot and returns the new `GET /garden` view. All or nothing: `409 plot_taken` if any plot is in use, `409 not_enough_items` if there are fewer seeds than plots, `400` for an unknown crop or bad slots.
 
 ### `POST /garden/harvest`
 

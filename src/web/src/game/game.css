@@ -253,8 +253,8 @@
 .game .garden-stat { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; background: var(--slate-900); border: 2px solid var(--ink); box-shadow: inset 2px 2px 0 rgba(2, 2, 2, 0.35); }
 .game .garden-stat .mono { font-size: 14px; white-space: nowrap; }
 .game .garden-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.game .seed-row { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
-.game .seed-pick { padding: 0; border: 0; background: none; cursor: pointer; }
+.game .seed-shop { display: flex; flex-wrap: wrap; gap: 6px; }
+.game .seed-shop .btn { display: inline-flex; align-items: center; gap: 4px; }
 .game .harvest-toast { font-family: var(--pixel); font-size: 10px; color: var(--gold); animation: toast 2.4s steps(6) forwards; }
 @keyframes toast { 0% { opacity: 0; transform: translateY(4px); } 10%, 75% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 
@@ -262,7 +262,9 @@
 .game .inv-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
 .game .inv-slot { position: relative; aspect-ratio: 1; background: var(--slate-900); border: 2px solid var(--ink); box-shadow: inset 2px 2px 0 rgba(2, 2, 2, 0.45), inset -2px -2px 0 rgba(239, 229, 202, 0.06); }
 .game .inv-slot.empty { opacity: 0.55; }
-.game .inv-slot:not(.empty):hover, .game .seed-pick:focus-visible .inv-slot { border-color: var(--gold); }
+.game .inv-cell { display: block; min-width: 0; }
+.game button.inv-slot { display: block; width: 100%; padding: 0; color: inherit; font: inherit; cursor: pointer; }
+.game .inv-slot.pickable:hover, .game .inv-slot.pickable:focus-visible { border-color: var(--gold); }
 .game .inv-slot.on { border-color: var(--gold); box-shadow: inset 0 0 0 2px var(--gold); }
 .game .inv-icon { position: absolute; inset: 4px; image-rendering: pixelated; background-repeat: no-repeat; }
 .game .inv-qty, .game .inv-price { position: absolute; right: 3px; bottom: 1px; font-family: var(--pixel); font-size: 11px; line-height: 1; color: var(--parchment); text-shadow: 1px 1px 0 var(--ink), -1px 0 0 var(--ink), 0 -1px 0 var(--ink); }
@@ -275,5 +277,5 @@
 @media (max-width: 760px) {
   .game .garden-grid { grid-template-columns: minmax(0, 1fr); }
   .game .garden-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .game .inv-grid, .game .seed-row { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .game .inv-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 }
