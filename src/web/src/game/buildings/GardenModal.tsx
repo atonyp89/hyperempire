@@ -93,6 +93,7 @@ function Field({ g }: { g: Garden }) {
         onPlant={(slot) => picked && g.plant(picked.id, [slot])}
         onHarvest={(slot) => g.harvest([slot])}
         pops={g.pops}
+        heroActive={!shop && !g.opened}
       />
       <div className="garden-side">
         <section className="panel garden-panel" aria-label="Field">

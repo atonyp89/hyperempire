@@ -313,7 +313,7 @@ Idea under consideration: make adventures a watchable idle auto-battle with a pe
 
 Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid players. The harvest is **crops, materials and potions, never $aura**, so the Garden can't print currency.
 
-**Built (Oct 29, 2026):** clicking the Garden in the town opens its own screen, a fenced 4×4 field of 16 plots.
+**Built (Oct 29, 2026):** clicking the Garden in the town opens its own screen: a top-down farmyard like the town, with the fenced 4×4 field of 16 plots at its centre and a road looping round it that your knight walks with WASD. The plots are clicked as before; the seed, field and inventory panels sit beside the scene.
 
 | | Now |
 | --- | --- |
