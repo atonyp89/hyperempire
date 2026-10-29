@@ -352,6 +352,64 @@ describe('gold', () => {
   });
 });
 
+describe('garden', () => {
+  const MIN = 60_000;
+  const withGold = async () => {
+    app = createApp({ ...deps, goldFaucet: 100 });
+    const token = await signIn();
+    await call('POST', '/gold/faucet', undefined, token);
+    return token;
+  };
+
+  test('16 empty plots; planting costs seed $gold and the crop grows through its stages', async () => {
+    const token = await withGold();
+    const empty = (await call('GET', '/garden', undefined, token)).json;
+    expect(empty.plots).toHaveLength(16);
+    expect(empty.plots.every((p: any) => p.crop === null)).toBe(true);
+
+    const planted = await call('POST', '/garden/plant', { crop: 'wheat', slots: [0, 5] }, token);
+    expect(planted.status).toBe(200);
+    expect(planted.json.gold).toBe(80);
+    expect(planted.json.plots[5]).toMatchObject({ crop: 'wheat', stage: 0, ripe: false, readyAt: clock + 3 * MIN });
+
+    const stages = [];
+    for (const dt of [MIN, MIN, MIN]) {
+      clock += dt;
+      stages.push((await call('GET', '/garden', undefined, token)).json.plots[0].stage);
+    }
+    expect(stages).toEqual([1, 2, 3]);
+  });
+
+  test('harvest needs a ripe plant, then empties the plot and fills the inventory', async () => {
+    const token = await withGold();
+    await call('POST', '/garden/plant', { crop: 'wheat', slots: [3, 4] }, token);
+    const early = await call('POST', '/garden/harvest', { slot: 3 }, token);
+    expect([early.status, early.json.error]).toEqual([409, 'not_ripe']);
+
+    clock += 3 * MIN;
+    const { status, json } = await call('POST', '/garden/harvest', { slots: [3, 4] }, token);
+    expect(status).toBe(200);
+    expect(json.harvested).toEqual({ wheat: 6 });
+    expect(json.garden.inventory).toEqual({ wheat: 6 });
+    expect(json.garden.plots[3].crop).toBeNull();
+    expect((await call('POST', '/garden/harvest', { slot: 3 }, token)).json.error).toBe('plot_empty');
+  });
+
+  test('plots, crops and $gold are checked, all or nothing', async () => {
+    const token = await withGold();
+    await call('POST', '/garden/plant', { crop: 'wheat', slot: 1 }, token);
+    const taken = await call('POST', '/garden/plant', { crop: 'wheat', slots: [1, 2] }, token);
+    expect([taken.status, taken.json.error]).toEqual([409, 'plot_taken']);
+    expect((await call('GET', '/garden', undefined, token)).json.plots[2].crop).toBeNull();
+    expect((await call('POST', '/garden/plant', { crop: 'rose', slot: 2 }, token)).status).toBe(400);
+    expect((await call('POST', '/garden/plant', { crop: 'wheat', slot: 16 }, token)).status).toBe(400);
+    expect((await call('POST', '/garden/plant', { crop: 'wheat', slots: [2, 2] }, token)).status).toBe(400);
+    const broke = await call('POST', '/garden/plant', { crop: 'wheat', slots: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11] }, token);
+    expect([broke.status, broke.json.error]).toEqual([402, 'not_enough_gold']);
+    expect((await call('GET', '/garden', undefined, token)).json.plots.filter((p: any) => p.crop)).toHaveLength(1);
+  });
+});
+
 describe('admin', () => {
   const basic = (user: string, password: string, ip?: string) => ({
     authorization: `Basic ${btoa(`${user}:${password}`)}`,

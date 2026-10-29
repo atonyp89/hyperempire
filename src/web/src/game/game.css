@@ -232,3 +232,32 @@
   .game .ex-mastery-head { flex-direction: column; align-items: stretch; }
   .game .ex-mastery-sprite { align-self: center; }
 }
+
+/* Garden screen (buildings/GardenModal.tsx): the field on the left at whole-pixel scale, seeds and harvest on the
+   right. Plots are buttons over the field image; crops reuse the town's .crop sprite and sway. */
+.game .garden-grid { display: grid; grid-template-columns: minmax(0, 536px) minmax(240px, 1fr); gap: 10px; padding: 10px; align-items: start; }
+.game .garden-field { position: relative; width: 100%; border: 2px solid var(--ink); box-shadow: var(--bevel); }
+.game .garden-field-img { position: absolute; inset: 0; width: 100%; height: 100%; image-rendering: pixelated; display: block; }
+.game .plot { position: absolute; padding: 0; border: 0; background: none; cursor: pointer; }
+.game .plot:disabled { cursor: default; }
+.game .plot:not(:disabled):hover, .game .plot:focus-visible { outline: 2px solid var(--gold); outline-offset: -1px; }
+.game .plot.empty:not(:disabled):hover::after { content: '+'; position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--pixel); font-size: 18px; color: var(--parchment); text-shadow: 2px 2px 0 var(--ink); }
+.game .plot.ripe .crop { filter: drop-shadow(0 0 2px rgba(255, 214, 107, 0.9)); }
+.game .plot-bar { position: absolute; left: 12%; right: 12%; bottom: 4%; height: 6%; background: var(--slate-900); border: 1px solid var(--ink); }
+.game .plot-bar > span { display: block; height: 100%; background: var(--teal); }
+.game .garden-side { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.game .garden-panel { display: flex; flex-direction: column; gap: 10px; padding: 14px; }
+.game .seed-list { display: flex; flex-direction: column; gap: 6px; }
+.game .seed { display: flex; gap: 10px; align-items: center; padding: 6px 8px; text-align: left; border: 2px solid var(--ink); background: var(--slate-900); color: inherit; font: inherit; cursor: pointer; }
+.game .seed.on { border-color: var(--gold); box-shadow: inset 0 0 0 1px var(--gold); }
+.game .seed-body { display: flex; flex-direction: column; gap: 2px; }
+.game .seed-icon { width: 32px; height: 32px; flex-shrink: 0; image-rendering: pixelated; background-repeat: no-repeat; }
+.game .seed-icon.small { display: inline-block; width: 20px; height: 20px; vertical-align: middle; }
+.game .garden-actions { display: flex; flex-direction: column; gap: 6px; }
+.game .garden-stats { display: flex; flex-direction: column; gap: 4px; }
+.game .harvest-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.game .harvest-list li { display: flex; align-items: center; gap: 8px; }
+.game .garden-err { margin: 0 10px 10px; }
+@media (max-width: 760px) {
+  .game .garden-grid { grid-template-columns: minmax(0, 1fr); }
+}

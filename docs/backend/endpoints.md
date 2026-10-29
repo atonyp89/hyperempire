@@ -22,6 +22,9 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | POST | [`/me/sync`](#post-mesync) | Read new fills now |
 | GET | [`/gold`](#get-gold) | $gold balance, and the faucet's size |
 | POST | [`/gold/faucet`](#post-goldfaucet) | Claim $gold for testing (local and testnet only) |
+| GET | [`/garden`](#get-garden) | The 16 plots, what grows in them, the harvest |
+| POST | [`/garden/plant`](#post-gardenplant) | Plant seeds, paid in $gold |
+| POST | [`/garden/harvest`](#post-gardenharvest) | Harvest ripe plants |
 | GET | [`/exchange`](#get-exchange) | Today's $aura pool, your share, recent days |
 | GET | [`/mastery/:building`](#get-masterybuilding) | A building's Mastery: level, XP, points, perks |
 | POST | [`/mastery/:building/perks`](#post-masterybuildingperks) | Add a perk rank |
@@ -125,6 +128,36 @@ $gold is the in-game currency: earned by playing, never transferred or cashed ou
 ### `POST /gold/faucet`
 
 Adds `faucet` $gold (ledger kind `faucet`) and returns the same shape as `GET /gold`. For testing only: the in-browser server always has it (1,000 per claim), a server only on testnet with `GOLD_FAUCET` set. Elsewhere it answers `404 not_found`. No cooldown.
+
+
+## Garden
+
+A 4x4 field (`slot` 0–15, row by row). Seeds are paid in $gold when planted; a plant grows through its stages on the clock and can be harvested once ripe, into the player's `inventory`. Crops are in `rules/garden.ts` (`CROPS`); for now only wheat: 10 $gold a seed, 4 stages, ripe in 3 minutes (a test value), 3 wheat per plant.
+
+### `GET /garden`
+
+```json
+{
+  "now": 1793243000000,
+  "plots": [{ "slot": 0, "crop": "wheat", "plantedAt": 1793242900000, "readyAt": 1793243080000, "stage": 1, "ripe": false }, { "slot": 1, "crop": null, "plantedAt": null, "readyAt": null, "stage": 0, "ripe": false }],
+  "inventory": { "wheat": 9 },
+  "gold": 1830
+}
+```
+
+`plots` always has 16 entries. `stage` runs from 0 (seed) to the crop's last stage (ripe), evenly spaced over its growing time. `now` is the server's clock, so the client can count down without polling.
+
+### `POST /garden/plant`
+
+Body: `{ "crop": "wheat", "slot": 3 }` or `{ "crop": "wheat", "slots": [3, 4, 5] }`. Takes the seeds' $gold (ledger kind `garden:seed`) and returns the new `GET /garden` view. All or nothing: `409 plot_taken` if any plot is in use, `402 not_enough_gold` if the seeds cost more than the balance, `400` for an unknown crop or bad slots.
+
+### `POST /garden/harvest`
+
+Body: `{ "slot": 3 }` or `{ "slots": [3, 4] }`. Every named plot must be ripe (`409 not_ripe`) and planted (`409 plot_empty`). Empties them and adds their crops to the inventory:
+
+```json
+{ "harvested": { "wheat": 6 }, "garden": { "…": "the GET /garden view" } }
+```
 
 ## Exchange
 

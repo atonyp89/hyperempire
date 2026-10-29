@@ -134,6 +134,25 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
       CREATE UNIQUE INDEX ledger_ref ON ledger (address, currency, kind, ref);
     `,
   },
+  {
+    // The Garden: what grows in each of a player's plots, and an inventory for what they harvest.
+    id: '0006_garden',
+    sql: `
+      CREATE TABLE garden_plots (
+        address text NOT NULL,
+        slot smallint NOT NULL,
+        crop text NOT NULL,
+        planted_at bigint NOT NULL,
+        PRIMARY KEY (address, slot)
+      );
+      CREATE TABLE inventory (
+        address text NOT NULL,
+        item text NOT NULL,
+        qty bigint NOT NULL DEFAULT 0,
+        PRIMARY KEY (address, item)
+      );
+    `,
+  },
 ];
 
 export async function migrate(db: Db) {

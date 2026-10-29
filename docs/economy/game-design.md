@@ -42,7 +42,7 @@ The main screen is a top-down town. Each building is a hotspot: hovering highlig
 | **Tavern** | Recruit characters with random grades: Miners first, heroes later | 2 |
 | **Workshop** | Craft Picks for Miners (later: gear); repair worn Picks | 2 |
 | **Mine** | Send Miners to dig; a block of rewards every 60 s, split by mining power | 2 |
-| **Garden** | Plant seeds, wait, harvest materials and potions | later |
+| **Garden** | Plant seeds (paid in $gold), wait, harvest crops; later materials and potions | 1 (first loop) |
 
 ## Roadmap
 
@@ -309,9 +309,21 @@ Tuning target: expected value below 1× for weak heroes, about 1.1× for strong 
 
 Idea under consideration: make adventures a watchable idle auto-battle with a perk draft (see Epic Idle Journey) instead of a timer and odds.
 
-## Garden (later)
+## Garden
 
-Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid players. The harvest is **materials and potions, never $aura**, so the Garden can't print currency. Seeds come from adventures or are bought with $aura. Green thumb (Crafter) speeds growth.
+Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid players. The harvest is **crops, materials and potions, never $aura**, so the Garden can't print currency.
+
+**Built (Oct 29, 2026):** clicking the Garden in the town opens its own screen, a fenced 4×4 field of 16 plots.
+
+| | Now |
+| --- | --- |
+| Plots | 16 (4×4). More plots will come from Garden Mastery |
+| Seeds | Bought with $gold when planting: wheat, 10 $gold a seed |
+| Growing | On the clock, no upkeep: seed → sprout → young → ripe, evenly spaced. Wheat ripens in 3 minutes (a test value) |
+| Harvest | Ripe plants only; each gives 3 wheat into the inventory and empties its plot |
+| Shortcuts | Plant every empty plot, or harvest every ripe one, in one click |
+
+Next: more crops, selling crops for $gold (and on the Marketplace), Garden Mastery XP from harvests (Green thumb speeds growth), and real growing times.
 
 ## Crafting, gear and materials (later)
 
@@ -383,7 +395,7 @@ Built in `src/web` (Vite + React + wagmi + the Hyperliquid TS SDK):
 - **Exchange modal:** live trading on Hyperliquid testnet with the builder code, builder-fee and agent onboarding, positions, orders and fills with $aura per fill.
 - **Townhall modal:** level and progress, risky upgrade, and what the level gives (Mastery cap, +1% Mastery XP per level). Each building shows its own Mastery inside that building, not in the Townhall. The perk tree is gone.
 - **Exchange Mastery:** a MASTERY tab in the Exchange: XP from settled days, the four perks, the discounted builder fee on orders and the pool weights at settlement. The other buildings' Mastery isn't built yet.
-- **Town:** a 480×180 world with a camera that follows a walkable knight hero: the original town, where the Garden grows wheat in two small plots, and an east strip where the Workshop and the Mine already stand as "coming soon" buildings. The town stays compact: each building opens its own screen (like the Exchange) for its full feature, so the Garden's fields will live on a Garden screen, not in the town.
+- **Town:** a 480×180 world with a camera that follows a walkable knight hero: the original town, where the Garden grows wheat in two small plots, and an east strip where the Workshop and the Mine already stand as "coming soon" buildings. The town stays compact: each building opens its own screen (like the Exchange) for its full feature, so the Garden's fields live on the Garden screen, not in the town.
 
 **Where $aura lives today:** in the game backend's ledger (`src/server`). Each UTC day the API shares the day's 100,000 $aura pool by builder fees paid through our Exchange. On mainnet, fees come from Hyperliquid's daily file for our builder, so other builders' fees never count. On testnet, they come from fills of orders our Exchange placed. It also records every spend; Townhall level and perks live there too. During development the backend runs inside the browser on PGlite, so data stays on that device; production moves the same code and its Postgres database to AWS. The perk fee discount is display-only. The AURA token, Townhall contract, fee indexer and RewardDistributor are the next things to build.
 

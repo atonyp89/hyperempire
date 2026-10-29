@@ -167,3 +167,26 @@ export const masteries = pgTable(
   },
   (t) => [primaryKey({ columns: [t.address, t.building] })],
 );
+
+/** A planted Garden plot (empty plots have no row). `slot` is 0-15, row by row; `plantedAt` is ms. */
+export const gardenPlots = pgTable(
+  'garden_plots',
+  {
+    address: text('address').notNull(),
+    slot: smallint('slot').notNull(),
+    crop: text('crop').notNull(),
+    plantedAt: bigint('planted_at', { mode: 'number' }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.address, t.slot] })],
+);
+
+/** Items a player holds, by id (crops so far: "wheat"). */
+export const inventory = pgTable(
+  'inventory',
+  {
+    address: text('address').notNull(),
+    item: text('item').notNull(),
+    qty: bigint('qty', { mode: 'number' }).notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.address, t.item] })],
+);

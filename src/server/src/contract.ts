@@ -2,11 +2,14 @@
 // server module the web app imports (besides local.ts, which runs the server in the browser), so the two stay
 // in step and the web app never reaches into server internals.
 
+import type { CropId } from './rules/garden';
 import type { Grade, PoolId, PoolKind } from './rules/mining';
 
 export * from './rules/empire';
 export { DAILY_EMISSION, marginalShare } from './rules/exchange';
 export { GOLD_FAUCET } from './rules/gold';
+export { CROPS, cropStage, GARDEN_COLS, GARDEN_PLOTS, GARDEN_ROWS } from './rules/garden';
+export type { Crop, CropId } from './rules/garden';
 export { EXCHANGE_PERKS, MASTERY_PERKS, WHALE_DAILY_VOLUME, XP_PER_USD_FEE, xpForLevel, xpToNext } from './rules/mastery';
 export type { ExchangePerkId, MasteryPerk } from './rules/mastery';
 export { GRADES, GRADE, RECRUIT_COST, CRAFT_COST, BASE_SLOTS, WALK_BLOCKS, ENERGY_BLOCKS, BLOCK_MS, REWARDS } from './rules/mining';
@@ -27,6 +30,19 @@ export type MeView = {
   /** Exchange $aura not settled yet. */
   pendingAura: number;
 };
+
+/** One Garden plot: empty (crop null) or growing. Times are ms; `stage` 0 is the seed, the last stage is ripe. */
+export type GardenPlotView = {
+  slot: number;
+  crop: CropId | null;
+  plantedAt: number | null;
+  readyAt: number | null;
+  stage: number;
+  ripe: boolean;
+};
+/** The Garden: 16 plots row by row, harvested items by id, $gold, and the server's clock (to count down from). */
+export type GardenView = { now: number; plots: GardenPlotView[]; inventory: Record<string, number>; gold: number };
+export type HarvestResponse = { harvested: Record<string, number>; garden: GardenView };
 
 /** $gold balance, and how much one faucet claim gives (null where there is no faucet). */
 export type GoldView = { gold: number; faucet: number | null };

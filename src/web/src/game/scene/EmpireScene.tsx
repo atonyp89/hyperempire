@@ -1,5 +1,5 @@
 // The empire's main scene: a view onto a world wider than the screen (world.ts). Buildings are hotspots over
-// the town image; the Exchange opens trading.
+// the town image; the Exchange opens trading, the Townhall and the Garden their own screens.
 // Each building's plate shows its name; hovering or focusing the building adds what it does.
 
 import { Ambient } from './Ambient';
@@ -49,7 +49,7 @@ const BUILDINGS: Building[] = [
   { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES', about: 'Recruit heroes and send them on adventures. Coming soon…', box: fromCrop(1, 18, 71, 66), plate: { x: 44, y: 48 }, ready: false, sprite: '/empire/tavern.png' },
   { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', about: 'Trade Hyperliquid perps. Your builder fees earn a share of the daily $aura pool.', box: fromCrop(248, 11, 60, 70), plate: { x: 278, y: 39 }, ready: true, sprite: '/empire/exchange.png' },
   { id: 'market', name: 'MARKETPLACE', detail: 'BUY · SELL ITEMS', about: 'Trade $gold, crops and items with other players for $aura. Sellers pay a 10% tax. Coming soon…', box: fromCrop(255, 101, 58, 60), plate: { x: 284, y: 112 }, ready: false, sprite: '/empire/market.png' },
-  { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS', about: 'Grow seeds into crafting materials. Coming soon…', box: fromCrop(0, 113, 77, 67), ready: false },
+  { id: 'garden', name: 'GARDEN', detail: 'PLANT · GROW · HARVEST', about: 'Plant seeds with $gold, watch them grow, and harvest your crops.', box: fromCrop(0, 113, 77, 67), ready: true },
   { id: 'workshop', name: 'WORKSHOP', detail: 'CRAFT GEAR', about: 'Craft gear from garden materials and salvage. Coming soon…', box: fromCrop(383, 10, 63, 73), ready: false, sprite: '/empire/workshop.png' },
   { id: 'mine', name: 'MINE', detail: 'SEND MINERS', about: 'Send your miners to dig for resources: BTC, ETH, oil and more. Coming soon…', box: fromCrop(426, 134, 48, 37), plate: { x: 450, y: 139 }, ready: false, sprite: '/empire/mine.png' },
 ];

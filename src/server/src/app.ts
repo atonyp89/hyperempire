@@ -10,6 +10,7 @@ import { ApiError } from './errors';
 import { admin } from './routes/admin';
 import { auth, requireAuth } from './routes/auth';
 import { exchange } from './routes/exchange';
+import { garden } from './routes/garden';
 import { gold } from './routes/gold';
 import { mastery } from './routes/mastery';
 import { me } from './routes/me';
@@ -38,12 +39,14 @@ export function createApp(deps: Deps) {
   app.use('/exchange/*', requireAuth);
   app.use('/mastery/*', requireAuth);
   app.use('/gold/*', requireAuth);
+  app.use('/garden/*', requireAuth);
   app.route('/me', me);
   app.route('/townhall', townhall);
   app.route('/mine', mining);
   app.route('/exchange', exchange);
   app.route('/mastery', mastery);
   app.route('/gold', gold);
+  app.route('/garden', garden);
   app.route('/admin', admin);
   return app;
 }
