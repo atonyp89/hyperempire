@@ -175,12 +175,14 @@ export const gardenPlots = pgTable(
     address: text('address').notNull(),
     slot: smallint('slot').notNull(),
     crop: text('crop').notNull(),
+    /** The seed's grade: index into GRADES (rules/mining.ts), 0 = common. */
+    grade: smallint('grade').notNull().default(0),
     plantedAt: bigint('planted_at', { mode: 'number' }).notNull(),
   },
   (t) => [primaryKey({ columns: [t.address, t.slot] })],
 );
 
-/** Items a player holds, by id (crops so far: "wheat"). */
+/** Items a player holds, by id: crops ("wheat"), seed packs ("wheat-pack") and graded seeds ("wheat-seed:rare"). */
 export const inventory = pgTable(
   'inventory',
   {

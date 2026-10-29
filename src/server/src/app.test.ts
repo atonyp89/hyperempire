@@ -359,46 +359,58 @@ describe('gold', () => {
 
 describe('garden', () => {
   const MIN = 60_000;
-  /** Signed in with 100 $gold (and, with `seeds`, that many wheat seeds bought from it). */
-  const ready = async (seeds = 0, extra: Partial<Deps> = {}) => {
-    app = createApp({ ...deps, goldFaucet: 100, ...extra });
+  /** Seed grade rolls: rollGrade gives common below 0.7, uncommon below 0.92, rare below 0.985, then epic, legendary. */
+  const COMMON = 0.1, UNCOMMON = 0.8, RARE = 0.95, EPIC = 0.99, LEGENDARY = 0.9995;
+  /** Signed in with 1,000 $gold, and with `packs` wheat packs bought and opened (all common unless dice say so). */
+  const ready = async (packs = 0, extra: Partial<Deps> = {}) => {
+    app = createApp({ ...deps, goldFaucet: 1_000, ...extra });
     const token = await signIn();
     await call('POST', '/gold/faucet', undefined, token);
-    if (seeds) expect((await call('POST', '/garden/buy', { crop: 'wheat', qty: seeds }, token)).status).toBe(200);
+    if (packs) {
+      expect((await call('POST', '/garden/buy', { crop: 'wheat', qty: packs }, token)).status).toBe(200);
+      expect((await call('POST', '/garden/open', { crop: 'wheat', qty: packs }, token)).status).toBe(200);
+    }
     return token;
   };
 
-  test('seeds are bought with $gold into the inventory', async () => {
+  test('packs are bought with $gold and open into 10 seeds of rolled grades', async () => {
     const token = await ready();
-    const empty = (await call('GET', '/garden', undefined, token)).json;
-    expect(empty.plots).toHaveLength(16);
-    expect(empty.plots.every((p: any) => p.crop === null)).toBe(true);
-    const bought = (await call('POST', '/garden/buy', { crop: 'wheat', qty: 3 }, token)).json;
-    expect([bought.gold, bought.inventory]).toEqual([70, { 'wheat-seed': 3 }]);
-    const broke = await call('POST', '/garden/buy', { crop: 'wheat', qty: 8 }, token);
+    const bought = (await call('POST', '/garden/buy', { crop: 'wheat', qty: 2 }, token)).json;
+    expect([bought.gold, bought.inventory]).toEqual([800, { 'wheat-pack': 2 }]);
+
+    dice = [RARE, LEGENDARY, UNCOMMON, EPIC];
+    const { json } = await call('POST', '/garden/open', { crop: 'wheat' }, token);
+    expect(json.opened).toHaveLength(10);
+    expect(json.opened.slice(0, 5)).toEqual(['wheat-seed:rare', 'wheat-seed:legendary', 'wheat-seed:uncommon', 'wheat-seed:epic', 'wheat-seed:common']);
+    expect(json.garden.inventory).toEqual({
+      'wheat-pack': 1,
+      'wheat-seed:common': 6,
+      'wheat-seed:uncommon': 1,
+      'wheat-seed:rare': 1,
+      'wheat-seed:epic': 1,
+      'wheat-seed:legendary': 1,
+    });
+
+    dice = [EPIC];
+    const shop = (await call('POST', '/garden/buy', { crop: 'wheat', open: true }, token)).json;
+    expect(shop.opened).toHaveLength(10);
+    expect(shop.opened[0]).toBe('wheat-seed:epic');
+    expect([shop.garden.gold, shop.garden.inventory['wheat-pack'], shop.garden.inventory['wheat-seed:epic']]).toEqual([700, 1, 2]);
+
+    const none = await call('POST', '/garden/open', { crop: 'grapes' }, token);
+    expect([none.status, none.json.error]).toEqual([409, 'not_enough_items']);
+    const broke = await call('POST', '/garden/buy', { crop: 'grapes', qty: 3 }, token);
     expect([broke.status, broke.json.error]).toEqual([402, 'not_enough_gold']);
     expect((await call('POST', '/garden/buy', { crop: 'wheat', qty: 0 }, token)).status).toBe(400);
     expect((await call('POST', '/garden/buy', { crop: 'rose' }, token)).status).toBe(400);
   });
 
-  test('each crop has its own seeds, price, time and yield', async () => {
-    const token = await ready();
-    const bought = (await call('POST', '/garden/buy', { crop: 'grapes', qty: 2 }, token)).json;
-    expect([bought.gold, bought.inventory]).toEqual([50, { 'grapes-seed': 2 }]);
-    const wrongSeed = await call('POST', '/garden/plant', { crop: 'wheat', slot: 0 }, token);
-    expect([wrongSeed.status, wrongSeed.json.error]).toEqual([409, 'not_enough_items']);
-    const planted = (await call('POST', '/garden/plant', { crop: 'grapes', slots: [0, 1] }, token)).json;
-    expect(planted.plots[0]).toMatchObject({ crop: 'grapes', readyAt: clock + 6 * MIN });
-    clock += 6 * MIN;
-    expect((await call('POST', '/garden/harvest', { slots: [0, 1] }, token)).json.harvested).toEqual({ grapes: 8 });
-  });
-
-  test('planting uses a seed per plot; the crop grows through its stages', async () => {
-    const token = await ready(3);
-    const planted = await call('POST', '/garden/plant', { crop: 'wheat', slots: [0, 5] }, token);
+  test('planting uses one seed per plot; the crop grows through its stages', async () => {
+    const token = await ready(1);
+    const planted = await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slots: [0, 5] }, token);
     expect(planted.status).toBe(200);
-    expect([planted.json.gold, planted.json.inventory]).toEqual([70, { 'wheat-seed': 1 }]);
-    expect(planted.json.plots[5]).toMatchObject({ crop: 'wheat', stage: 0, ripe: false, readyAt: clock + 3 * MIN });
+    expect(planted.json.inventory['wheat-seed:common']).toBe(8);
+    expect(planted.json.plots[5]).toMatchObject({ crop: 'wheat', grade: 'common', stage: 0, ripe: false, readyAt: clock + 3 * MIN });
 
     const stages = [];
     for (const dt of [MIN, MIN, MIN]) {
@@ -408,9 +420,22 @@ describe('garden', () => {
     expect(stages).toEqual([0, 1, 2]);
   });
 
+  test('a better seed yields more: wheat 3 / 5 / 6 / 9 / 15 by grade', async () => {
+    const token = await ready();
+    await call('POST', '/garden/buy', { crop: 'wheat' }, token);
+    dice = [COMMON, UNCOMMON, RARE, EPIC, LEGENDARY];
+    await call('POST', '/garden/open', { crop: 'wheat' }, token);
+    const grades = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+    for (const [slot, g] of grades.entries()) expect((await call('POST', '/garden/plant', { seed: `wheat-seed:${g}`, slot }, token)).status).toBe(200);
+    clock += 3 * MIN;
+    const got = [];
+    for (const slot of grades.keys()) got.push((await call('POST', '/garden/harvest', { slot }, token)).json.harvested.wheat);
+    expect(got).toEqual([3, 5, 6, 9, 15]);
+  });
+
   test('harvest needs a ripe plant, then empties the plot and adds crops to the inventory', async () => {
-    const token = await ready(2);
-    await call('POST', '/garden/plant', { crop: 'wheat', slots: [3, 4] }, token);
+    const token = await ready(1);
+    await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slots: [3, 4] }, token);
     const early = await call('POST', '/garden/harvest', { slot: 3 }, token);
     expect([early.status, early.json.error]).toEqual([409, 'not_ripe']);
 
@@ -418,32 +443,45 @@ describe('garden', () => {
     const { status, json } = await call('POST', '/garden/harvest', { slots: [3, 4] }, token);
     expect(status).toBe(200);
     expect(json.harvested).toEqual({ wheat: 6 });
-    expect(json.garden.inventory).toEqual({ wheat: 6 });
+    expect(json.garden.inventory.wheat).toBe(6);
     expect(json.garden.plots[3].crop).toBeNull();
     expect((await call('POST', '/garden/harvest', { slot: 3 }, token)).json.error).toBe('plot_empty');
   });
 
+  test('grapes have their own packs, price, time and yield', async () => {
+    const token = await ready();
+    const bought = (await call('POST', '/garden/buy', { crop: 'grapes' }, token)).json;
+    expect([bought.gold, bought.inventory]).toEqual([750, { 'grapes-pack': 1 }]);
+    await call('POST', '/garden/open', { crop: 'grapes' }, token);
+    const planted = (await call('POST', '/garden/plant', { seed: 'grapes-seed:common', slots: [0, 1] }, token)).json;
+    expect(planted.plots[0]).toMatchObject({ crop: 'grapes', readyAt: clock + 6 * MIN });
+    clock += 6 * MIN;
+    expect((await call('POST', '/garden/harvest', { slots: [0, 1] }, token)).json.harvested).toEqual({ grapes: 8 });
+  });
+
   test('the dev game speed makes crops ripen sooner', async () => {
     const token = await ready(1, { gameSpeed: 10 });
-    const planted = (await call('POST', '/garden/plant', { crop: 'wheat', slot: 0 }, token)).json;
+    const planted = (await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slot: 0 }, token)).json;
     expect([planted.speed, planted.plots[0].readyAt]).toEqual([10, clock + 18_000]);
     clock += 18_000;
     expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 3 });
   });
 
-  test('plots, crops and seeds are checked, all or nothing', async () => {
-    const token = await ready(3);
-    await call('POST', '/garden/plant', { crop: 'wheat', slot: 1 }, token);
-    const taken = await call('POST', '/garden/plant', { crop: 'wheat', slots: [1, 2] }, token);
+  test('plots, seeds and slots are checked, all or nothing', async () => {
+    const token = await ready(1);
+    await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slot: 1 }, token);
+    const taken = await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slots: [1, 2] }, token);
     expect([taken.status, taken.json.error]).toEqual([409, 'plot_taken']);
     expect((await call('GET', '/garden', undefined, token)).json.plots[2].crop).toBeNull();
-    expect((await call('POST', '/garden/plant', { crop: 'rose', slot: 2 }, token)).status).toBe(400);
-    expect((await call('POST', '/garden/plant', { crop: 'wheat', slot: 16 }, token)).status).toBe(400);
-    expect((await call('POST', '/garden/plant', { crop: 'wheat', slots: [2, 2] }, token)).status).toBe(400);
-    const short = await call('POST', '/garden/plant', { crop: 'wheat', slots: [2, 3, 4] }, token);
-    expect([short.status, short.json.error]).toEqual([409, 'not_enough_items']);
+    for (const seed of ['wheat-seed', 'wheat-seed:shiny', 'rose-seed:common', 'wheat']) {
+      expect((await call('POST', '/garden/plant', { seed, slot: 2 }, token)).status).toBe(400);
+    }
+    expect((await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slot: 16 }, token)).status).toBe(400);
+    expect((await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slots: [2, 2] }, token)).status).toBe(400);
+    const none = await call('POST', '/garden/plant', { seed: 'wheat-seed:rare', slot: 2 }, token);
+    expect([none.status, none.json.error]).toEqual([409, 'not_enough_items']);
     const after = (await call('GET', '/garden', undefined, token)).json;
-    expect([after.plots.filter((p: any) => p.crop).length, after.inventory]).toEqual([1, { 'wheat-seed': 2 }]);
+    expect([after.plots.filter((p: any) => p.crop).length, after.inventory['wheat-seed:common']]).toEqual([1, 9]);
   });
 });
 

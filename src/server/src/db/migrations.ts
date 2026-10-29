@@ -153,6 +153,15 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
       );
     `,
   },
+  {
+    // Seed grades: a planted seed keeps its grade (index into GRADES, 0 = common). Seeds bought before grades
+    // existed become common seeds.
+    id: '0007_seed_grades',
+    sql: `
+      ALTER TABLE garden_plots ADD COLUMN grade smallint NOT NULL DEFAULT 0;
+      UPDATE inventory SET item = item || ':common' WHERE item IN ('wheat-seed', 'grapes-seed');
+    `,
+  },
 ];
 
 export async function migrate(db: Db) {

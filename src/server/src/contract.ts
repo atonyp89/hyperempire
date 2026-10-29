@@ -8,7 +8,7 @@ import type { Grade, PoolId, PoolKind } from './rules/mining';
 export * from './rules/empire';
 export { DAILY_EMISSION, marginalShare } from './rules/exchange';
 export { GOLD_FAUCET } from './rules/gold';
-export { CROPS, cropOfSeed, cropStage, GARDEN_COLS, GARDEN_PLOTS, GARDEN_ROWS, growTime, MAX_SEED_BUY, seedItem } from './rules/garden';
+export { CROPS, cropOfPack, cropStage, GARDEN_COLS, GARDEN_PLOTS, GARDEN_ROWS, growTime, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, SEED_YIELD, seedItem, yieldOf } from './rules/garden';
 export type { Crop, CropId } from './rules/garden';
 export { EXCHANGE_PERKS, MASTERY_PERKS, WHALE_DAILY_VOLUME, XP_PER_USD_FEE, xpForLevel, xpToNext } from './rules/mastery';
 export type { ExchangePerkId, MasteryPerk } from './rules/mastery';
@@ -35,6 +35,8 @@ export type MeView = {
 export type GardenPlotView = {
   slot: number;
   crop: CropId | null;
+  /** The planted seed's grade. */
+  grade: Grade | null;
   plantedAt: number | null;
   readyAt: number | null;
   stage: number;
@@ -46,6 +48,8 @@ export type GardenPlotView = {
  */
 export type GardenView = { now: number; speed: number; plots: GardenPlotView[]; inventory: Record<string, number>; gold: number };
 export type HarvestResponse = { harvested: Record<string, number>; garden: GardenView };
+/** The seeds the opened packs gave, as item ids in the order they were rolled. */
+export type OpenPacksResponse = { opened: string[]; garden: GardenView };
 
 /** $gold balance, and how much one faucet claim gives (null where there is no faucet). */
 export type GoldView = { gold: number; faucet: number | null };

@@ -1,7 +1,10 @@
-// Garden rules: a 4x4 field of plots, and the crops that grow in them. Seeds are inventory items bought with
-// $gold; a planted seed grows through its stages on the clock (no upkeep yet) and can be harvested once ripe,
-// giving crops into the player's inventory.
+// Garden rules: a 4x4 field of plots, and the crops that grow in them. Seeds come in packs bought with $gold; a
+// pack opens into 10 seeds of random grades (the Miners' grades and odds), and a better seed yields more. A planted
+// seed grows through its stages on the clock (no upkeep yet) and can be harvested once ripe, giving crops into the
+// player's inventory.
 // Design: docs/economy/game-design.md ("Garden").
+
+import { GRADES, type Grade } from './mining';
 
 export const GARDEN_COLS = 4;
 export const GARDEN_ROWS = 4;
@@ -12,21 +15,24 @@ export type CropId = 'wheat' | 'grapes';
 export type Crop = {
   id: CropId;
   name: string;
-  /** What one seed is called ("Grape seed"). */
+  /** What one seed is called ("Grape seed"); a graded one adds its grade ("Rare grape seed"). */
   seedName: string;
-  /** $gold a seed costs at the Garden. */
+  /** What a pack of its seeds is called ("Grape seed pack"). */
+  packName: string;
+  /** $gold per seed; a pack costs PACK_SEEDS of them. */
   seedGold: number;
   /** Time from planting to ripe, in ms. */
   growMs: number;
   /** Growth stages, sprout first and ripe last; the sprite sheet has one frame per stage. */
   stages: number;
-  /** Crops one ripe plant gives. */
+  /** Crops one ripe plant of a common seed gives; better grades multiply it (SEED_YIELD). */
   yield: number;
   /** Sprite sheet: one frame per stage, left to right. */
   sprite: string;
-  /** Inventory icons: the harvested crop, and its seed. */
+  /** Inventory icons: the harvested crop, its seed, and a pack of its seeds. */
   icon: string;
   seedIcon: string;
+  packIcon: string;
 };
 
 /** Test values: wheat ripens in 3 minutes and grapes in 6, so the whole cycle can be tried quickly. */
@@ -35,6 +41,7 @@ export const CROPS: Record<CropId, Crop> = {
     id: 'wheat',
     name: 'Wheat',
     seedName: 'Wheat seed',
+    packName: 'Wheat seed pack',
     seedGold: 10,
     growMs: 3 * 60_000,
     stages: 3,
@@ -42,11 +49,13 @@ export const CROPS: Record<CropId, Crop> = {
     sprite: '/empire/crops/wheat.png',
     icon: '/empire/items/wheat.png',
     seedIcon: '/empire/items/wheat-seed.png',
+    packIcon: '/empire/items/wheat-pack.png',
   },
   grapes: {
     id: 'grapes',
     name: 'Grapes',
     seedName: 'Grape seed',
+    packName: 'Grape seed pack',
     seedGold: 25,
     growMs: 6 * 60_000,
     stages: 3,
@@ -54,21 +63,40 @@ export const CROPS: Record<CropId, Crop> = {
     sprite: '/empire/crops/grapes.png',
     icon: '/empire/items/grapes.png',
     seedIcon: '/empire/items/grapes-seed.png',
+    packIcon: '/empire/items/grapes-pack.png',
   },
 };
 
 export const isCropId = (v: unknown): v is CropId => typeof v === 'string' && Object.hasOwn(CROPS, v);
 
-/** Most seeds one purchase can buy. */
-export const MAX_SEED_BUY = 99;
+/** Seeds in one pack. */
+export const PACK_SEEDS = 10;
+/** Most packs one purchase can buy, or one call can open. */
+export const MAX_PACKS = 10;
+export const packGold = (crop: Crop) => crop.seedGold * PACK_SEEDS;
 
-/** A crop's seed, as an inventory item id ("wheat-seed"). The crop itself is the item id "wheat". */
-export const seedItem = (crop: CropId) => `${crop}-seed`;
+/** Yield multiplier by seed grade; grades are rolled with the Miners' odds (70 / 22 / 6.5 / 1.4 / 0.1%). */
+export const SEED_YIELD: Record<Grade, number> = { common: 1, uncommon: 1.5, rare: 2, epic: 3, legendary: 5 };
 
-/** The crop a seed item grows, or null if the id isn't a seed. */
-export function cropOfSeed(item: string): CropId | null {
-  const id = item.endsWith('-seed') ? item.slice(0, -'-seed'.length) : null;
+/** Crops one ripe plant gives: wheat 3 / 5 / 6 / 9 / 15 and grapes 4 / 6 / 8 / 12 / 20 from common to legendary. */
+export const yieldOf = (crop: Crop, grade: Grade) => Math.round(crop.yield * SEED_YIELD[grade]);
+
+// Inventory item ids: the crop itself is "wheat"; a pack is "wheat-pack"; a seed is "wheat-seed:rare".
+
+export const packItem = (crop: CropId) => `${crop}-pack`;
+export const seedItem = (crop: CropId, grade: Grade) => `${crop}-seed:${grade}`;
+
+/** The crop a pack item holds seeds of, or null if the id isn't a pack. */
+export function cropOfPack(item: string): CropId | null {
+  const id = item.endsWith('-pack') ? item.slice(0, -'-pack'.length) : null;
   return isCropId(id) ? id : null;
+}
+
+/** The crop and grade of a seed item, or null if the id isn't a seed. */
+export function parseSeed(item: string): { crop: CropId; grade: Grade } | null {
+  const m = /^(.+)-seed:(.+)$/.exec(item);
+  if (!m || !isCropId(m[1]) || !(GRADES as readonly string[]).includes(m[2])) return null;
+  return { crop: m[1], grade: m[2] as Grade };
 }
 
 /** Time a crop takes to ripen: its growing time, divided by the game speed (1, or more on the dev server). */

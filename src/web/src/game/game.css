@@ -253,8 +253,6 @@
 .game .garden-stat { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px; background: var(--slate-900); border: 2px solid var(--ink); box-shadow: inset 2px 2px 0 rgba(2, 2, 2, 0.35); }
 .game .garden-stat .mono { font-size: 14px; white-space: nowrap; }
 .game .garden-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.game .seed-shop { display: flex; flex-wrap: wrap; gap: 6px; }
-.game .seed-shop .btn { display: inline-flex; align-items: center; gap: 4px; }
 .game .harvest-pops { position: absolute; inset: 0; pointer-events: none; }
 .game .harvest-pop { position: absolute; display: flex; align-items: flex-start; justify-content: center; }
 .game .harvest-pop-body { display: inline-flex; align-items: center; gap: 2px; font-family: var(--pixel); font-size: 16px; color: var(--gold); text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink); animation: harvest-pop 1.4s ease-out forwards; }
@@ -268,6 +266,48 @@
   100% { opacity: 0; transform: translateY(-120%); }
 }
 
+/* Item grades (seeds so far): the Miners' grade colours, on a slot's border and a soft inner glow. */
+.game { --grade-common: #9a9a8a; --grade-uncommon: #6abe30; --grade-rare: #48a7d6; --grade-epic: #b06ae0; --grade-legendary: #fcb43a; }
+/* Grade outline: like the building hover, an outline that follows the sprite's own shape (stacked drop-shadows),
+   in the grade's colour. Common has none. */
+.game .grade-uncommon .inv-icon { --g: var(--grade-uncommon); }
+.game .grade-rare .inv-icon { --g: var(--grade-rare); }
+.game .grade-epic .inv-icon { --g: var(--grade-epic); }
+.game .grade-legendary .inv-icon { --g: var(--grade-legendary); }
+.game .grade-uncommon .inv-icon, .game .grade-rare .inv-icon, .game .grade-epic .inv-icon, .game .grade-legendary .inv-icon {
+  filter: drop-shadow(2px 0 0 var(--g)) drop-shadow(-2px 0 0 var(--g)) drop-shadow(0 2px 0 var(--g)) drop-shadow(0 -2px 0 var(--g));
+}
+.game .grade-legendary .inv-icon { animation: legendary-glow 1.6s ease-in-out infinite alternate; }
+@keyframes legendary-glow {
+  from { filter: drop-shadow(2px 0 0 var(--g)) drop-shadow(-2px 0 0 var(--g)) drop-shadow(0 2px 0 var(--g)) drop-shadow(0 -2px 0 var(--g)); }
+  to { filter: drop-shadow(2px 0 0 var(--g)) drop-shadow(-2px 0 0 var(--g)) drop-shadow(0 2px 0 var(--g)) drop-shadow(0 -2px 0 var(--g)) drop-shadow(0 0 6px var(--g)); }
+}
+.game .inv-slot.on { outline: 2px solid var(--parchment); outline-offset: 1px; }
+.game .grade-text-common { color: var(--grade-common); }
+.game .grade-text-uncommon { color: var(--grade-uncommon); }
+.game .grade-text-rare { color: var(--grade-rare); }
+.game .grade-text-epic { color: var(--grade-epic); }
+.game .grade-text-legendary { color: var(--grade-legendary); }
+.game .plot-grade { position: absolute; left: 8%; top: 8%; width: 14%; height: 14%; transform: rotate(45deg); border: 1px solid var(--ink); }
+.game .plot-grade.grade-uncommon { background: var(--grade-uncommon); }
+.game .plot-grade.grade-rare { background: var(--grade-rare); }
+.game .plot-grade.grade-epic { background: var(--grade-epic); }
+.game .plot-grade.grade-legendary { background: var(--grade-legendary); box-shadow: 0 0 4px var(--grade-legendary); }
+.game .shop-icon { display: inline-block; width: 20px; height: 20px; image-rendering: pixelated; background-repeat: no-repeat; }
+.game .pack-close { padding: 0 6px; border: 0; background: none; color: var(--muted); font: inherit; cursor: pointer; }
+.game .shop-open { display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.game .overlay-backdrop { position: fixed; inset: 0; z-index: 60; display: grid; place-items: center; padding: 16px; background: rgba(2, 2, 2, 0.6); }
+.game .overlay { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; }
+.game .pack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.game .pack-card { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px; text-align: center; background: var(--slate-900); border: 2px solid var(--ink); box-shadow: inset 2px 2px 0 rgba(2, 2, 2, 0.35); }
+.game .pack-card .btn { display: inline-flex; align-items: center; gap: 4px; width: 100%; justify-content: center; }
+.game .pack-card-icon { width: 64px; height: 64px; image-rendering: pixelated; background-repeat: no-repeat; }
+.game .pack-opened { align-items: center; text-align: center; cursor: pointer; }
+.game .pack-seeds { display: grid; grid-template-columns: repeat(5, 64px); gap: 8px; justify-content: center; }
+.game .pack-seed { animation: pack-seed 0.4s ease-out both; }
+.game .pack-best { animation: pack-seed 0.4s ease-out both; }
+@keyframes pack-seed { from { opacity: 0; transform: translateY(-8px) scale(0.6); } to { opacity: 1; transform: none; } }
+
 /* Inventory grid (ui/Inventory.tsx): square slots like sockets; a stack shows its icon and count. */
 .game .inv-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
 .game .inv-slot { position: relative; aspect-ratio: 1; background: var(--slate-900); border: 2px solid var(--ink); box-shadow: inset 2px 2px 0 rgba(2, 2, 2, 0.45), inset -2px -2px 0 rgba(239, 229, 202, 0.06); }
@@ -275,7 +315,6 @@
 .game .inv-cell { display: block; min-width: 0; }
 .game button.inv-slot { display: block; width: 100%; padding: 0; color: inherit; font: inherit; cursor: pointer; }
 .game .inv-slot.pickable:hover, .game .inv-slot.pickable:focus-visible { border-color: var(--gold); }
-.game .inv-slot.on { border-color: var(--gold); box-shadow: inset 0 0 0 2px var(--gold); }
 .game .inv-icon { position: absolute; inset: 4px; image-rendering: pixelated; background-repeat: no-repeat; }
 .game .inv-qty, .game .inv-price { position: absolute; right: 3px; bottom: 1px; font-family: var(--pixel); font-size: 11px; line-height: 1; color: var(--parchment); text-shadow: 1px 1px 0 var(--ink), -1px 0 0 var(--ink), 0 -1px 0 var(--ink); }
 .game .inv-price { display: flex; align-items: center; gap: 2px; color: var(--gold); }
@@ -283,7 +322,7 @@
 .game .inv-slot.bump .inv-icon { animation: inv-bump 0.6s steps(4); }
 @keyframes inv-bump { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) {
-  .game .inv-slot.bump .inv-icon { animation: none; }
+  .game .inv-slot.bump .inv-icon, .game .pack-seed, .game .pack-best, .game .grade-legendary .inv-icon { animation: none; }
   .game .harvest-pop-body { animation: harvest-fade 1.4s linear forwards; }
 }
 @keyframes harvest-fade { 70% { opacity: 1; } 100% { opacity: 0; } }
@@ -292,4 +331,5 @@
   .game .garden-grid { grid-template-columns: minmax(0, 1fr); }
   .game .garden-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .game .inv-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .game .pack-seeds { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }

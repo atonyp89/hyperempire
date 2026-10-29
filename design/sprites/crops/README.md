@@ -8,7 +8,8 @@ The Garden's crops: wheat and grapes, each with three growth stages (16×16) for
 | Stage 1 | `1-young.png` | A taller bunch of green blades (sways) |
 | Stage 2 | `2-ripe.png` | A full golden bunch with grain heads (sways) |
 | Field sheet | `src/web/public/empire/crops/wheat.png` | The three stages, 48×16, in order; used by the Garden screen and the town |
-| Seed icon | `src/web/public/empire/items/wheat-seed.png` | A burlap sack with grain showing, 16×16 |
+| Seed icon | `src/web/public/empire/items/wheat-seed.png` | A burlap sack with grain showing, 16×16; the slot's border colours it by grade |
+| Pack icon | `src/web/public/empire/items/wheat-pack.png` | A paper seed packet, 32×32 (see Seed packs) |
 | Crop icon | `src/web/public/empire/items/wheat.png` | A tied wheat sheaf, 32×32 |
 
 `wheat-v2/preview-6x.png` shows them all: the stages on a plot, then the two icons in slots.
@@ -39,6 +40,10 @@ A grape vine on a short wooden stake, in the same three stages, plus its icons. 
 5. **Seed icon:** `create_image_pro` 16×16 with the wheat seed sack as a labelled reference ("the seed sack: same shape, size, burlap colour and outline"): "the same small burlap seed sack…, but its open top shows small dark purple grape seeds…, with a tiny purple grape tag". Picked #2.
 
 PixelLab objects: sprout `69902638-5b48-4df1-8a1b-1216c86c1052`, young `3de99b61-1c97-493f-b122-3c7acf17c21b`; ripe candidates `85498bc0-43be-4d2d-8d8a-7c774a506cfb`. Gallery assets: icons `be887058-dc43-5fca-9cb2-504107c18685`, seed icons `60414271-c2c1-5339-84e9-3bf5e5c85001`.
+
+## Seed packs (Oct 29, 2026)
+
+`src/web/public/empire/items/wheat-pack.png` and `grapes-pack.png` (32×32): cream paper envelopes with the crop printed on the front. `create_image_pro` 32×32, `max_colors` 16, with the wheat icons as the style image: "a sealed paper seed packet, a small cream-coloured paper envelope with a folded top edge, showing a simple printed picture of golden wheat stalks (or a bunch of purple grapes) on its front…". Both sheets came back shifted half a cell; the 64 tiles were stitched into `../items/<crop>-pack-icon-candidates/sheet.png`, rolled 16 px and cut into `cut/`. Picked #0 of each. Gallery assets: wheat `6c55a173-11ec-59a5-8c9e-c2efbf8a403c`, grapes `bf499978-dbc3-5899-972f-3b729a29fc50`.
 
 ## Wheat v1 (replaced)
 

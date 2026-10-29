@@ -23,8 +23,9 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | GET | [`/gold`](#get-gold) | $gold balance, and the faucet's size |
 | POST | [`/gold/faucet`](#post-goldfaucet) | Claim $gold for testing (local and testnet only) |
 | GET | [`/garden`](#get-garden) | The 16 plots, what grows in them, the harvest |
-| POST | [`/garden/buy`](#post-gardenbuy) | Buy seeds with $gold |
-| POST | [`/garden/plant`](#post-gardenplant) | Plant seeds from the inventory |
+| POST | [`/garden/buy`](#post-gardenbuy) | Buy seed packs with $gold |
+| POST | [`/garden/open`](#post-gardenopen) | Open seed packs into 10 graded seeds each |
+| POST | [`/garden/plant`](#post-gardenplant) | Plant a seed from the inventory |
 | POST | [`/garden/harvest`](#post-gardenharvest) | Harvest ripe plants |
 | GET | [`/exchange`](#get-exchange) | Today's $aura pool, your share, recent days |
 | GET | [`/mastery/:building`](#get-masterybuilding) | A building's Mastery: level, XP, points, perks |
@@ -133,7 +134,7 @@ Adds `faucet` $gold (ledger kind `faucet`) and returns the same shape as `GET /g
 
 ## Garden
 
-A 4x4 field (`slot` 0–15, row by row). Seeds are inventory items (`wheat-seed`) bought with $gold; planting uses one per plot; a plant grows through its stages on the clock and can be harvested once ripe, into the player's `inventory`. Crops are in `rules/garden.ts` (`CROPS`); each has 3 stages (sprout, young, ripe). Wheat: 10 $gold a seed, ripe in 3 minutes, 3 per plant. Grapes: 25 $gold a seed, ripe in 6 minutes, 4 per vine (test values). Seed items are `<crop>-seed`. The in-browser dev server grows crops 10× faster (`Deps.gameSpeed`), so wheat ripens in 18 s there; `speed` in the view says which.
+A 4x4 field (`slot` 0–15, row by row). Seeds come in packs bought with $gold; a pack opens into 10 seeds, each rolling its grade with the Miners' odds (common 70%, uncommon 22%, rare 6.5%, epic 1.4%, legendary 0.1%). Planting uses one seed per plot; a plant grows through its stages on the clock and can be harvested once ripe, into the player's `inventory`. A better seed yields more: ×1, ×1.5, ×2, ×3, ×5 from common to legendary, rounded. Crops are in `rules/garden.ts` (`CROPS`); each has 3 stages (sprout, young, ripe). Wheat: a pack is 100 $gold, ripe in 3 minutes, 3 per common plant. Grapes: 250 $gold a pack, ripe in 6 minutes, 4 per common vine (test values). Item ids: `wheat` (the crop), `wheat-pack`, `wheat-seed:rare`. The in-browser dev server grows crops 10× faster (`Deps.gameSpeed`), so wheat ripens in 18 s there; `speed` in the view says which.
 
 ### `GET /garden`
 
@@ -141,25 +142,33 @@ A 4x4 field (`slot` 0–15, row by row). Seeds are inventory items (`wheat-seed`
 {
   "now": 1793243000000,
   "speed": 1,
-  "plots": [{ "slot": 0, "crop": "wheat", "plantedAt": 1793242900000, "readyAt": 1793243080000, "stage": 1, "ripe": false }, { "slot": 1, "crop": null, "plantedAt": null, "readyAt": null, "stage": 0, "ripe": false }],
-  "inventory": { "wheat-seed": 4, "wheat": 9 },
+  "plots": [{ "slot": 0, "crop": "wheat", "grade": "rare", "plantedAt": 1793242900000, "readyAt": 1793243080000, "stage": 1, "ripe": false }, { "slot": 1, "crop": null, "grade": null, "plantedAt": null, "readyAt": null, "stage": 0, "ripe": false }],
+  "inventory": { "wheat-pack": 1, "wheat-seed:common": 7, "wheat-seed:rare": 1, "wheat": 9 },
   "gold": 1830
 }
 ```
 
-`plots` always has 16 entries. `stage` runs from 0 (seed) to the crop's last stage (ripe), evenly spaced over its growing time. `now` is the server's clock, so the client can count down without polling.
+`plots` always has 16 entries. `stage` runs from 0 (sprout) to the crop's last stage (ripe), evenly spaced over its growing time. `now` is the server's clock, so the client can count down without polling.
 
 ### `POST /garden/buy`
 
-Body: `{ "crop": "wheat", "qty": 10 }` (1–99, default 1). Takes the seeds' $gold (ledger kind `garden:seed`), adds `wheat-seed` to the inventory and returns the `GET /garden` view. `402 not_enough_gold` if they cost more than the balance.
+Body: `{ "crop": "wheat", "qty": 1, "open": true }` (1–10 packs, default 1). Takes the packs' $gold (ledger kind `garden:pack`) and adds `wheat-pack` items to the inventory. Without `open`, returns the `GET /garden` view with the packs unopened; with `"open": true` (what the seed shop sends) it opens them in the same transaction and answers like `POST /garden/open`. `402 not_enough_gold` if they cost more than the balance.
+
+### `POST /garden/open`
+
+Body: `{ "crop": "wheat", "qty": 1 }` (1–10, default 1). Uses that many `wheat-pack` items (`409 not_enough_items` if there are fewer) and rolls 10 seeds per pack with `Deps.random`. Returns the seeds in the order rolled, for the reveal, and the new view:
+
+```json
+{ "opened": ["wheat-seed:common", "wheat-seed:uncommon", "…"], "garden": { "…": "the GET /garden view" } }
+```
 
 ### `POST /garden/plant`
 
-Body: `{ "crop": "wheat", "slot": 3 }` or `{ "crop": "wheat", "slots": [3, 4, 5] }`. Uses one `wheat-seed` from the inventory per plot and returns the new `GET /garden` view. All or nothing: `409 plot_taken` if any plot is in use, `409 not_enough_items` if there are fewer seeds than plots, `400` for an unknown crop or bad slots.
+Body: `{ "seed": "wheat-seed:rare", "slot": 3 }` or `{ "seed": "wheat-seed:rare", "slots": [3, 4, 5] }`. Uses one of that seed per plot; the plot keeps its grade. Returns the new `GET /garden` view. All or nothing: `409 plot_taken` if any plot is in use, `409 not_enough_items` if there are fewer of that seed than plots, `400` for an unknown seed or bad slots.
 
 ### `POST /garden/harvest`
 
-Body: `{ "slot": 3 }` or `{ "slots": [3, 4] }`. Every named plot must be ripe (`409 not_ripe`) and planted (`409 plot_empty`). Empties them and adds their crops to the inventory:
+Body: `{ "slot": 3 }` or `{ "slots": [3, 4] }`. Every named plot must be ripe (`409 not_ripe`) and planted (`409 plot_empty`). Empties them and adds their crops to the inventory, by each plot's seed grade:
 
 ```json
 { "harvested": { "wheat": 6 }, "garden": { "…": "the GET /garden view" } }

@@ -14,6 +14,8 @@ const FRAME = 16;
 const FEET_UP = 5;
 
 const pct = (v: number, of: number) => `${(v / of) * 100}%`;
+/** "Rare " before a crop's name, nothing for common. */
+const gradeWord = (g: string | null) => (g && g !== 'common' ? `${g[0].toUpperCase()}${g.slice(1)} ` : '');
 
 /** "2m 05s" until `ms` from now. */
 export const timeLeft = (ms: number) => {
@@ -52,8 +54,8 @@ export function GardenField({ plots, now, seedName, onPlant, onHarvest, pops }: 
             ? `Plot ${p.slot + 1}: empty. Plant ${seedName}.`
             : `Plot ${p.slot + 1}: empty. Buy or pick a seed to plant.`
           : p.ripe
-            ? `Plot ${p.slot + 1}: ${crop.name} is ripe. Harvest.`
-            : `Plot ${p.slot + 1}: ${crop.name} growing, ripe in ${timeLeft(left)}.`;
+            ? `Plot ${p.slot + 1}: ${gradeWord(p.grade)}${crop.name} is ripe. Harvest.`
+            : `Plot ${p.slot + 1}: ${gradeWord(p.grade)}${crop.name} growing, ripe in ${timeLeft(left)}.`;
         const act = !crop ? (seedName ? () => onPlant(p.slot) : undefined) : p.ripe ? () => onHarvest(p.slot) : undefined;
         return (
           <button
@@ -80,6 +82,7 @@ export function GardenField({ plots, now, seedName, onPlant, onHarvest, pops }: 
                 }}
               />
             )}
+            {crop && p.grade && p.grade !== 'common' && <span className={`plot-grade grade-${p.grade}`} aria-hidden="true" />}
             {crop && !p.ripe && (
               <span className="plot-bar" aria-hidden="true">
                 <span style={{ width: `${progress * 100}%` }} />

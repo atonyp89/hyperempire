@@ -1,7 +1,8 @@
 // Inventory grid: square slots, one item stack per slot with its count in the corner, empty slots as sockets.
 // 10 columns, 6 on narrow screens (game.css); the grid always shows at least `slots` slots (30 fills both evenly)
-// and adds rows as stacks need them. Stacks `canPick` allows are buttons, and the picked one is outlined (the
-// Garden picks seeds this way). A stack whose count goes up gives a short bump, so a harvest is easy to see.
+// and adds rows as stacks need them. Stacks `actionOf` names an action for are buttons ("pick", "open"), and the
+// picked one is outlined (the Garden picks seeds and opens packs this way). A graded item's slot takes its grade's
+// colour. A stack whose count goes up gives a short bump, so a harvest is easy to see.
 
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { fmtAura } from '../../shared/format';
@@ -14,14 +15,15 @@ type Props = {
   slots?: number;
   label: string;
   picked?: string | null;
-  canPick?: (id: string) => boolean;
+  /** What clicking a stack does ("pick", "open"), or null when it does nothing. */
+  actionOf?: (id: string) => string | null;
   onPick?: (id: string) => void;
 };
 
 /** Rows always fill for both column counts. */
 const ROW = 30;
 
-export function Inventory({ stacks, slots = 30, label, picked, canPick, onPick }: Props) {
+export function Inventory({ stacks, slots = 30, label, picked, actionOf, onPick }: Props) {
   const total = Math.max(slots, Math.ceil(stacks.length / ROW) * ROW);
   const bumped = useBumps(stacks);
   return (
@@ -30,17 +32,18 @@ export function Inventory({ stacks, slots = 30, label, picked, canPick, onPick }
         const s = stacks[i];
         if (!s) return <div key={`empty-${i}`} className="inv-slot empty" role="listitem" aria-label="Empty slot" />;
         const info = itemInfo(s.id);
-        const pickable = !!onPick && (canPick?.(s.id) ?? true);
-        const cls = `${bumped.has(s.id) ? 'bump' : ''} ${s.id === picked ? 'on' : ''} ${pickable ? 'pickable' : ''}`;
+        const action = onPick ? (actionOf?.(s.id) ?? null) : null;
+        const pickable = !!action;
+        const cls = `${bumped.has(s.id) ? 'bump' : ''} ${s.id === picked ? 'on' : ''} ${pickable ? 'pickable' : ''} ${info.grade ? `grade-${info.grade}` : ''}`;
         return (
           <ItemSlot
             key={s.id}
             icon={info.icon}
             className={cls}
-            title={`${info.name} × ${fmtAura(s.qty)}${pickable ? (s.id === picked ? ' (picked)' : '. Click to pick.') : ''}`}
+            title={`${info.name} × ${fmtAura(s.qty)}${s.id === picked ? ' (picked)' : action ? `. Click to ${action}.` : ''}`}
             role="listitem"
-            onClick={pickable ? () => onPick(s.id) : undefined}
-            pressed={pickable ? s.id === picked : undefined}
+            onClick={action && onPick ? () => onPick(s.id) : undefined}
+            pressed={action === 'pick' ? s.id === picked : undefined}
           >
             <span className="inv-qty">{s.qty > 999 ? `${Math.floor(s.qty / 1000)}k` : s.qty}</span>
           </ItemSlot>
