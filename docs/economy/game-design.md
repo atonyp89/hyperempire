@@ -38,6 +38,7 @@ The main screen is a top-down town. Each building is a hotspot: hovering highlig
 | --- | --- | --- |
 | **Townhall** | Main progression: level up with $aura; caps every building's Mastery and boosts Mastery XP | 1 |
 | **Exchange** | The trading UI: Hyperliquid perps with our builder code; fees earn a share of the daily $aura pool. Its Mastery adds a fee discount | 1 |
+| **Marketplace** | Players trade $gold, crops and later every item with each other for $aura; sellers pay a 10% tax. No Mastery or rewards | later |
 | **Tavern** | Recruit characters with random grades: Miners first, heroes later | 2 |
 | **Workshop** | Craft Picks for Miners (later: gear); repair worn Picks | 2 |
 | **Mine** | Send Miners to dig; a block of rewards every 60 s, split by mining power | 2 |

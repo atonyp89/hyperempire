@@ -9,7 +9,7 @@ import { Hero } from './Hero';
 import type { Phase } from '../hooks/useDayPhase';
 import { WORLD_H, WORLD_W } from './world';
 
-export type BuildingId = 'townhall' | 'tavern' | 'exchange' | 'garden' | 'workshop' | 'mine';
+export type BuildingId = 'townhall' | 'tavern' | 'exchange' | 'market' | 'garden' | 'workshop' | 'mine';
 
 type Building = {
   id: BuildingId;
@@ -47,7 +47,8 @@ const plateAt = (b: Building) =>
 const BUILDINGS: Building[] = [
   { id: 'townhall', name: 'TOWNHALL', detail: 'LEVEL UP · MASTERY', about: "Your empire's heart. Spend $aura to level up: every building's Mastery can grow as high as your Townhall.", box: fromCrop(106, 9, 100, 73), ready: true, sprite: '/empire/townhall.png' },
   { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES', about: 'Recruit heroes and send them on adventures. Coming soon…', box: fromCrop(1, 18, 71, 66), plate: { x: 44, y: 48 }, ready: false, sprite: '/empire/tavern.png' },
-  { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', about: 'Trade Hyperliquid perps. Every $1 of builder fee you pay earns 500 $aura.', box: fromCrop(248, 11, 60, 70), plate: { x: 278, y: 39 }, ready: true, sprite: '/empire/exchange.png' },
+  { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', about: 'Trade Hyperliquid perps. Your builder fees earn a share of the daily $aura pool.', box: fromCrop(248, 11, 60, 70), plate: { x: 278, y: 39 }, ready: true, sprite: '/empire/exchange.png' },
+  { id: 'market', name: 'MARKETPLACE', detail: 'BUY · SELL ITEMS', about: 'Trade $gold, crops and items with other players for $aura. Sellers pay a 10% tax. Coming soon…', box: fromCrop(255, 101, 58, 60), plate: { x: 284, y: 112 }, ready: false, sprite: '/empire/market.png' },
   { id: 'garden', name: 'GARDEN', detail: 'GROW SEEDS', about: 'Grow seeds into crafting materials. Coming soon…', box: fromCrop(0, 113, 77, 67), ready: false },
   { id: 'workshop', name: 'WORKSHOP', detail: 'CRAFT GEAR', about: 'Craft gear from garden materials and salvage. Coming soon…', box: fromCrop(383, 10, 63, 73), ready: false, sprite: '/empire/workshop.png' },
   { id: 'mine', name: 'MINE', detail: 'SEND MINERS', about: 'Send your miners to dig for resources: BTC, ETH, oil and more. Coming soon…', box: fromCrop(426, 134, 48, 37), plate: { x: 450, y: 139 }, ready: false, sprite: '/empire/mine.png' },
@@ -63,7 +64,7 @@ export function EmpireScene({ onOpen, phase, heroActive }: { onOpen: (id: Buildi
           <img
             className="scene-img"
             src="/empire/town-base.png"
-            alt="Your empire: the Townhall at the center behind a plaza with statue pools, the Tavern on the left, the Exchange on the right, the Garden fields at the bottom left, the Workshop to the east and the Mine below it"
+            alt="Your empire: the Townhall at the center behind a plaza with statue pools, the Tavern on the left, the Exchange on the right with the Marketplace below it, the Garden fields at the bottom left, the Workshop to the east and the Mine below it"
           />
           <Garden />
           <Ambient />

@@ -1,6 +1,7 @@
 // The player's hero on the Empire scene: knight #5 (public/empire/heroes/knight5/), moved with WASD or the
 // arrow keys, and kept on the roads by public/empire/walkable.png (built by design/scene/walkable.py). The hero
-// also drives the camera: the world is wider than the view, so it slides to keep the hero in sight.
+// also drives the camera: the world is wider than the view, so it slides to keep the hero in sight. Roads that run
+// behind a building (OCCLUDERS) hide the hero under its roof.
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { VIEW_W, WORLD_H, WORLD_W } from './world';
@@ -25,6 +26,34 @@ const BOUNDS = { x0: 8, x1: WORLD_W - 8, y0: 24, y1: WORLD_H - 2 };
 const CAMERA_EASE = 5;
 /** Feet half-width in scene pixels: every pixel of the feet must be on the road. */
 const FOOT = 2;
+
+/**
+ * Buildings and trees the hero can walk behind: a road runs under their roof or canopy. While the feet are above
+ * `front` (their ground line, in scene pixels), their cut-out masks the hero out, so they stay in front. The
+ * canopies along the bottom edge have their trunks off the map, so the hero is always behind them.
+ */
+const OCCLUDERS = [
+  { src: '/empire/market.png', x: 255, y: 101, w: 58, h: 60, front: 158 },
+  { src: '/empire/trees/canopy1.png', x: 88, y: 168, w: 20, h: 12, front: WORLD_H + 1 },
+  { src: '/empire/trees/canopy2.png', x: 113, y: 171, w: 15, h: 9, front: WORLD_H + 1 },
+  { src: '/empire/trees/canopy3.png', x: 269, y: 169, w: 17, h: 11, front: WORLD_H + 1 },
+];
+
+/** Mask styles that cut the occluders out of a w x h box drawn at (left, top) in scene pixels, `unit` CSS px each. */
+function occlude(left: number, top: number, w: number, h: number, footY: number, unit: number) {
+  const hit = OCCLUDERS.filter(
+    (o) => footY < o.front && left < o.x + o.w && o.x < left + w && top < o.y + o.h && o.y < top + h,
+  );
+  if (!hit.length) return { maskImage: '', maskSize: '', maskPosition: '', maskRepeat: '', maskComposite: '' };
+  const px = (v: number) => `${v * unit}px`;
+  return {
+    maskImage: [...hit.map((o) => `url(${o.src})`), 'linear-gradient(#000 0 0)'].join(', '),
+    maskSize: [...hit.map((o) => `${px(o.w)} ${px(o.h)}`), '100% 100%'].join(', '),
+    maskPosition: [...hit.map((o) => `${px(o.x - left)} ${px(o.y - top)}`), '0 0'].join(', '),
+    maskRepeat: 'no-repeat',
+    maskComposite: 'exclude',
+  };
+}
 
 /** Road mask, 1 per walkable scene pixel. Null until loaded (or if it fails, then nothing is blocked). */
 let roads: Uint8Array | null = null;
@@ -116,6 +145,7 @@ export function Hero({ active }: { active: boolean }) {
     let lastPx = NaN;
     let wasWalking = false;
     let lastDir: Dir = 'south';
+    let lastMask = '';
     const tick = (now: number) => {
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
@@ -143,6 +173,20 @@ export function Hero({ active }: { active: boolean }) {
         if (shadow.current) Object.assign(shadow.current.style, box.shadow);
         const d = facing(dx, dy);
         if (d !== lastDir) setDir((lastDir = d));
+      }
+      // Hide what stands behind a building or tree (each frame, since a resize changes the mask's pixel size).
+      const s = sprite.current;
+      const sh = shadow.current;
+      if (s && sh) {
+        const [x, y] = [Math.round(pos.current.x), Math.round(pos.current.y)];
+        const unit = s.offsetWidth / (FRAME * SCALE);
+        const key = `${x},${y},${unit}`;
+        if (key !== lastMask) {
+          lastMask = key;
+          const size = FRAME * SCALE;
+          Object.assign(s.style, occlude(x - SRC_FEET.x * SCALE, y - SRC_FEET.y * SCALE, size, size, y, unit));
+          Object.assign(sh.style, occlude(x - 4, y - 1, 8, 2, y, unit));
+        }
       }
       if (moving !== wasWalking) setWalking((wasWalking = moving));
       // Ease the camera toward the hero and slide the world under the view, in whole screen pixels so the

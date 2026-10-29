@@ -5,6 +5,8 @@ Usage: python3 cutout.py scene.png out.png x0 y0 x1 y1 [--erase ex0,ey0,ex1,ey1 
 --erase clears extra boxes (crop-relative coords, exclusive ends) for stray bits the fill keeps.
 --tree floods from the crop edges through everything except dark outline pixels instead, keeping what the
 outline encloses (tree canopies are green like the grass, so the ground-colour fill would erase them).
+--cut-bottom (with --tree) doesn't flood from the crop's bottom row, for trees the scene's bottom edge cuts off:
+their outline is open there.
 
 Crops the box (native-pixel coords, x1/y1 exclusive), then flood-fills from the crop's edges through
 "ground" colours (grass, dirt, path, shadow) and makes them transparent. What is left is the building.
@@ -66,7 +68,7 @@ def write_png(path, w, h, rows):
 def main():
     src, dst = sys.argv[1], sys.argv[2]
     x0, y0, x1, y1 = map(int, sys.argv[3:7])
-    args = [a for a in sys.argv[7:] if a != '--tree']
+    args = [a for a in sys.argv[7:] if a not in ('--tree', '--cut-bottom')]
     erase = [tuple(map(int, a.split(','))) for a in args[1::2]] if '--erase' in args else []
     img = read_rgb(src)
     crop = [row[x0:x1] for row in img[y0:y1]]
@@ -76,7 +78,8 @@ def main():
         for y in range(max(0, ey0), min(h, ey1)):
             for x in range(max(0, ex0), min(w, ex1)):
                 clear[y][x] = True
-    stack = [(x, y) for x in range(w) for y in (0, h - 1)] + [(x, y) for y in range(h) for x in (0, w - 1)]
+    rows = (0,) if '--cut-bottom' in sys.argv else (0, h - 1)
+    stack = [(x, y) for x in range(w) for y in rows] + [(x, y) for y in range(h) for x in (0, w - 1)]
     tree = '--tree' in sys.argv
     passable = is_open if tree else is_ground
     while stack:
