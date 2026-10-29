@@ -132,13 +132,14 @@ Adds `faucet` $gold (ledger kind `faucet`) and returns the same shape as `GET /g
 
 ## Garden
 
-A 4x4 field (`slot` 0–15, row by row). Seeds are paid in $gold when planted; a plant grows through its stages on the clock and can be harvested once ripe, into the player's `inventory`. Crops are in `rules/garden.ts` (`CROPS`); for now only wheat: 10 $gold a seed, 4 stages, ripe in 3 minutes (a test value), 3 wheat per plant.
+A 4x4 field (`slot` 0–15, row by row). Seeds are paid in $gold when planted; a plant grows through its stages on the clock and can be harvested once ripe, into the player's `inventory`. Crops are in `rules/garden.ts` (`CROPS`); for now only wheat: 10 $gold a seed, 4 stages, ripe in 3 minutes (a test value), 3 wheat per plant. The in-browser dev server grows crops 10× faster (`Deps.gameSpeed`), so wheat ripens in 18 s there; `speed` in the view says which.
 
 ### `GET /garden`
 
 ```json
 {
   "now": 1793243000000,
+  "speed": 1,
   "plots": [{ "slot": 0, "crop": "wheat", "plantedAt": 1793242900000, "readyAt": 1793243080000, "stage": 1, "ripe": false }, { "slot": 1, "crop": null, "plantedAt": null, "readyAt": null, "stage": 0, "ripe": false }],
   "inventory": { "wheat": 9 },
   "gold": 1830

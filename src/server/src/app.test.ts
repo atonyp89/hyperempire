@@ -395,6 +395,16 @@ describe('garden', () => {
     expect((await call('POST', '/garden/harvest', { slot: 3 }, token)).json.error).toBe('plot_empty');
   });
 
+  test('the dev game speed makes crops ripen sooner', async () => {
+    app = createApp({ ...deps, goldFaucet: 100, gameSpeed: 10 });
+    const token = await signIn();
+    await call('POST', '/gold/faucet', undefined, token);
+    const planted = (await call('POST', '/garden/plant', { crop: 'wheat', slot: 0 }, token)).json;
+    expect([planted.speed, planted.plots[0].readyAt]).toEqual([10, clock + 18_000]);
+    clock += 18_000;
+    expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 3 });
+  });
+
   test('plots, crops and $gold are checked, all or nothing', async () => {
     const token = await withGold();
     await call('POST', '/garden/plant', { crop: 'wheat', slot: 1 }, token);

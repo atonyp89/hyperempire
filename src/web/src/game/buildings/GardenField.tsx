@@ -40,7 +40,7 @@ export function GardenField({ plots, now, busy, seedName, onPlant, onHarvest }: 
         const box: CSSProperties = { left: pct(x0 + col * step, w), top: pct(y0 + row * step, h), width: pct(plot, w), height: pct(plot, h) };
         const crop = p.crop ? CROPS[p.crop] : null;
         const left = p.readyAt != null ? p.readyAt - now : 0;
-        const progress = crop && p.plantedAt != null ? Math.min(1, (now - p.plantedAt) / crop.growMs) : 0;
+        const progress = p.plantedAt != null && p.readyAt != null ? Math.min(1, (now - p.plantedAt) / (p.readyAt - p.plantedAt)) : 0;
         const label = !crop
           ? seedName
             ? `Plot ${p.slot + 1}: empty. Plant ${seedName}.`

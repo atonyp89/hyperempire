@@ -322,6 +322,8 @@ Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid 
 | Growing | On the clock, no upkeep: seed → sprout → young → ripe, evenly spaced. Wheat ripens in 3 minutes (a test value) |
 | Harvest | Ripe plants only; each gives 3 wheat into the inventory and empties its plot |
 | Shortcuts | Plant every empty plot, or harvest every ripe one, in one click |
+| Inventory | A grid of square slots, one stackable item per slot (crops so far) |
+| Dev speed | The in-browser dev server grows crops 10× faster (wheat in 18 s); mining blocks and Exchange days keep real time |
 
 Next: more crops, selling crops for $gold (and on the Marketplace), Garden Mastery XP from harvests (Green thumb speeds growth), and real growing times.
 

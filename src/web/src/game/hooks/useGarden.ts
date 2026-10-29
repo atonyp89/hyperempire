@@ -32,22 +32,23 @@ export function useGarden(enabled = true) {
     onSuccess: (r) => store(r.garden),
   });
 
-  // Server time now: the view's clock plus what has passed here since it arrived. Ticks once a second.
-  const [tick, setTick] = useState(Date.now());
+  // Server time now: the view's clock plus what has passed here since it arrived. Re-renders four times a second,
+  // reading the time fresh each render, so a countdown never lags behind a just-arrived view.
+  const [, setTick] = useState(0);
   useEffect(() => {
     if (!enabled) return;
-    const id = window.setInterval(() => setTick(Date.now()), 1000);
+    const id = window.setInterval(() => setTick((t) => t + 1), 250);
     return () => window.clearInterval(id);
   }, [enabled]);
   const data = q.data;
-  const now = data ? data.view.now + (tick - data.at) : tick;
+  const now = data ? data.view.now + (Date.now() - data.at) : Date.now();
 
   const plots = useMemo<GardenPlotView[]>(
     () =>
       (data?.view.plots ?? []).map((p) => {
-        if (!p.crop || p.plantedAt == null) return p;
+        if (!p.crop || p.plantedAt == null || p.readyAt == null) return p;
         const crop = CROPS[p.crop];
-        const stage = cropStage(crop, p.plantedAt, now);
+        const stage = cropStage(crop, p.plantedAt, p.readyAt, now);
         return { ...p, stage, ripe: stage === crop.stages - 1 };
       }),
     [data, now],
@@ -62,6 +63,8 @@ export function useGarden(enabled = true) {
     now,
     plots,
     gold: data?.view.gold ?? 0,
+    /** How fast crops grow: 1, or more on the dev server. */
+    speed: data?.view.speed ?? 1,
     inventory: data?.view.inventory ?? {},
     lastHarvest: harvestM.data?.harvested ?? null,
     plant: (crop: CropId, slots: number[]) => plantM.mutate({ crop, slots }),

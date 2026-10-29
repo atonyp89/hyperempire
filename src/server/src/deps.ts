@@ -35,6 +35,11 @@ export type Deps = {
    * only; production leaves it empty.
    */
   simulatedPower?: Partial<Record<PoolId, number>>;
+  /**
+   * How much faster game timers run: Garden growth. Dev only (the in-browser server); production leaves it at 1.
+   * Mining blocks and Exchange days keep the real clock, since they line up with Hyperliquid's fills.
+   */
+  gameSpeed?: number;
   /** $gold per claim of the testing faucet (POST /gold/faucet). Local and testnet only; without it, no faucet. */
   goldFaucet?: number;
   /** Origins allowed to call the API from a browser (CORS). Not needed when the app runs in-process. */

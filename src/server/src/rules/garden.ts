@@ -30,9 +30,12 @@ export const CROPS: Record<CropId, Crop> = {
 
 export const isCropId = (v: unknown): v is CropId => typeof v === 'string' && Object.hasOwn(CROPS, v);
 
-/** Growth stage at `now`: 0 (seed) up to stages − 1 (ripe), evenly spaced; ripe once the full time has passed. */
-export function cropStage(crop: Crop, plantedAt: number, now: number): number {
-  const t = (now - plantedAt) / crop.growMs;
+/** Time a crop takes to ripen: its growing time, divided by the game speed (1, or more on the dev server). */
+export const growTime = (crop: Crop, speed = 1) => crop.growMs / speed;
+
+/** Growth stage at `now`: 0 (seed) up to stages − 1 (ripe), evenly spaced; ripe from `readyAt` on. */
+export function cropStage(crop: Crop, plantedAt: number, readyAt: number, now: number): number {
+  const t = (now - plantedAt) / (readyAt - plantedAt);
   if (t >= 1) return crop.stages - 1;
   return Math.max(0, Math.floor(t * (crop.stages - 1)));
 }
