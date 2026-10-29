@@ -255,8 +255,18 @@
 .game .garden-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .game .seed-shop { display: flex; flex-wrap: wrap; gap: 6px; }
 .game .seed-shop .btn { display: inline-flex; align-items: center; gap: 4px; }
-.game .harvest-toast { font-family: var(--pixel); font-size: 10px; color: var(--gold); animation: toast 2.4s steps(6) forwards; }
-@keyframes toast { 0% { opacity: 0; transform: translateY(4px); } 10%, 75% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.game .harvest-pops { position: absolute; inset: 0; pointer-events: none; }
+.game .harvest-pop { position: absolute; display: flex; align-items: flex-start; justify-content: center; }
+.game .harvest-pop-body { display: inline-flex; align-items: center; gap: 2px; font-family: var(--pixel); font-size: 16px; color: var(--gold); text-shadow: 2px 2px 0 var(--ink), -1px -1px 0 var(--ink), 1px -1px 0 var(--ink), -1px 1px 0 var(--ink); animation: harvest-pop 1.4s ease-out forwards; }
+.game .harvest-pop-icon { width: 22px; height: 22px; image-rendering: pixelated; background-repeat: no-repeat; filter: drop-shadow(1px 1px 0 var(--ink)); }
+/* Jump up out of the plot, hang, then drift higher and fade (POP_MS in useGarden.ts). */
+@keyframes harvest-pop {
+  0% { opacity: 0; transform: translateY(10%) scale(0.6); }
+  15% { opacity: 1; transform: translateY(-40%) scale(1.15); }
+  30% { transform: translateY(-30%) scale(1); }
+  60% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-120%); }
+}
 
 /* Inventory grid (ui/Inventory.tsx): square slots like sockets; a stack shows its icon and count. */
 .game .inv-grid { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); gap: 4px; }
@@ -272,7 +282,11 @@
 .game .inv-price .coin { width: 7px; height: 7px; }
 .game .inv-slot.bump .inv-icon { animation: inv-bump 0.6s steps(4); }
 @keyframes inv-bump { 0% { transform: scale(1); } 40% { transform: scale(1.25); } 100% { transform: scale(1); } }
-@media (prefers-reduced-motion: reduce) { .game .inv-slot.bump .inv-icon, .game .harvest-toast { animation: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .game .inv-slot.bump .inv-icon { animation: none; }
+  .game .harvest-pop-body { animation: harvest-fade 1.4s linear forwards; }
+}
+@keyframes harvest-fade { 70% { opacity: 1; } 100% { opacity: 0; } }
 .game .garden-err { margin: 0 10px 10px; }
 @media (max-width: 760px) {
   .game .garden-grid { grid-template-columns: minmax(0, 1fr); }

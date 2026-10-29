@@ -1,9 +1,11 @@
 // The Garden's 4x4 field: the fenced lawn (public/empire/garden/field.png, built by design/scene/garden/field.py)
 // with one button per plot over it. An empty plot plants the selected seed, a ripe one harvests; a growing one
-// shows how long is left.
+// shows how long is left. A harvest floats "+4" and the item's icon up from each plot it emptied.
 
 import type { CSSProperties } from 'react';
 import { CROPS, GARDEN_COLS, type GardenPlotView } from '@server/contract';
+import type { HarvestPop } from '../hooks/useGarden';
+import { itemInfo } from '../lib/items';
 
 /** The field image's layout, in its native pixels; field.py draws it with the same numbers. */
 export const GARDEN_FIELD = { w: 134, h: 146, plot: 24, step: 30, x0: 10, y0: 16 } as const;
@@ -26,17 +28,22 @@ type Props = {
   seedName: string | null;
   onPlant: (slot: number) => void;
   onHarvest: (slot: number) => void;
+  pops: HarvestPop[];
 };
 
-export function GardenField({ plots, now, seedName, onPlant, onHarvest }: Props) {
+export function GardenField({ plots, now, seedName, onPlant, onHarvest, pops }: Props) {
   const { w, h, plot, step, x0, y0 } = GARDEN_FIELD;
+  const boxOf = (slot: number): CSSProperties => ({
+    left: pct(x0 + (slot % GARDEN_COLS) * step, w),
+    top: pct(y0 + Math.floor(slot / GARDEN_COLS) * step, h),
+    width: pct(plot, w),
+    height: pct(plot, h),
+  });
   return (
     <div className="garden-field" style={{ aspectRatio: `${w} / ${h}` }}>
       <img className="garden-field-img" src="/empire/garden/field.png" alt="" aria-hidden="true" />
       {plots.map((p) => {
-        const col = p.slot % GARDEN_COLS;
-        const row = Math.floor(p.slot / GARDEN_COLS);
-        const box: CSSProperties = { left: pct(x0 + col * step, w), top: pct(y0 + row * step, h), width: pct(plot, w), height: pct(plot, h) };
+        const box = boxOf(p.slot);
         const crop = p.crop ? CROPS[p.crop] : null;
         const left = p.readyAt != null ? p.readyAt - now : 0;
         const progress = p.plantedAt != null && p.readyAt != null ? Math.min(1, (now - p.plantedAt) / (p.readyAt - p.plantedAt)) : 0;
@@ -81,6 +88,19 @@ export function GardenField({ plots, now, seedName, onPlant, onHarvest }: Props)
           </button>
         );
       })}
+      <div className="harvest-pops" role="status">
+        {pops.map((p) => {
+          const info = itemInfo(p.item);
+          return (
+            <span key={p.id} className="harvest-pop" style={boxOf(p.slot)} aria-label={`Harvested ${p.qty} ${info.name}`}>
+              <span className="harvest-pop-body">
+                +{p.qty}
+                <span className="harvest-pop-icon" style={info.icon} aria-hidden="true" />
+              </span>
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -72,9 +72,10 @@ function Field({ g }: { g: Garden }) {
       <GardenField
         plots={g.plots}
         now={g.now}
-        seedName={crop ? `${crop.name} seed` : null}
+        seedName={crop ? crop.seedName : null}
         onPlant={(slot) => crop && g.plant(crop.id, [slot])}
         onHarvest={(slot) => g.harvest([slot])}
+        pops={g.pops}
       />
       <div className="garden-side">
         <section className="panel garden-panel" aria-label="Field">
@@ -115,18 +116,13 @@ function Field({ g }: { g: Garden }) {
         <section className="panel garden-panel" aria-label="Inventory">
           <div className="garden-head">
             <span className="label">INVENTORY</span>
-            {g.lastHarvest && (
-              <span key={JSON.stringify(g.lastHarvest)} className="harvest-toast" role="status">
-                +{Object.entries(g.lastHarvest).map(([id, n]) => `${n} ${itemInfo(id).name}`).join(', ')}
-              </span>
-            )}
           </div>
           <Inventory stacks={stacks} label="Your items" picked={picked?.id ?? null} canPick={(id) => !!cropOfSeed(id)} onPick={setPicked} />
           <div className="seed-shop">
             {CROP_LIST.map((c) =>
               [1, 10].map((n) => (
                 <button key={`${c.id}-${n}`} type="button" className="btn" disabled={g.gold < c.seedGold * n} onClick={() => g.buy(c.id, n)}>
-                  BUY {n} {c.name.toUpperCase()} SEED{n > 1 ? 'S' : ''} · <span className="coin" aria-hidden="true" /> {fmtAura(c.seedGold * n)}
+                  BUY {n} {c.seedName.toUpperCase()}{n > 1 ? 'S' : ''} · <span className="coin" aria-hidden="true" /> {fmtAura(c.seedGold * n)}
                 </button>
               )),
             )}

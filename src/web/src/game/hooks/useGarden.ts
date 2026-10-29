@@ -1,13 +1,17 @@
 // The Garden, kept by the HyperEmpire API: what grows in each plot, the inventory (seeds and harvest), and $gold
-// for buying seeds. The server
-// decides every stage; between fetches this hook ticks each plant forward on the server's clock, so plants grow
+// for buying seeds. The server decides every stage; between fetches this hook ticks each plant forward on the server's clock, so plants grow
 // on screen without polling.
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CROPS, cropStage, type CropId, type GardenPlotView, type GardenView, type HarvestResponse } from '@server/contract';
 import { NETWORK } from '../../shared/network';
 import { useSession } from '../../shared/session';
+
+/** A "+4" that floats up from a harvested plot and fades. */
+export type HarvestPop = { id: number; slot: number; item: string; qty: number };
+/** How long a pop stays on screen; matches the `harvest-pop` animation in game.css. */
+const POP_MS = 1400;
 
 export function useGarden(enabled = true) {
   const session = useSession();
@@ -32,6 +36,18 @@ export function useGarden(enabled = true) {
     mutationFn: (v: { crop: CropId; slots: number[] }) => session.call<GardenView>('/garden/plant', { method: 'POST', body: v }),
     onSuccess: store,
   });
+  const [pops, setPops] = useState<HarvestPop[]>([]);
+  const popId = useRef(0);
+  /** Float what each plot gave over it: its crop and yield, as the server counted them. */
+  const popHarvest = (slots: number[], plots: GardenPlotView[]) => {
+    const added = slots.flatMap((slot): HarvestPop[] => {
+      const crop = plots[slot]?.crop;
+      return crop ? [{ id: ++popId.current, slot, item: crop, qty: CROPS[crop].yield }] : [];
+    });
+    setPops((p) => [...p, ...added]);
+    window.setTimeout(() => setPops((p) => p.filter((x) => !added.includes(x))), POP_MS);
+  };
+
   const harvestM = useMutation({
     mutationFn: (slots: number[]) => session.call<HarvestResponse>('/garden/harvest', { method: 'POST', body: { slots } }),
     onSuccess: (r) => store(r.garden),
@@ -73,12 +89,16 @@ export function useGarden(enabled = true) {
     /** How fast crops grow: 1, or more on the dev server. */
     speed: data?.view.speed ?? 1,
     inventory: data?.view.inventory ?? {},
-    lastHarvest: harvestM.data?.harvested ?? null,
     // While a request runs, further clicks are ignored rather than disabling every control, which made the whole
     // screen blink dim on each buy, plant and harvest.
     buy: (crop: CropId, qty: number) => !busy && buyM.mutate({ crop, qty }),
     plant: (crop: CropId, slots: number[]) => !busy && plantM.mutate({ crop, slots }),
-    harvest: (slots: number[]) => !busy && harvestM.mutate(slots),
+    harvest: (slots: number[]) => {
+      if (busy || !data) return;
+      const before = data.view.plots;
+      harvestM.mutate(slots, { onSuccess: () => popHarvest(slots, before) });
+    },
+    pops,
   };
 }
 

@@ -11,6 +11,6 @@ const image = (src: string): CSSProperties => ({ backgroundImage: `url(${src})`,
 export function itemInfo(id: string): ItemInfo {
   if (Object.hasOwn(CROPS, id)) return { name: CROPS[id as CropId].name, icon: image(CROPS[id as CropId].icon) };
   const seedOf = cropOfSeed(id);
-  if (seedOf) return { name: `${CROPS[seedOf].name} seed`, icon: image(CROPS[seedOf].seedIcon) };
+  if (seedOf) return { name: CROPS[seedOf].seedName, icon: image(CROPS[seedOf].seedIcon) };
   return { name: id, icon: {} };
 }

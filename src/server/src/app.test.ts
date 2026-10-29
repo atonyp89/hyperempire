@@ -381,6 +381,18 @@ describe('garden', () => {
     expect((await call('POST', '/garden/buy', { crop: 'rose' }, token)).status).toBe(400);
   });
 
+  test('each crop has its own seeds, price, time and yield', async () => {
+    const token = await ready();
+    const bought = (await call('POST', '/garden/buy', { crop: 'grapes', qty: 2 }, token)).json;
+    expect([bought.gold, bought.inventory]).toEqual([50, { 'grapes-seed': 2 }]);
+    const wrongSeed = await call('POST', '/garden/plant', { crop: 'wheat', slot: 0 }, token);
+    expect([wrongSeed.status, wrongSeed.json.error]).toEqual([409, 'not_enough_items']);
+    const planted = (await call('POST', '/garden/plant', { crop: 'grapes', slots: [0, 1] }, token)).json;
+    expect(planted.plots[0]).toMatchObject({ crop: 'grapes', readyAt: clock + 6 * MIN });
+    clock += 6 * MIN;
+    expect((await call('POST', '/garden/harvest', { slots: [0, 1] }, token)).json.harvested).toEqual({ grapes: 8 });
+  });
+
   test('planting uses a seed per plot; the crop grows through its stages', async () => {
     const token = await ready(3);
     const planted = await call('POST', '/garden/plant', { crop: 'wheat', slots: [0, 5] }, token);

@@ -1,6 +1,6 @@
 # Crops
 
-Wheat, the Garden's first crop: three growth stages (16×16) for the field, and two inventory icons.
+The Garden's crops: wheat and grapes, each with three growth stages (16×16) for the field and two inventory icons.
 
 | What | File | Look |
 | --- | --- | --- |
@@ -21,6 +21,24 @@ Wheat, the Garden's first crop: three growth stages (16×16) for the field, and 
 4. **Icons:** `create_image_pro` at 32×32, `max_colors` 16, with the town's buildings (world x 240–479, y 0–95) as style: "inventory item icon for a farming RPG: a harvested wheat sheaf…" (picked #0 of `../items/wheat-sheaf-icon-candidates/`) and "…a small tied burlap sack of wheat seeds, the open top showing pale golden grains…" (#0 of `../items/wheat-seed-icon-candidates/`). Each seed candidate held two small sacks; the bottom-right one was cropped and centred on 16×16. A first try at both icons with `create_1_direction_object` at 16×16 came out blobby (`wheat-seed-candidates/`, `wheat-sheaf-candidates/`).
 
 PixelLab objects: sprout `c4cbcec1-1ac4-42d1-9dd4-0be2a96d9770`, young `d4053141-9fac-463e-8502-1abd7de645a7`; ripe candidates `c1dfc0a2-023b-440f-8052-6c62dda07daa`. Gallery assets: sheaf icons `f3962870-f38a-5d43-924e-c807e10a15b3`, seed icons `e060db57-888c-5876-8c28-43f29e6ed023`.
+
+## Grapes (Oct 29, 2026)
+
+A grape vine on a short wooden stake, in the same three stages, plus its icons. `grapes/preview-6x.png` shows the stages on a plot and all four item icons (wheat and grapes) in slots.
+
+| What | File |
+| --- | --- |
+| Stages | `src/web/public/empire/crops/grapes/0-sprout.png`, `1-young.png`, `2-ripe.png`; sheet `src/web/public/empire/crops/grapes.png` (48×16) |
+| Seed icon | `src/web/public/empire/items/grapes-seed.png` (16×16) |
+| Crop icon | `src/web/public/empire/items/grapes.png` (32×32) |
+
+1. **Sprout:** `create_1_direction_object`, style images: the wheat v2 sprout and ripe frames plus the soil and bush crops from `style/`. "a young grape vine just planted: a short thin wooden stake in a small mound of dark brown tilled soil, with a small green vine shoot curling up it…". Picked #9 of `grapes-sprout-candidates/`.
+2. **Young:** `create_object_state` on the sprout: "the same grape vine grown bigger: the green vine now climbs to the top of the same wooden stake with several more broad green leaves, still no grapes…" (`grapes/young-tries/a.png`; `b.png`, with tiny green buds, looked too close to the sprout).
+3. **Ripe:** its own `create_1_direction_object` with the same style images: "a ripe grape vine: a short wooden stake…, a leafy green vine wrapped around it with two plump bunches of deep purple grapes hanging from it…". Picked #13 of `grapes-ripe-candidates/`.
+4. **Grapes icon:** `create_image_pro` 32×32, `max_colors` 16, with the two wheat icons as the style image. Its sheet came back shifted half a cell, so the 64 tiles were stitched into `../items/grapes-icon-candidates/sheet.png`, rolled 16 px and cut again into `cut/`. Picked #0.
+5. **Seed icon:** `create_image_pro` 16×16 with the wheat seed sack as a labelled reference ("the seed sack: same shape, size, burlap colour and outline"): "the same small burlap seed sack…, but its open top shows small dark purple grape seeds…, with a tiny purple grape tag". Picked #2.
+
+PixelLab objects: sprout `69902638-5b48-4df1-8a1b-1216c86c1052`, young `3de99b61-1c97-493f-b122-3c7acf17c21b`; ripe candidates `85498bc0-43be-4d2d-8d8a-7c774a506cfb`. Gallery assets: icons `be887058-dc43-5fca-9cb2-504107c18685`, seed icons `60414271-c2c1-5339-84e9-3bf5e5c85001`.
 
 ## Wheat v1 (replaced)
 

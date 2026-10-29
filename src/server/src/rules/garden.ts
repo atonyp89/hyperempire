@@ -7,11 +7,13 @@ export const GARDEN_COLS = 4;
 export const GARDEN_ROWS = 4;
 export const GARDEN_PLOTS = GARDEN_COLS * GARDEN_ROWS;
 
-export type CropId = 'wheat';
+export type CropId = 'wheat' | 'grapes';
 
 export type Crop = {
   id: CropId;
   name: string;
+  /** What one seed is called ("Grape seed"). */
+  seedName: string;
   /** $gold a seed costs at the Garden. */
   seedGold: number;
   /** Time from planting to ripe, in ms. */
@@ -27,11 +29,12 @@ export type Crop = {
   seedIcon: string;
 };
 
-/** Test values: wheat ripens in 3 minutes so the whole cycle can be tried quickly. */
+/** Test values: wheat ripens in 3 minutes and grapes in 6, so the whole cycle can be tried quickly. */
 export const CROPS: Record<CropId, Crop> = {
   wheat: {
     id: 'wheat',
     name: 'Wheat',
+    seedName: 'Wheat seed',
     seedGold: 10,
     growMs: 3 * 60_000,
     stages: 3,
@@ -39,6 +42,18 @@ export const CROPS: Record<CropId, Crop> = {
     sprite: '/empire/crops/wheat.png',
     icon: '/empire/items/wheat.png',
     seedIcon: '/empire/items/wheat-seed.png',
+  },
+  grapes: {
+    id: 'grapes',
+    name: 'Grapes',
+    seedName: 'Grape seed',
+    seedGold: 25,
+    growMs: 6 * 60_000,
+    stages: 3,
+    yield: 4,
+    sprite: '/empire/crops/grapes.png',
+    icon: '/empire/items/grapes.png',
+    seedIcon: '/empire/items/grapes-seed.png',
   },
 };
 

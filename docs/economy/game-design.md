@@ -318,11 +318,12 @@ Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid 
 | | Now |
 | --- | --- |
 | Plots | 16 (4×4). More plots will come from Garden Mastery |
-| Seeds | Items in the inventory ("Wheat seed"), bought with $gold at the Garden: 10 $gold each. Planting uses one per plot |
+| Crops | Wheat (seed 10 $gold, ripe in 3 min, 3 per plant) and grapes (seed 25 $gold, ripe in 6 min, 4 per vine). Times are test values |
+| Seeds | Items in the inventory ("Wheat seed", "Grape seed"), bought with $gold at the Garden. Planting uses one per plot |
 | Growing | On the clock, no upkeep: sprout → young → ripe, evenly spaced. Wheat ripens in 3 minutes (a test value) |
 | Harvest | Ripe plants only; each gives 3 wheat into the inventory and empties its plot |
 | Shortcuts | Plant every empty plot, or harvest every ripe one, in one click |
-| Inventory | One grid of square slots, one stackable item per slot: seeds and crops together. Clicking a seed picks it for planting |
+| Inventory | One grid of square slots, one stackable item per slot: seeds and crops together. Clicking a seed picks it for planting. Each harvested plot floats its "+N" and the crop's icon up and fades |
 | Dev speed | The in-browser dev server grows crops 10× faster (wheat in 18 s); mining blocks and Exchange days keep real time |
 
 Next: more crops, selling crops for $gold (and on the Marketplace), Garden Mastery XP from harvests (Green thumb speeds growth), and real growing times.
