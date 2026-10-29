@@ -59,11 +59,13 @@ export function useGarden(enabled = true) {
     [data, now],
   );
 
+  const busy = buyM.isPending || plantM.isPending || harvestM.isPending;
+
   return {
     session,
     ready: !!data,
     loading: q.isLoading,
-    busy: buyM.isPending || plantM.isPending || harvestM.isPending,
+    busy,
     error: (buyM.error ?? plantM.error ?? harvestM.error ?? q.error)?.message ?? null,
     now,
     plots,
@@ -72,9 +74,11 @@ export function useGarden(enabled = true) {
     speed: data?.view.speed ?? 1,
     inventory: data?.view.inventory ?? {},
     lastHarvest: harvestM.data?.harvested ?? null,
-    buy: (crop: CropId, qty: number) => buyM.mutate({ crop, qty }),
-    plant: (crop: CropId, slots: number[]) => plantM.mutate({ crop, slots }),
-    harvest: (slots: number[]) => harvestM.mutate(slots),
+    // While a request runs, further clicks are ignored rather than disabling every control, which made the whole
+    // screen blink dim on each buy, plant and harvest.
+    buy: (crop: CropId, qty: number) => !busy && buyM.mutate({ crop, qty }),
+    plant: (crop: CropId, slots: number[]) => !busy && plantM.mutate({ crop, slots }),
+    harvest: (slots: number[]) => !busy && harvestM.mutate(slots),
   };
 }
 

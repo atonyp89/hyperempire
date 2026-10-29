@@ -26,6 +26,7 @@ export function useGold() {
     faucet: q.data?.faucet ?? null,
     claiming: claimM.isPending,
     error: (claimM.error ?? q.error)?.message ?? null,
-    claim: () => claimM.mutate(),
+    /** Ignored while a claim runs (no disabled state, so the button doesn't blink). */
+    claim: () => !claimM.isPending && claimM.mutate(),
   };
 }

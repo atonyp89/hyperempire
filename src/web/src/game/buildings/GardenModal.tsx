@@ -72,7 +72,6 @@ function Field({ g }: { g: Garden }) {
       <GardenField
         plots={g.plots}
         now={g.now}
-        busy={g.busy}
         seedName={crop ? `${crop.name} seed` : null}
         onPlant={(slot) => crop && g.plant(crop.id, [slot])}
         onHarvest={(slot) => g.harvest([slot])}
@@ -94,10 +93,10 @@ function Field({ g }: { g: Garden }) {
             <Stat label="NEXT" value={growing.length ? timeLeft(nextRipe - g.now) : '—'} />
           </div>
           <div className="garden-actions">
-            <button type="button" className="btn primary" disabled={g.busy || !crop || plantable === 0} onClick={() => crop && g.plant(crop.id, empty.slice(0, plantable))}>
+            <button type="button" className="btn primary" disabled={!crop || plantable === 0} onClick={() => crop && g.plant(crop.id, empty.slice(0, plantable))}>
               {empty.length === 0 ? 'ALL PLANTED' : !crop ? 'NO SEEDS' : `PLANT ${plantable} ${crop.name.toUpperCase()}`}
             </button>
-            <button type="button" className="btn" disabled={g.busy || ripe.length === 0} onClick={() => g.harvest(ripe)}>
+            <button type="button" className="btn" disabled={ripe.length === 0} onClick={() => g.harvest(ripe)}>
               {ripe.length ? `HARVEST ${ripe.length}` : 'NOTHING RIPE'}
             </button>
           </div>
@@ -126,7 +125,7 @@ function Field({ g }: { g: Garden }) {
           <div className="seed-shop">
             {CROP_LIST.map((c) =>
               [1, 10].map((n) => (
-                <button key={`${c.id}-${n}`} type="button" className="btn" disabled={g.busy || g.gold < c.seedGold * n} onClick={() => g.buy(c.id, n)}>
+                <button key={`${c.id}-${n}`} type="button" className="btn" disabled={g.gold < c.seedGold * n} onClick={() => g.buy(c.id, n)}>
                   BUY {n} {c.name.toUpperCase()} SEED{n > 1 ? 'S' : ''} · <span className="coin" aria-hidden="true" /> {fmtAura(c.seedGold * n)}
                 </button>
               )),

@@ -393,7 +393,7 @@ describe('garden', () => {
       clock += dt;
       stages.push((await call('GET', '/garden', undefined, token)).json.plots[0].stage);
     }
-    expect(stages).toEqual([1, 2, 3]);
+    expect(stages).toEqual([0, 1, 2]);
   });
 
   test('harvest needs a ripe plant, then empties the plot and adds crops to the inventory', async () => {

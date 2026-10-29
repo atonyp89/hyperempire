@@ -16,17 +16,30 @@ export type Crop = {
   seedGold: number;
   /** Time from planting to ripe, in ms. */
   growMs: number;
-  /** Growth stages, seed first and ripe last; the sprite sheet has one frame per stage. */
+  /** Growth stages, sprout first and ripe last; the sprite sheet has one frame per stage. */
   stages: number;
   /** Crops one ripe plant gives. */
   yield: number;
   /** Sprite sheet: one frame per stage, left to right. */
   sprite: string;
+  /** Inventory icons: the harvested crop, and its seed. */
+  icon: string;
+  seedIcon: string;
 };
 
 /** Test values: wheat ripens in 3 minutes so the whole cycle can be tried quickly. */
 export const CROPS: Record<CropId, Crop> = {
-  wheat: { id: 'wheat', name: 'Wheat', seedGold: 10, growMs: 3 * 60_000, stages: 4, yield: 3, sprite: '/empire/crops/wheat.png' },
+  wheat: {
+    id: 'wheat',
+    name: 'Wheat',
+    seedGold: 10,
+    growMs: 3 * 60_000,
+    stages: 3,
+    yield: 3,
+    sprite: '/empire/crops/wheat.png',
+    icon: '/empire/items/wheat.png',
+    seedIcon: '/empire/items/wheat-seed.png',
+  },
 };
 
 export const isCropId = (v: unknown): v is CropId => typeof v === 'string' && Object.hasOwn(CROPS, v);
@@ -46,7 +59,7 @@ export function cropOfSeed(item: string): CropId | null {
 /** Time a crop takes to ripen: its growing time, divided by the game speed (1, or more on the dev server). */
 export const growTime = (crop: Crop, speed = 1) => crop.growMs / speed;
 
-/** Growth stage at `now`: 0 (seed) up to stages − 1 (ripe), evenly spaced; ripe from `readyAt` on. */
+/** Growth stage at `now`: 0 (just planted) up to stages − 1 (ripe), evenly spaced; ripe from `readyAt` on. */
 export function cropStage(crop: Crop, plantedAt: number, readyAt: number, now: number): number {
   const t = (now - plantedAt) / (readyAt - plantedAt);
   if (t >= 1) return crop.stages - 1;

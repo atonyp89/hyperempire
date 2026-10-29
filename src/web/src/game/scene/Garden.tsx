@@ -1,18 +1,20 @@
-// Wheat growing in the Garden's two plots: each plant goes seed → sprout → young → ripe, stays ripe a while,
-// then is "harvested" back to seed. Plants start at different points of the cycle, so the field always shows
+// Wheat growing in the Garden's two plots: each plant goes sprout → young → ripe, stays ripe a while, then is
+// "harvested" back to a sprout. Plants start at different points of the cycle, so the field always shows
 // a mix, spaced 11-12px apart so the plot's furrows show between plants. Sprites: public/empire/crops/wheat.png
-// (4 stages of 16x16, made with PixelLab; see design/sprites/crops/README.md). Drawn under the time-of-day
+// (3 stages of 16x16, made with PixelLab; see design/sprites/crops/README.md). Drawn under the time-of-day
 // layers so night and morning reach them too.
 
 import { useEffect, useState, type CSSProperties } from 'react';
+import { CROPS } from '@server/contract';
 import { WORLD_H, WORLD_W } from './world';
 
 const FRAME = 16;
 /** The mound's bottom row inside the 16x16 frame. */
 const SRC_FEET_Y = 14;
 
-/** Stage shown at each step of the cycle: 0 seed, 1 sprout, 2 young, 3 ripe (ripe lasts two steps). */
-const CYCLE = [0, 1, 2, 3, 3];
+/** Stage shown at each step of the cycle: 0 sprout, 1 young, 2 ripe (ripe lasts two steps). */
+const CYCLE = [0, 1, 2, 2];
+const STAGES = CROPS.wheat.stages;
 /** Seconds per step, so a plant takes CYCLE.length × STEP_S to come round. */
 const STEP_S = 18;
 
@@ -45,7 +47,9 @@ export function Garden() {
           top: `${((p.y - SRC_FEET_Y) / WORLD_H) * 100}%`,
           width: `${(FRAME / WORLD_W) * 100}%`,
           height: `${(FRAME / WORLD_H) * 100}%`,
-          backgroundPositionX: `${(stage / 3) * 100}%`,
+          backgroundImage: `url(${CROPS.wheat.sprite})`,
+          backgroundSize: `${STAGES * 100}% 100%`,
+          backgroundPositionX: `${(stage / (STAGES - 1)) * 100}%`,
           animationDelay: `${-(i % 5) * 0.7}s`,
         } as CSSProperties;
         return <span key={i} className={`crop stage-${stage}`} style={style} />;

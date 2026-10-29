@@ -106,12 +106,11 @@ function GoldChip() {
         <button
           type="button"
           className="faucet"
-          disabled={g.claiming}
           onClick={g.claim}
           title={`Testing faucet: claim ${fmtAura(g.faucet)} $gold`}
           aria-label={`Claim ${fmtAura(g.faucet)} $gold from the testing faucet`}
         >
-          {g.claiming ? '…' : `+${fmtAura(g.faucet)}`}
+          +{fmtAura(g.faucet)}
         </button>
       )}
     </span>

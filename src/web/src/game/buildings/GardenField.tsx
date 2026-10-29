@@ -22,14 +22,13 @@ export const timeLeft = (ms: number) => {
 type Props = {
   plots: GardenPlotView[];
   now: number;
-  busy: boolean;
   /** The seed an empty plot plants; null when the player has none picked. */
   seedName: string | null;
   onPlant: (slot: number) => void;
   onHarvest: (slot: number) => void;
 };
 
-export function GardenField({ plots, now, busy, seedName, onPlant, onHarvest }: Props) {
+export function GardenField({ plots, now, seedName, onPlant, onHarvest }: Props) {
   const { w, h, plot, step, x0, y0 } = GARDEN_FIELD;
   return (
     <div className="garden-field" style={{ aspectRatio: `${w} / ${h}` }}>
@@ -55,7 +54,7 @@ export function GardenField({ plots, now, busy, seedName, onPlant, onHarvest }: 
             type="button"
             className={`plot ${crop ? (p.ripe ? 'ripe' : 'growing') : 'empty'}`}
             style={box}
-            disabled={busy || !act}
+            disabled={!act}
             onClick={act}
             title={label}
             aria-label={label}

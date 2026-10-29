@@ -319,7 +319,7 @@ Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid 
 | --- | --- |
 | Plots | 16 (4×4). More plots will come from Garden Mastery |
 | Seeds | Items in the inventory ("Wheat seed"), bought with $gold at the Garden: 10 $gold each. Planting uses one per plot |
-| Growing | On the clock, no upkeep: seed → sprout → young → ripe, evenly spaced. Wheat ripens in 3 minutes (a test value) |
+| Growing | On the clock, no upkeep: sprout → young → ripe, evenly spaced. Wheat ripens in 3 minutes (a test value) |
 | Harvest | Ripe plants only; each gives 3 wheat into the inventory and empties its plot |
 | Shortcuts | Plant every empty plot, or harvest every ripe one, in one click |
 | Inventory | One grid of square slots, one stackable item per slot: seeds and crops together. Clicking a seed picks it for planting |
