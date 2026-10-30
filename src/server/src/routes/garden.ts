@@ -10,12 +10,12 @@ import { gardenPlots } from '../db/schema';
 import type { Env } from '../env';
 import { badRequest, conflict } from '../errors';
 import { addItem, itemsOf, takeItem } from '../inventory';
-import { debitGold, goldOf } from '../ledger';
+import { creditGold, debitGold, goldOf } from '../ledger';
 import { farmerBonus } from '../rules/farmers';
 import { gardenFarmers } from './farmers';
-import { CROPS, cropStage, GARDEN_PLOTS, growTime, isCropId, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, seedItem, yieldOf, type Crop, type CropId } from '../rules/garden';
+import { CROPS, cropStage, GARDEN_PLOTS, growTime, isCropId, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, seedItem, sellGold, yieldOf, type Crop, type CropId } from '../rules/garden';
 import { GRADES, rollGrade, type Grade } from '../rules/mining';
-import type { GardenPlotView, GardenView, HarvestResponse, OpenPacksResponse } from '../contract';
+import type { GardenPlotView, GardenView, HarvestResponse, OpenPacksResponse, SellResponse } from '../contract';
 
 /** The plots a request names: `slots` (a list) or `slot` (one), each 0-15, no repeats. */
 function slotsOf(body: { slot?: unknown; slots?: unknown }): number[] {
@@ -161,6 +161,23 @@ export const garden = new Hono<Env>()
       }
       for (const [item, qty] of Object.entries(got)) await addItem(tx, address, item, qty);
       return { harvested: got, garden: await view(tx, address, t, speed) };
+    });
+    return c.json(result);
+  })
+
+  // Sell `qty` of a harvested crop to the NPC for $gold (cropPrice each, the total rounded down).
+  .post('/sell', async (c) => {
+    const { db, now, gameSpeed: speed = 1 } = c.var.deps;
+    const address = c.var.address;
+    const body = await c.req.json().catch(() => ({}));
+    const crop = CROPS[cropOf({ crop: body.item })];
+    const qty = body.qty;
+    if (!Number.isInteger(qty) || qty < 1) throw badRequest('Sell at least 1.');
+    const result = await db.transaction(async (tx): Promise<SellResponse> => {
+      await takeItem(tx, address, crop.id, qty, crop.name.toLowerCase());
+      const gold = sellGold(crop, qty);
+      await creditGold(tx, address, gold, 'garden:sell');
+      return { sold: { item: crop.id, qty, gold }, garden: await view(tx, address, now(), speed) };
     });
     return c.json(result);
   });

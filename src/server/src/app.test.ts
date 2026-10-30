@@ -10,6 +10,7 @@ import { schema, type Db } from './db';
 import { migrate } from './db/migrations';
 import type { BuilderFill, Deps, Fill } from './deps';
 import { DAY_MS, dayOf } from './rules/exchange';
+import { CROPS, cropPrice, expectedYield, PACK_SEEDS, packGold } from './rules/garden';
 import { BLOCK_MS, GENESIS, WALK_BLOCKS } from './rules/mining';
 
 const ADMIN = { user: 'admin', password: 'correct horse battery' };
@@ -465,6 +466,28 @@ describe('garden', () => {
     expect([planted.speed, planted.plots[0].readyAt]).toEqual([10, clock + 18_000]);
     clock += 18_000;
     expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 30 });
+  });
+
+  test('crops sell to the NPC for $gold, rounded down; a pack returns 1.1x on average', async () => {
+    for (const crop of Object.values(CROPS)) {
+      const perCrop = packGold(crop) / (PACK_SEEDS * crop.yield);
+      expect(cropPrice(crop)).toBeLessThan(perCrop);
+      expect((cropPrice(crop) * PACK_SEEDS * expectedYield(crop)) / packGold(crop)).toBeCloseTo(1.1, 10);
+    }
+    const token = await ready(1);
+    await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slots: [0, 1] }, token);
+    clock += 3 * MIN;
+    await call('POST', '/garden/harvest', { slots: [0, 1] }, token);
+    const before = (await call('GET', '/garden', undefined, token)).json.gold;
+    const { status, json } = await call('POST', '/garden/sell', { item: 'wheat', qty: 54 }, token);
+    expect(status).toBe(200);
+    // 54 × 0.3038 = 16.4: 16 $gold.
+    expect(json.sold).toEqual({ item: 'wheat', qty: 54, gold: 16 });
+    expect([json.garden.gold - before, json.garden.inventory.wheat]).toEqual([16, 6]);
+    const short = await call('POST', '/garden/sell', { item: 'wheat', qty: 7 }, token);
+    expect([short.status, short.json.error]).toEqual([409, 'not_enough_items']);
+    expect((await call('POST', '/garden/sell', { item: 'wheat-seed:common', qty: 1 }, token)).status).toBe(400);
+    expect((await call('POST', '/garden/sell', { item: 'wheat', qty: 0 }, token)).status).toBe(400);
   });
 
   test('plots, seeds and slots are checked, all or nothing', async () => {

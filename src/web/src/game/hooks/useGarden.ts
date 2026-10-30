@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CROPS, cropStage, yieldOf, type CropId, type GardenPlotView, type GardenView, type HarvestResponse, type OpenPacksResponse } from '@server/contract';
+import { CROPS, cropStage, yieldOf, type CropId, type GardenPlotView, type GardenView, type HarvestResponse, type OpenPacksResponse, type SellResponse } from '@server/contract';
 import { NETWORK } from '../../shared/network';
 import { useSession } from '../../shared/session';
 
@@ -67,6 +67,10 @@ export function useGarden(enabled = true) {
     window.setTimeout(() => setPops((p) => p.filter((x) => !added.includes(x))), POP_MS);
   };
 
+  const sellM = useMutation({
+    mutationFn: (v: { item: string; qty: number }) => session.call<SellResponse>('/garden/sell', { method: 'POST', body: v }),
+    onSuccess: (r) => store(r.garden),
+  });
   const harvestM = useMutation({
     mutationFn: (slots: number[]) => session.call<HarvestResponse>('/garden/harvest', { method: 'POST', body: { slots } }),
     onSuccess: (r) => store(r.garden),
@@ -94,14 +98,14 @@ export function useGarden(enabled = true) {
     [data, now],
   );
 
-  const busy = buyM.isPending || shopM.isPending || openM.isPending || plantM.isPending || harvestM.isPending;
+  const busy = buyM.isPending || shopM.isPending || openM.isPending || plantM.isPending || harvestM.isPending || sellM.isPending;
 
   return {
     session,
     ready: !!data,
     loading: q.isLoading,
     busy,
-    error: (buyM.error ?? shopM.error ?? openM.error ?? plantM.error ?? harvestM.error ?? q.error)?.message ?? null,
+    error: (buyM.error ?? shopM.error ?? openM.error ?? plantM.error ?? harvestM.error ?? sellM.error ?? q.error)?.message ?? null,
     now,
     plots,
     gold: data?.view.gold ?? 0,
@@ -130,6 +134,9 @@ export function useGarden(enabled = true) {
       harvestM.mutate(slots, { onSuccess: () => popHarvest(slots, before, yieldPct) });
     },
     pops,
+    /** Sell `qty` of a harvested crop to the NPC; `lastSale` then says what it paid. */
+    sell: (item: string, qty: number) => !busy && sellM.mutate({ item, qty }),
+    lastSale: sellM.data?.sold ?? null,
   };
 }
 

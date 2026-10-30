@@ -27,6 +27,7 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | POST | [`/garden/open`](#post-gardenopen) | Open seed packs into 10 graded seeds each |
 | POST | [`/garden/plant`](#post-gardenplant) | Plant a seed from the inventory |
 | POST | [`/garden/harvest`](#post-gardenharvest) | Harvest ripe plants |
+| POST | [`/garden/sell`](#post-gardensell) | Sell crops to the NPC for $gold |
 | GET | [`/farmers`](#get-farmers) | Your Farmers, Garden slots, recruit price, working bonus |
 | POST | [`/farmers/recruit`](#post-farmersrecruit) | Recruit a Farmer for $aura |
 | POST | [`/farmers/:id/assign`](#post-farmersidassign) | Put a Farmer to work in the Garden (or `/unassign`) |
@@ -177,6 +178,15 @@ Body: `{ "slot": 3 }` or `{ "slots": [3, 4] }`. Every named plot must be ripe (`
 { "harvested": { "wheat": 60 }, "garden": { "…": "the GET /garden view" } }
 ```
 
+
+
+### `POST /garden/sell`
+
+Body: `{ "item": "wheat", "qty": 54 }`. Sells harvested crops to the NPC for `cropPrice` $gold each (1.1 × pack price ÷ (10 × average seed yield); wheat ≈ 0.304, grapes ≈ 0.570), the total rounded down (ledger kind `garden:sell`). `409 not_enough_items` if fewer are held, `400` for anything that isn't a crop.
+
+```json
+{ "sold": { "item": "wheat", "qty": 54, "gold": 16 }, "garden": { "…": "the GET /garden view" } }
+```
 
 ## Farmers
 

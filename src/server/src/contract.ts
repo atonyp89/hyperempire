@@ -9,7 +9,7 @@ export * from './rules/empire';
 export { DAILY_EMISSION, marginalShare } from './rules/exchange';
 export { GOLD_FAUCET } from './rules/gold';
 export { FARMER_PERKS, FARMER_RECRUIT_AURA, FARMER_SLOTS, MAX_GROWTH_CUT } from './rules/farmers';
-export { CROPS, cropOfPack, cropStage, GARDEN_COLS, GARDEN_PLOTS, GARDEN_ROWS, growTime, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, SEED_YIELD, seedItem, yieldOf } from './rules/garden';
+export { CROPS, cropOfPack, cropPrice, cropStage, expectedYield, SELL_ROI, sellGold, GARDEN_COLS, GARDEN_PLOTS, GARDEN_ROWS, growTime, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, SEED_YIELD, seedItem, yieldOf } from './rules/garden';
 export type { Crop, CropId } from './rules/garden';
 export { EXCHANGE_PERKS, MASTERY_PERKS, WHALE_DAILY_VOLUME, XP_PER_USD_FEE, xpForLevel, xpToNext } from './rules/mastery';
 export type { ExchangePerkId, MasteryPerk } from './rules/mastery';
@@ -64,6 +64,8 @@ export type FarmerBonus = { yieldPct: number; growthPct: number };
 /** Every Farmer the player has, how many can work the Garden, the recruit price and the working Farmers' bonus. */
 export type FarmersView = { farmers: FarmerView[]; slots: number; recruitAura: number; bonus: FarmerBonus };
 export type HarvestResponse = { harvested: Record<string, number>; garden: GardenView };
+/** What a sale gave: the crop, how many, and the $gold paid. */
+export type SellResponse = { sold: { item: string; qty: number; gold: number }; garden: GardenView };
 /** The seeds the opened packs gave, as item ids in the order they were rolled. */
 export type OpenPacksResponse = { opened: string[]; garden: GardenView };
 

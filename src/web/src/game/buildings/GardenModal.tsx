@@ -1,8 +1,8 @@
 // The Garden screen: a 4x4 field where seeds from the inventory grow on the clock and are harvested back into it.
 // Seeds come in packs bought with $gold; a pack opens into 10 seeds of random grades, and better seeds yield more.
 
-import { useState, type ReactNode } from 'react';
-import { CROPS, GARDEN_PLOTS, GRADES, growTime, PACK_SEEDS, packGold, packItem, SEED_YIELD, yieldOf, type CropId } from '@server/contract';
+import { useState } from 'react';
+import { CROPS, cropPrice, GRADES, growTime, sellGold, PACK_SEEDS, packGold, packItem, SEED_YIELD, yieldOf, type CropId } from '@server/contract';
 import { fmtAura } from '../../shared/format';
 import { BuildingModal } from '../../shared/ui/BuildingModal';
 import { useGarden, type Garden } from '../hooks/useGarden';
@@ -68,24 +68,31 @@ function Field({ g }: { g: Garden }) {
     .sort(order);
   const seeds = stacks.filter((s) => itemInfo(s.id).kind === 'seed');
   const [pickedId, setPicked] = useState<string | null>(null);
+  const [sellId, setSellId] = useState<string | null>(null);
   const [shop, setShop] = useState(false);
   const [picking, setPicking] = useState(false);
+  const [tab, setTab] = useState<'seeds' | 'harvest'>('seeds');
+  // Seeds tab: packs and seeds; Harvest tab: everything else (crops).
+  const isSeedTab = (id: string) => ['pack', 'seed'].includes(itemInfo(id).kind);
+  const shown = stacks.filter((x) => isSeedTab(x.id) === (tab === 'seeds'));
+  const count = (seedTab: boolean) => stacks.filter((x) => isSeedTab(x.id) === seedTab).reduce((n, x) => n + x.qty, 0);
   const f = useFarmers();
-  // The picked seed, or the first (best) one held when the pick runs out.
-  const picked = seeds.find((s) => s.id === pickedId) ?? seeds[0] ?? null;
+  // The seed the player selected in the inventory, while they still hold one.
+  const picked = seeds.find((s) => s.id === pickedId) ?? null;
   const seed = picked ? itemInfo(picked.id) : null;
   const crop = seed?.crop ? CROPS[seed.crop] : null;
-
   const empty = g.plots.filter((p) => !p.crop).map((p) => p.slot);
-  const ripe = g.plots.filter((p) => p.ripe).map((p) => p.slot);
-  const growing = g.plots.filter((p) => p.crop && !p.ripe);
-  const nextRipe = growing.reduce((m, p) => Math.min(m, p.readyAt ?? Infinity), Infinity);
-  const plantable = Math.min(empty.length, picked?.qty ?? 0);
+  // The crop selected for selling, while some is held.
+  const selling = stacks.find((x) => x.id === sellId && itemInfo(x.id).kind === 'crop') ?? null;
+  /** How many of the selected seed fit: one per empty plot. */
+  const fits = Math.min(empty.length, picked?.qty ?? 0);
 
   const use = (id: string) => {
     const info = itemInfo(id);
     if (info.kind === 'pack' && info.crop) g.open(info.crop);
-    else if (info.kind === 'seed') setPicked(id);
+    // Clicking the selected seed again deselects it.
+    else if (info.kind === 'seed') setPicked((cur) => (cur === id ? null : id));
+    else if (info.kind === 'crop') setSellId((cur) => (cur === id ? null : id));
   };
 
   return (
@@ -97,46 +104,9 @@ function Field({ g }: { g: Garden }) {
         onPlant={(slot) => picked && g.plant(picked.id, [slot])}
         onHarvest={(slot) => g.harvest([slot])}
         pops={g.pops}
-        heroActive={!shop && !g.opened && !picking}
         farmers={g.farmers}
       />
       <div className="garden-side">
-        <section className="panel garden-panel" aria-label="Field">
-          <div className="garden-head">
-            <span className="label">FIELD</span>
-            {g.speed > 1 && (
-              <span className="dev-badge" title={`Development: crops grow ${g.speed}× faster`}>
-                DEV ×{g.speed}
-              </span>
-            )}
-          </div>
-          <div className="garden-stats">
-            <Stat label="$GOLD" value={<><span className="coin" aria-hidden="true" /> {fmtAura(g.gold)}</>} />
-            <Stat label="PLANTED" value={`${GARDEN_PLOTS - empty.length}/${GARDEN_PLOTS}`} />
-            <Stat label="RIPE" value={String(ripe.length)} />
-            <Stat label="NEXT" value={growing.length ? timeLeft(nextRipe - g.now) : '—'} />
-          </div>
-          <div className="garden-actions">
-            <button type="button" className="btn primary" disabled={!picked || plantable === 0} onClick={() => picked && g.plant(picked.id, empty.slice(0, plantable))}>
-              {empty.length === 0 ? 'ALL PLANTED' : !crop ? 'NO SEEDS' : `PLANT ${plantable} ${crop.name.toUpperCase()}`}
-            </button>
-            <button type="button" className="btn" disabled={ripe.length === 0} onClick={() => g.harvest(ripe)}>
-              {ripe.length ? `HARVEST ${ripe.length}` : 'NOTHING RIPE'}
-            </button>
-          </div>
-          <div className="small muted">
-            {crop && seed?.grade ? (
-              <>
-                Planting <span className={`strong grade-text-${seed.grade}`}>{seed.name}</span>: ripe in {timeLeft(growTime(crop, g.speed) * (1 - g.bonus.growthPct / 100))},{' '}
-                {Math.round(yieldOf(crop, seed.grade) * (1 + g.bonus.yieldPct / 100))} per
-                plant. Click an empty plot to plant, a ripe one to harvest.
-              </>
-            ) : (
-              'Buy a seed pack below, then click an empty plot to plant its seeds.'
-            )}
-          </div>
-        </section>
-
         <section className="panel garden-panel" aria-label="Farmers">
           <div className="garden-head">
             <span className="label">
@@ -169,22 +139,63 @@ function Field({ g }: { g: Garden }) {
         </section>
 
         <section className="panel garden-panel" aria-label="Inventory">
-          <div className="garden-head">
-            <span className="label">INVENTORY</span>
+          <div className="inv-tabs" role="tablist" aria-label="Inventory">
+            {(['seeds', 'harvest'] as const).map((t) => (
+              <button key={t} type="button" role="tab" aria-selected={tab === t} className={`ex-tab ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>
+                {t === 'seeds' ? 'SEEDS' : 'HARVEST'} · {fmtAura(count(t === 'seeds'))}
+              </button>
+            ))}
           </div>
           <Inventory
-            stacks={stacks}
+            stacks={shown}
             label="Your items"
-            picked={picked?.id ?? null}
-            actionOf={(id) => ({ pack: 'open', seed: 'pick' } as Record<string, string>)[itemInfo(id).kind] ?? null}
+            picked={(tab === 'seeds' ? picked?.id : selling?.id) ?? null}
+            actionOf={(id) => ({ pack: 'open', seed: 'pick', crop: 'sell' } as Record<string, string>)[itemInfo(id).kind] ?? null}
             onPick={use}
           />
-          <button type="button" className="btn shop-open" onClick={() => setShop(true)}>
-            <span className="shop-icon" style={itemInfo(packItem('wheat')).icon} aria-hidden="true" />
-            BUY SEED PACK
-          </button>
+          {tab === 'seeds' && picked && seed && crop && seed.grade && (
+            <div className={`seed-bar grade-${seed.grade}`}>
+              <span className="seed-bar-icon inv-icon" style={seed.icon} aria-hidden="true" />
+              <span className="seed-bar-text">
+                <span className={`strong grade-text-${seed.grade}`}>
+                  {seed.name} × {picked.qty}
+                </span>
+                <span className="small muted">
+                  Ripe in {timeLeft(growTime(crop, g.speed) * (1 - g.bonus.growthPct / 100))} · {Math.round(yieldOf(crop, seed.grade) * (1 + g.bonus.yieldPct / 100))} per plant
+                </span>
+              </span>
+              {fits === 0 ? (
+                <span className="small muted">No empty plots</span>
+              ) : (
+                <span className="seed-bar-actions">
+                  <button type="button" className="btn primary" onClick={() => g.plant(picked.id, empty.slice(0, 1))}>
+                    PLANT 1
+                  </button>
+                  {fits >= 2 && (
+                    <button type="button" className="btn primary" onClick={() => g.plant(picked.id, empty.slice(0, fits))}>
+                      PLANT {fits}
+                    </button>
+                  )}
+                </span>
+              )}
+            </div>
+          )}
+          {tab === 'harvest' && selling && <SellBar g={g} item={selling.id} qty={selling.qty} />}
+          {tab === 'seeds' && (
+            <button type="button" className="btn shop-open" onClick={() => setShop(true)}>
+              <span className="shop-icon" style={itemInfo(packItem('wheat')).icon} aria-hidden="true" />
+              BUY SEED PACK
+            </button>
+          )}
           <div className="small muted">
-            Click a seed to plant it. Better seeds yield more: ×{SEED_YIELD.uncommon} uncommon up to ×{SEED_YIELD.legendary} legendary.
+            {tab === 'seeds' ? (
+              <>
+                Select a seed to plant it, then use the buttons or click an empty plot; click a ripe plant to harvest. Better seeds yield more: ×
+                {SEED_YIELD.uncommon} uncommon up to ×{SEED_YIELD.legendary} legendary.
+              </>
+            ) : (
+              'What you harvest lands here. Select a crop to sell it to the NPC for $gold; the Marketplace comes later.'
+            )}
           </div>
         </section>
       </div>
@@ -233,6 +244,45 @@ function Field({ g }: { g: Garden }) {
           )}
         </Overlay>
       )}
+    </div>
+  );
+}
+
+/** Sell a harvested crop to the NPC: its price each, and what 10 or all of them pay (whole $gold, rounded down). */
+function SellBar({ g, item, qty }: { g: Garden; item: string; qty: number }) {
+  const info = itemInfo(item);
+  const crop = info.crop ? CROPS[info.crop] : null;
+  if (!crop) return null;
+  const sold = g.lastSale?.item === item ? g.lastSale : null;
+  return (
+    <div className="seed-bar">
+      <span className="seed-bar-icon inv-icon" style={info.icon} aria-hidden="true" />
+      <span className="seed-bar-text">
+        <span className="strong">
+          {info.name} × {fmtAura(qty)}
+        </span>
+        <span className="small muted">
+          {sold ? (
+            <span className="gold">
+              Sold {fmtAura(sold.qty)} for {fmtAura(sold.gold)} $gold
+            </span>
+          ) : (
+            <>
+              <span className="coin" aria-hidden="true" /> {cropPrice(crop).toFixed(2)} $gold each
+            </>
+          )}
+        </span>
+      </span>
+      <span className="seed-bar-actions">
+        {qty > 10 && (
+          <button type="button" className="btn primary" onClick={() => g.sell(item, 10)}>
+            SELL 10 · {sellGold(crop, 10)}
+          </button>
+        )}
+        <button type="button" className="btn primary" onClick={() => g.sell(item, qty)}>
+          SELL ALL · {fmtAura(sellGold(crop, qty))}
+        </button>
+      </span>
     </div>
   );
 }
@@ -292,14 +342,5 @@ function Opened({ ids, onClose }: { ids: string[]; onClose: () => void }) {
       </div>
       <div className="small muted">Click anywhere to close</div>
     </Overlay>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="garden-stat">
-      <span className="label">{label}</span>
-      <span className="mono">{value}</span>
-    </div>
   );
 }

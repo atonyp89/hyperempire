@@ -313,7 +313,7 @@ Idea under consideration: make adventures a watchable idle auto-battle with a pe
 
 Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid players. The harvest is **crops, materials and potions, never $aura**, so the Garden can't print currency.
 
-**Built (Oct 29, 2026):** clicking the Garden in the town opens its own screen: a top-down farmyard like the town, with the fenced 4×4 field of 16 plots at its centre and a road looping round it that your knight walks with WASD. The plots are clicked as before; the seed, field and inventory panels sit beside the scene.
+**Built (Oct 29, 2026):** clicking the Garden in the town opens its own screen: a top-down farmyard like the town, with the fenced 4×4 field of 16 plots at its centre and a road looping round it, where working Farmers wander. Beside the scene: the Farmers panel, and the inventory with the seed shop.
 
 | | Now |
 | --- | --- |
@@ -323,11 +323,23 @@ Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid 
 | Seed grades | A better seed yields more: ×1 / ×1.5 / ×2 / ×3 / ×5 (wheat 30 / 45 / 60 / 90 / 150; grapes 40 / 60 / 80 / 120 / 200). Yields are in tens so a small bonus, such as a +10% Farmer, still shows after rounding. The average pack seed yields ×1.21. Seeds stack by crop and grade; a better seed's icon gets an outline in its grade's colour (green, blue, purple, gold; legendary glows), following the sprite's shape like the building highlight, and its plot gets a gem |
 | Growing | On the clock, no upkeep: sprout → young → ripe, evenly spaced. Wheat ripens in 3 minutes (a test value) |
 | Harvest | Ripe plants only; each gives its crop by seed grade into the inventory and empties its plot |
-| Shortcuts | Plant every empty plot, or harvest every ripe one, in one click |
-| Inventory | One grid of square slots, one stackable item per slot: seeds and crops together. Clicking a seed picks it for planting. Each harvested plot floats its "+N" and the crop's icon up and fades |
+| Selling to the NPC | Select a crop in the Harvest tab: sell 10 or all for $gold, the total rounded down. Wheat pays ~0.304 $gold each, grapes ~0.570 |
+| Planting | Select a seed in the inventory: a bar shows its growing time and yield (with the Farmers' bonus) and PLANT 1, plus PLANT X when X ≥ 2 more fit (X = empty plots, up to the seeds held). Clicking an empty plot also plants the selected seed; clicking a ripe plant harvests it |
+| Inventory | Square slots, one stackable item per slot, in two tabs: Seeds (packs and seeds, with the seed shop) and Harvest (crops). Clicking a seed picks it for planting. Each harvested plot floats its "+N" and the crop's icon up and fades |
 | Dev speed | The in-browser dev server grows crops 10× faster (wheat in 18 s); mining blocks and Exchange days keep real time |
 
 Next: more crops, selling crops for $gold (and on the Marketplace), Garden Mastery XP from harvests (Green thumb speeds growth), and real growing times.
+
+### Crop prices (selling to the NPC)
+
+Selling crops to the NPC is the Garden's $gold faucet, so its price is pinned to what seeds cost:
+
+- **Never above cost:** a crop never pays more than the pack's cost per crop from common seeds (wheat 100 $gold ÷ 300 = 0.333; grapes 250 ÷ 400 = 0.625).
+- **1.1× on average:** better seed grades yield more, so the average seed yields ×1.207 of a common one (wheat 36.2, grapes 48.3). The price is set so that a pack's crops sell for 1.1× the pack's price on average across players: price = 1.1 × pack price ÷ (10 seeds × average yield). Wheat ≈ 0.304, grapes ≈ 0.570.
+- **Rounded down:** $gold is whole, so a sale pays the total rounded down.
+- **Farmers on top:** their yield bonus is extra return, the payoff for the $aura spent recruiting them.
+
+The server derives the price from the pack price, yields and odds (`cropPrice` in `rules/garden.ts`), so retuning any of them keeps the 1.1×.
 
 ### Farmers
 

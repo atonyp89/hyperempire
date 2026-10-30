@@ -1,13 +1,13 @@
 // The Garden scene: a top-down farmyard (public/empire/garden/scene.png) with the fenced 4x4 field at its centre
-// (field.png, built by design/scene/garden/field.py, painted around by PixelLab inpaint) and a road the knight walks
-// around it (walkable.png, from design/scene/garden/walkable.py). One button per plot sits over the field. An empty plot plants the selected seed, a ripe one harvests; a growing one
+// (field.png, built by design/scene/garden/field.py, painted around by PixelLab inpaint) and a road the working
+// Farmers wander (walkable.png, from design/scene/garden/walkable.py). One button per plot sits over the field. An empty plot plants the selected seed, a ripe one harvests; a growing one
 // shows how long is left. A harvest floats "+4" and the item's icon up from each plot it emptied.
 
 import type { CSSProperties } from 'react';
 import { CROPS, GARDEN_COLS, type FarmerView, type GardenPlotView } from '@server/contract';
 import type { HarvestPop } from '../hooks/useGarden';
 import { FarmerWalkers } from '../scene/FarmerWalkers';
-import { Hero, type HeroScene } from '../scene/Hero';
+import type { HeroScene } from '../scene/Hero';
 import { itemInfo } from '../lib/items';
 
 /**
@@ -16,7 +16,7 @@ import { itemInfo } from '../lib/items';
  */
 export const GARDEN_FIELD = { w: 256, h: 208, plot: 24, step: 30, x0: 61 + 10, y0: 31 + 16 } as const;
 
-/** The knight in the Garden: walks the road loop, starting where the road comes in at the bottom. */
+/** The Garden's road for the Farmers who wander it (same shape as the knight's scenes in Hero.tsx). */
 export const GARDEN_SCENE: HeroScene = {
   w: GARDEN_FIELD.w,
   h: GARDEN_FIELD.h,
@@ -46,13 +46,11 @@ type Props = {
   onPlant: (slot: number) => void;
   onHarvest: (slot: number) => void;
   pops: HarvestPop[];
-  /** WASD moves the knight (off while a dialog is open over the Garden). */
-  heroActive: boolean;
   /** Farmers working the Garden: they wander the road. */
   farmers: FarmerView[];
 };
 
-export function GardenField({ plots, now, seedName, onPlant, onHarvest, pops, heroActive, farmers }: Props) {
+export function GardenField({ plots, now, seedName, onPlant, onHarvest, pops, farmers }: Props) {
   const { w, h, plot, step, x0, y0 } = GARDEN_FIELD;
   const boxOf = (slot: number): CSSProperties => ({
     left: pct(x0 + (slot % GARDEN_COLS) * step, w),
@@ -125,7 +123,6 @@ export function GardenField({ plots, now, seedName, onPlant, onHarvest, pops, he
           })}
         </div>
         <FarmerWalkers farmers={farmers} scene={GARDEN_SCENE} />
-        <Hero active={heroActive} scene={GARDEN_SCENE} />
       </div>
     </div>
   );

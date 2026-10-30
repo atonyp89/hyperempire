@@ -4,7 +4,7 @@
 // player's inventory.
 // Design: docs/economy/game-design.md ("Garden").
 
-import { GRADES, type Grade } from './mining';
+import { GRADE, GRADES, type Grade } from './mining';
 
 export const GARDEN_COLS = 4;
 export const GARDEN_ROWS = 4;
@@ -111,3 +111,22 @@ export function cropStage(crop: Crop, plantedAt: number, readyAt: number, now: n
   if (t >= 1) return crop.stages - 1;
   return Math.max(0, Math.floor(t * (crop.stages - 1)));
 }
+
+// ---------------------------------------------------------------- Selling crops to the NPC
+
+/**
+ * What a pack is worth back, on average, when its crops are sold to the NPC: 1.1x its price. Grade luck makes the
+ * average seed yield more than a common one, and the price is set so that luck pays exactly this much across all
+ * players; Farmers' yield bonuses come on top. The price per crop always stays below the pack's cost per crop
+ * from common seeds, so selling to the NPC can't mint $gold faster than seeds cost.
+ */
+export const SELL_ROI = 1.1;
+
+/** Crops one seed of a crop yields on average, over the grade odds (wheat 36.2, grapes 48.3). */
+export const expectedYield = (crop: Crop) => GRADES.reduce((sum, g) => sum + GRADE[g].odds * yieldOf(crop, g), 0);
+
+/** $gold the NPC pays per crop, unrounded: wheat ~0.304, grapes ~0.570. */
+export const cropPrice = (crop: Crop) => (SELL_ROI * packGold(crop)) / (PACK_SEEDS * expectedYield(crop));
+
+/** $gold for selling `qty` of a crop: whole $gold, rounded down. */
+export const sellGold = (crop: Crop, qty: number) => Math.floor(qty * cropPrice(crop));
