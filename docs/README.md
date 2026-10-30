@@ -1,6 +1,10 @@
 # HyperEmpire — documentation
 
-Three areas, each in its own folder.
+Four areas, each in its own folder.
+
+## [Gameplay guide](gameplay/)
+
+The player-facing guide to the game as it is today, published with GitBook (`.gitbook.yaml` at the repo root points Git Sync at this folder; `SUMMARY.md` is its table of contents). It describes what players see and do; the rules and reasoning behind them stay in the economy docs. Update it whenever a change is visible to players.
 
 ## [Game economy](economy/)
 
@@ -30,4 +34,4 @@ How the game runs: the HyperEmpire API, its data and its endpoints.
 | [endpoints.md](backend/endpoints.md) | Every endpoint, with requests, responses and errors |
 | [src/server/README.md](../src/server/README.md) | Running, testing and deploying the server |
 
-Keep each fact in one place: rules and numbers in the economy docs, art in graphics, how the code does it in backend. Link instead of repeating.
+Keep each fact in one place: rules and numbers in the economy docs, art in graphics, how the code does it in backend. Link instead of repeating. The gameplay guide is the exception: it restates numbers for players, so check it when economy numbers change.

@@ -1,0 +1,6 @@
+# GitBook Git Sync: publish the player-facing gameplay guide in docs/gameplay/.
+root: ./docs/gameplay/
+
+structure:
+  readme: README.md
+  summary: SUMMARY.md
