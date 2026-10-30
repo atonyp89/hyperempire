@@ -137,7 +137,7 @@ Adds `faucet` $gold (ledger kind `faucet`) and returns the same shape as `GET /g
 
 ## Garden
 
-A 4x4 field (`slot` 0–15, row by row). Seeds come in packs bought with $gold; a pack opens into 10 seeds, each rolling its grade with the Miners' odds (common 70%, uncommon 22%, rare 6.5%, epic 1.4%, legendary 0.1%). Planting uses one seed per plot; a plant grows through its stages on the clock and can be harvested once ripe, into the player's `inventory`. A better seed yields more: ×1, ×1.5, ×2, ×3, ×5 from common to legendary, rounded. Crops are in `rules/garden.ts` (`CROPS`); each has 3 stages (sprout, young, ripe). Wheat: a pack is 100 $gold, ripe in 3 minutes, 3 per common plant. Grapes: 250 $gold a pack, ripe in 6 minutes, 4 per common vine (test values). Item ids: `wheat` (the crop), `wheat-pack`, `wheat-seed:rare`. The in-browser dev server grows crops 10× faster (`Deps.gameSpeed`), so wheat ripens in 18 s there; `speed` in the view says which.
+A 4x4 field (`slot` 0–15, row by row). Seeds come in packs bought with $gold; a pack opens into 10 seeds, each rolling its grade with the Miners' odds (common 70%, uncommon 22%, rare 6.5%, epic 1.4%, legendary 0.1%). Planting uses one seed per plot; a plant grows through its stages on the clock and can be harvested once ripe, into the player's `inventory`. A better seed yields more: ×1, ×1.5, ×2, ×3, ×5 from common to legendary, rounded; yields are in tens so a +10% Farmer still shows. Crops are in `rules/garden.ts` (`CROPS`); each has 3 stages (sprout, young, ripe). Wheat: a pack is 100 $gold, ripe in 3 minutes, 30 per common plant. Grapes: 250 $gold a pack, ripe in 6 minutes, 40 per common vine (test values). Item ids: `wheat` (the crop), `wheat-pack`, `wheat-seed:rare`. The in-browser dev server grows crops 10× faster (`Deps.gameSpeed`), so wheat ripens in 18 s there; `speed` in the view says which.
 
 ### `GET /garden`
 
@@ -174,7 +174,7 @@ Body: `{ "seed": "wheat-seed:rare", "slot": 3 }` or `{ "seed": "wheat-seed:rare"
 Body: `{ "slot": 3 }` or `{ "slots": [3, 4] }`. Every named plot must be ripe (`409 not_ripe`) and planted (`409 plot_empty`). Empties them and adds their crops to the inventory, by each plot's seed grade:
 
 ```json
-{ "harvested": { "wheat": 6 }, "garden": { "…": "the GET /garden view" } }
+{ "harvested": { "wheat": 60 }, "garden": { "…": "the GET /garden view" } }
 ```
 
 

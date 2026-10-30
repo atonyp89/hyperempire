@@ -318,9 +318,9 @@ Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid 
 | | Now |
 | --- | --- |
 | Plots | 16 (4×4). More plots will come from Garden Mastery |
-| Crops | Wheat (pack 100 $gold, ripe in 3 min, 3 per common plant) and grapes (pack 250 $gold, ripe in 6 min, 4 per common vine). Times are test values |
+| Crops | Wheat (pack 100 $gold, ripe in 3 min, 30 per common plant) and grapes (pack 250 $gold, ripe in 6 min, 40 per common vine). Times are test values |
 | Seed packs | "Buy seed pack" opens the seed shop: a grid of packs (icon, price, Buy). Buying opens the pack at once and shows the 10 seeds it gave, each rolling its grade with the Miners' odds: common 70%, uncommon 22%, rare 6.5%, epic 1.4%, legendary 0.1%. A click anywhere closes the reveal |
-| Seed grades | A better seed yields more: ×1 / ×1.5 / ×2 / ×3 / ×5 (wheat 3 / 5 / 6 / 9 / 15; grapes 4 / 6 / 8 / 12 / 20). The average pack seed yields ×1.21. Seeds stack by crop and grade; a better seed's icon gets an outline in its grade's colour (green, blue, purple, gold; legendary glows), following the sprite's shape like the building highlight, and its plot gets a gem |
+| Seed grades | A better seed yields more: ×1 / ×1.5 / ×2 / ×3 / ×5 (wheat 30 / 45 / 60 / 90 / 150; grapes 40 / 60 / 80 / 120 / 200). Yields are in tens so a small bonus, such as a +10% Farmer, still shows after rounding. The average pack seed yields ×1.21. Seeds stack by crop and grade; a better seed's icon gets an outline in its grade's colour (green, blue, purple, gold; legendary glows), following the sprite's shape like the building highlight, and its plot gets a gem |
 | Growing | On the clock, no upkeep: sprout → young → ripe, evenly spaced. Wheat ripens in 3 minutes (a test value) |
 | Harvest | Ripe plants only; each gives its crop by seed grade into the inventory and empties its plot |
 | Shortcuts | Plant every empty plot, or harvest every ripe one, in one click |

@@ -420,7 +420,7 @@ describe('garden', () => {
     expect(stages).toEqual([0, 1, 2]);
   });
 
-  test('a better seed yields more: wheat 3 / 5 / 6 / 9 / 15 by grade', async () => {
+  test('a better seed yields more: wheat 30 / 45 / 60 / 90 / 150 by grade', async () => {
     const token = await ready();
     await call('POST', '/garden/buy', { crop: 'wheat' }, token);
     dice = [COMMON, UNCOMMON, RARE, EPIC, LEGENDARY];
@@ -430,7 +430,7 @@ describe('garden', () => {
     clock += 3 * MIN;
     const got = [];
     for (const slot of grades.keys()) got.push((await call('POST', '/garden/harvest', { slot }, token)).json.harvested.wheat);
-    expect(got).toEqual([3, 5, 6, 9, 15]);
+    expect(got).toEqual([30, 45, 60, 90, 150]);
   });
 
   test('harvest needs a ripe plant, then empties the plot and adds crops to the inventory', async () => {
@@ -442,8 +442,8 @@ describe('garden', () => {
     clock += 3 * MIN;
     const { status, json } = await call('POST', '/garden/harvest', { slots: [3, 4] }, token);
     expect(status).toBe(200);
-    expect(json.harvested).toEqual({ wheat: 6 });
-    expect(json.garden.inventory.wheat).toBe(6);
+    expect(json.harvested).toEqual({ wheat: 60 });
+    expect(json.garden.inventory.wheat).toBe(60);
     expect(json.garden.plots[3].crop).toBeNull();
     expect((await call('POST', '/garden/harvest', { slot: 3 }, token)).json.error).toBe('plot_empty');
   });
@@ -456,7 +456,7 @@ describe('garden', () => {
     const planted = (await call('POST', '/garden/plant', { seed: 'grapes-seed:common', slots: [0, 1] }, token)).json;
     expect(planted.plots[0]).toMatchObject({ crop: 'grapes', readyAt: clock + 6 * MIN });
     clock += 6 * MIN;
-    expect((await call('POST', '/garden/harvest', { slots: [0, 1] }, token)).json.harvested).toEqual({ grapes: 8 });
+    expect((await call('POST', '/garden/harvest', { slots: [0, 1] }, token)).json.harvested).toEqual({ grapes: 80 });
   });
 
   test('the dev game speed makes crops ripen sooner', async () => {
@@ -464,7 +464,7 @@ describe('garden', () => {
     const planted = (await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slot: 0 }, token)).json;
     expect([planted.speed, planted.plots[0].readyAt]).toEqual([10, clock + 18_000]);
     clock += 18_000;
-    expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 3 });
+    expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 30 });
   });
 
   test('plots, seeds and slots are checked, all or nothing', async () => {
@@ -516,6 +516,22 @@ describe('farmers', () => {
     expect((await call('POST', '/farmers/9999/assign', undefined, token)).status).toBe(404);
   });
 
+  test('a small yield bonus still counts: +10% turns 30 wheat into 33', async () => {
+    app = createApp({ ...deps, goldFaucet: 1_000 });
+    const token = await signIn();
+    await call('POST', '/gold/faucet', undefined, token);
+    await call('POST', '/garden/buy', { crop: 'wheat', open: true }, token);
+    // Two common Farmers with top yield rolls: +5% each.
+    dice = [COMMON, TOP, BOTTOM];
+    const a = (await call('POST', '/farmers/recruit', undefined, token)).json.farmer.id;
+    dice = [COMMON, TOP, BOTTOM];
+    const b = (await call('POST', '/farmers/recruit', undefined, token)).json.farmer.id;
+    for (const id of [a, b]) await call('POST', `/farmers/${id}/assign`, undefined, token);
+    await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slot: 0 }, token);
+    clock += 3 * 60_000;
+    expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 33 });
+  });
+
   test('working Farmers cut the growing time at planting and add yield at harvest', async () => {
     app = createApp({ ...deps, goldFaucet: 1_000 });
     const token = await signIn();
@@ -525,12 +541,12 @@ describe('farmers', () => {
     const id = (await call('POST', '/farmers/recruit', undefined, token)).json.farmer.id;
     await call('POST', `/farmers/${id}/assign`, undefined, token);
     const garden = (await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slot: 0 }, token)).json;
-    // Legendary, top rolls: +50% yield, −25% growing time: wheat ripens in 2m 15s and 3 becomes 5 (4.5, rounded).
+    // Legendary, top rolls: +50% yield, −25% growing time: wheat ripens in 2m 15s and 30 becomes 45.
     expect(garden.plots[0].readyAt).toBe(clock + 135_000);
     expect(garden.bonus).toEqual({ yieldPct: 50, growthPct: 25 });
     expect(garden.farmers).toHaveLength(1);
     clock += 135_000;
-    expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 5 });
+    expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 45 });
   });
 });
 

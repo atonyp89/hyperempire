@@ -55,11 +55,13 @@ export function useGarden(enabled = true) {
   });
   const [pops, setPops] = useState<HarvestPop[]>([]);
   const popId = useRef(0);
-  /** Float what each plot gave over it: its crop and yield, as the server counted them. */
-  const popHarvest = (slots: number[], plots: GardenPlotView[]) => {
+  /** Float what each plot gave over it: its crop and yield with the working Farmers' bonus, as the server counts. */
+  const popHarvest = (slots: number[], plots: GardenPlotView[], yieldPct: number) => {
     const added = slots.flatMap((slot): HarvestPop[] => {
       const p = plots[slot];
-      return p?.crop ? [{ id: ++popId.current, slot, item: p.crop, qty: yieldOf(CROPS[p.crop], p.grade ?? 'common') }] : [];
+      if (!p?.crop) return [];
+      const qty = Math.round(yieldOf(CROPS[p.crop], p.grade ?? 'common') * (1 + yieldPct / 100));
+      return [{ id: ++popId.current, slot, item: p.crop, qty }];
     });
     setPops((p) => [...p, ...added]);
     window.setTimeout(() => setPops((p) => p.filter((x) => !added.includes(x))), POP_MS);
@@ -124,7 +126,8 @@ export function useGarden(enabled = true) {
     harvest: (slots: number[]) => {
       if (busy || !data) return;
       const before = data.view.plots;
-      harvestM.mutate(slots, { onSuccess: () => popHarvest(slots, before) });
+      const yieldPct = data.view.bonus.yieldPct;
+      harvestM.mutate(slots, { onSuccess: () => popHarvest(slots, before, yieldPct) });
     },
     pops,
   };

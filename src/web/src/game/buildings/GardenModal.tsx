@@ -127,7 +127,8 @@ function Field({ g }: { g: Garden }) {
           <div className="small muted">
             {crop && seed?.grade ? (
               <>
-                Planting <span className={`strong grade-text-${seed.grade}`}>{seed.name}</span>: ripe in {timeLeft(growTime(crop, g.speed))}, {yieldOf(crop, seed.grade)} per
+                Planting <span className={`strong grade-text-${seed.grade}`}>{seed.name}</span>: ripe in {timeLeft(growTime(crop, g.speed) * (1 - g.bonus.growthPct / 100))},{' '}
+                {Math.round(yieldOf(crop, seed.grade) * (1 + g.bonus.yieldPct / 100))} per
                 plant. Click an empty plot to plant, a ripe one to harvest.
               </>
             ) : (

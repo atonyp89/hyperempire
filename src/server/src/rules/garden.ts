@@ -45,7 +45,7 @@ export const CROPS: Record<CropId, Crop> = {
     seedGold: 10,
     growMs: 3 * 60_000,
     stages: 3,
-    yield: 3,
+    yield: 30,
     sprite: '/empire/crops/wheat.png',
     icon: '/empire/items/wheat.png',
     seedIcon: '/empire/items/wheat-seed.png',
@@ -59,7 +59,7 @@ export const CROPS: Record<CropId, Crop> = {
     seedGold: 25,
     growMs: 6 * 60_000,
     stages: 3,
-    yield: 4,
+    yield: 40,
     sprite: '/empire/crops/grapes.png',
     icon: '/empire/items/grapes.png',
     seedIcon: '/empire/items/grapes-seed.png',
@@ -78,7 +78,10 @@ export const packGold = (crop: Crop) => crop.seedGold * PACK_SEEDS;
 /** Yield multiplier by seed grade; grades are rolled with the Miners' odds (70 / 22 / 6.5 / 1.4 / 0.1%). */
 export const SEED_YIELD: Record<Grade, number> = { common: 1, uncommon: 1.5, rare: 2, epic: 3, legendary: 5 };
 
-/** Crops one ripe plant gives: wheat 3 / 5 / 6 / 9 / 15 and grapes 4 / 6 / 8 / 12 / 20 from common to legendary. */
+/**
+ * Crops one ripe plant gives: wheat 30 / 45 / 60 / 90 / 150 and grapes 40 / 60 / 80 / 120 / 200 from common to
+ * legendary. Yields are in tens so a small bonus (a +10% Farmer) still shows after rounding.
+ */
 export const yieldOf = (crop: Crop, grade: Grade) => Math.round(crop.yield * SEED_YIELD[grade]);
 
 // Inventory item ids: the crop itself is "wheat"; a pack is "wheat-pack"; a seed is "wheat-seed:rare".
