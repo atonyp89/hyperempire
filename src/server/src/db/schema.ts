@@ -178,6 +178,8 @@ export const gardenPlots = pgTable(
     /** The seed's grade: index into GRADES (rules/mining.ts), 0 = common. */
     grade: smallint('grade').notNull().default(0),
     plantedAt: bigint('planted_at', { mode: 'number' }).notNull(),
+    /** Growing time it was planted with (Farmers and dev speed included); null on plots from before Farmers. */
+    growMs: bigint('grow_ms', { mode: 'number' }),
   },
   (t) => [primaryKey({ columns: [t.address, t.slot] })],
 );
@@ -191,4 +193,19 @@ export const inventory = pgTable(
     qty: bigint('qty', { mode: 'number' }).notNull().default(0),
   },
   (t) => [primaryKey({ columns: [t.address, t.item] })],
+);
+
+/** A Farmer: grade (index into GRADES), its two rolled perks in whole percent, and whether it works the Garden. */
+export const farmers = pgTable(
+  'farmers',
+  {
+    id: serial('id').primaryKey(),
+    address: text('address').notNull(),
+    grade: smallint('grade').notNull(),
+    yieldPct: smallint('yield_pct').notNull(),
+    growthPct: smallint('growth_pct').notNull(),
+    assigned: boolean('assigned').notNull().default(false),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [index('farmers_address').on(t.address)],
 );

@@ -4,8 +4,9 @@
 // shows how long is left. A harvest floats "+4" and the item's icon up from each plot it emptied.
 
 import type { CSSProperties } from 'react';
-import { CROPS, GARDEN_COLS, type GardenPlotView } from '@server/contract';
+import { CROPS, GARDEN_COLS, type FarmerView, type GardenPlotView } from '@server/contract';
 import type { HarvestPop } from '../hooks/useGarden';
+import { FarmerWalkers } from '../scene/FarmerWalkers';
 import { Hero, type HeroScene } from '../scene/Hero';
 import { itemInfo } from '../lib/items';
 
@@ -47,9 +48,11 @@ type Props = {
   pops: HarvestPop[];
   /** WASD moves the knight (off while a dialog is open over the Garden). */
   heroActive: boolean;
+  /** Farmers working the Garden: they wander the road. */
+  farmers: FarmerView[];
 };
 
-export function GardenField({ plots, now, seedName, onPlant, onHarvest, pops, heroActive }: Props) {
+export function GardenField({ plots, now, seedName, onPlant, onHarvest, pops, heroActive, farmers }: Props) {
   const { w, h, plot, step, x0, y0 } = GARDEN_FIELD;
   const boxOf = (slot: number): CSSProperties => ({
     left: pct(x0 + (slot % GARDEN_COLS) * step, w),
@@ -121,6 +124,7 @@ export function GardenField({ plots, now, seedName, onPlant, onHarvest, pops, he
             );
           })}
         </div>
+        <FarmerWalkers farmers={farmers} scene={GARDEN_SCENE} />
         <Hero active={heroActive} scene={GARDEN_SCENE} />
       </div>
     </div>

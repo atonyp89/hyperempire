@@ -329,6 +329,23 @@ Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid 
 
 Next: more crops, selling crops for $gold (and on the Marketplace), Garden Mastery XP from harvests (Green thumb speeds growth), and real growing times.
 
+### Farmers
+
+Farmers tend the Garden. They are recruited at the Tavern for 1,000 $aura (burned), like Miners, and roll a grade with the Miners' odds (common 70%, uncommon 22%, rare 6.5%, epic 1.4%, legendary 0.1%). Each Farmer then rolls two perks, each a whole percent within its grade's range: the grade caps how good it can be.
+
+| Grade | Yield bonus | Growing time |
+| --- | --- | --- |
+| Common | +1–5% | −1–4% |
+| Uncommon | +4–10% | −3–8% |
+| Rare | +8–18% | −6–12% |
+| Epic | +15–30% | −10–18% |
+| Legendary | +25–50% | −15–25% |
+
+- **Working the Garden:** up to 3 Farmers at once; their perks add up. The growing-time cut is capped at −60% in total.
+- **When perks apply:** the growing-time cut is fixed when a seed is planted (crops already in the ground keep theirs); the yield bonus applies at harvest, per plant, rounded.
+- **In the scene:** working Farmers wander the Garden's road; a Farmer above common has a thin outline in its grade's colour.
+- **Next:** more Tavern recruits (heroes), Farmer upkeep or levels, and a Tavern Mastery.
+
 ## Crafting, gear and materials (later)
 
 The Workshop crafts Picks in Phase 2; gear crafting follows.

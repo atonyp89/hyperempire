@@ -9,6 +9,8 @@ import { useGarden, type Garden } from '../hooks/useGarden';
 import { itemInfo } from '../lib/items';
 import { Inventory, type Stack } from '../ui/Inventory';
 import { Overlay } from '../ui/Overlay';
+import { useFarmers } from '../hooks/useFarmers';
+import { farmerName, farmerPerks, farmerPortrait } from '../lib/farmers';
 import { GardenField, timeLeft } from './GardenField';
 
 type Props = { open: boolean; onClose: () => void };
@@ -67,6 +69,8 @@ function Field({ g }: { g: Garden }) {
   const seeds = stacks.filter((s) => itemInfo(s.id).kind === 'seed');
   const [pickedId, setPicked] = useState<string | null>(null);
   const [shop, setShop] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const f = useFarmers();
   // The picked seed, or the first (best) one held when the pick runs out.
   const picked = seeds.find((s) => s.id === pickedId) ?? seeds[0] ?? null;
   const seed = picked ? itemInfo(picked.id) : null;
@@ -93,7 +97,8 @@ function Field({ g }: { g: Garden }) {
         onPlant={(slot) => picked && g.plant(picked.id, [slot])}
         onHarvest={(slot) => g.harvest([slot])}
         pops={g.pops}
-        heroActive={!shop && !g.opened}
+        heroActive={!shop && !g.opened && !picking}
+        farmers={g.farmers}
       />
       <div className="garden-side">
         <section className="panel garden-panel" aria-label="Field">
@@ -131,6 +136,37 @@ function Field({ g }: { g: Garden }) {
           </div>
         </section>
 
+        <section className="panel garden-panel" aria-label="Farmers">
+          <div className="garden-head">
+            <span className="label">
+              FARMERS · {f.working.length}/{f.slots}
+            </span>
+            {(g.bonus.yieldPct > 0 || g.bonus.growthPct > 0) && <span className="small mono gold">{farmerPerks(g.bonus)}</span>}
+          </div>
+          <div className="farmer-slots">
+            {Array.from({ length: f.slots }, (_, i) => {
+              const x = f.working[i];
+              return x ? (
+                <div key={x.id} className={`farmer-slot grade-${x.grade}`} title={`${farmerName(x)}: ${farmerPerks(x)}`}>
+                  <span className="farmer-portrait inv-icon" style={farmerPortrait} aria-hidden="true" />
+                  <span className="farmer-slot-text">
+                    <span className={`strong small grade-text-${x.grade}`}>{farmerName(x)}</span>
+                    <span className="small mono">{farmerPerks(x)}</span>
+                  </span>
+                  <button type="button" className="pack-close" onClick={() => f.assign(x.id, false)} aria-label={`Send ${farmerName(x)} to rest`}>
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <button key={`empty-${i}`} type="button" className="farmer-slot empty" onClick={() => setPicking(true)}>
+                  + ADD A FARMER
+                </button>
+              );
+            })}
+          </div>
+          <div className="small muted">Their growth cut applies to what you plant while they work; the yield bonus applies at harvest.</div>
+        </section>
+
         <section className="panel garden-panel" aria-label="Inventory">
           <div className="garden-head">
             <span className="label">INVENTORY</span>
@@ -163,6 +199,39 @@ function Field({ g }: { g: Garden }) {
         />
       )}
       {g.opened && <Opened ids={g.opened} onClose={g.dismissOpened} />}
+      {picking && (
+        <Overlay label="Choose a Farmer" onClose={() => setPicking(false)} className="seed-shop-dialog">
+          <div className="garden-head">
+            <span className="label">CHOOSE A FARMER</span>
+            <button type="button" className="pack-close" onClick={() => setPicking(false)} aria-label="Close">
+              ✕
+            </button>
+          </div>
+          {f.farmers.some((x) => !x.assigned) ? (
+            <div className="farmer-roster">
+              {f.farmers
+                .filter((x) => !x.assigned)
+                .map((x) => (
+                  <button
+                    key={x.id}
+                    type="button"
+                    className={`farmer-card grade-${x.grade}`}
+                    onClick={() => {
+                      f.assign(x.id, true);
+                      setPicking(false);
+                    }}
+                  >
+                    <span className="farmer-portrait inv-icon" style={farmerPortrait} aria-hidden="true" />
+                    <span className={`strong grade-text-${x.grade}`}>{farmerName(x)}</span>
+                    <span className="small mono">{farmerPerks(x)}</span>
+                  </button>
+                ))}
+            </div>
+          ) : (
+            <div className="small muted">No resting Farmers. Recruit them at the Tavern in town.</div>
+          )}
+        </Overlay>
+      )}
     </div>
   );
 }

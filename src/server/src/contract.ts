@@ -8,6 +8,7 @@ import type { Grade, PoolId, PoolKind } from './rules/mining';
 export * from './rules/empire';
 export { DAILY_EMISSION, marginalShare } from './rules/exchange';
 export { GOLD_FAUCET } from './rules/gold';
+export { FARMER_PERKS, FARMER_RECRUIT_AURA, FARMER_SLOTS, MAX_GROWTH_CUT } from './rules/farmers';
 export { CROPS, cropOfPack, cropStage, GARDEN_COLS, GARDEN_PLOTS, GARDEN_ROWS, growTime, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, SEED_YIELD, seedItem, yieldOf } from './rules/garden';
 export type { Crop, CropId } from './rules/garden';
 export { EXCHANGE_PERKS, MASTERY_PERKS, WHALE_DAILY_VOLUME, XP_PER_USD_FEE, xpForLevel, xpToNext } from './rules/mastery';
@@ -46,7 +47,22 @@ export type GardenPlotView = {
  * The Garden: 16 plots row by row, held items by id, $gold, the server's clock (to count down from) and how fast
  * crops grow (1, or more on the dev server).
  */
-export type GardenView = { now: number; speed: number; plots: GardenPlotView[]; inventory: Record<string, number>; gold: number };
+export type GardenView = {
+  now: number;
+  speed: number;
+  plots: GardenPlotView[];
+  inventory: Record<string, number>;
+  gold: number;
+  /** The Farmers working the Garden, and what their perks add up to. */
+  farmers: FarmerView[];
+  bonus: FarmerBonus;
+};
+
+/** A Farmer: grade and its two rolled perks in whole percent (+yield, −growing time). */
+export type FarmerView = { id: number; grade: Grade; yieldPct: number; growthPct: number; assigned: boolean };
+export type FarmerBonus = { yieldPct: number; growthPct: number };
+/** Every Farmer the player has, how many can work the Garden, the recruit price and the working Farmers' bonus. */
+export type FarmersView = { farmers: FarmerView[]; slots: number; recruitAura: number; bonus: FarmerBonus };
 export type HarvestResponse = { harvested: Record<string, number>; garden: GardenView };
 /** The seeds the opened packs gave, as item ids in the order they were rolled. */
 export type OpenPacksResponse = { opened: string[]; garden: GardenView };

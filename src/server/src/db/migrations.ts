@@ -162,6 +162,24 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
       UPDATE inventory SET item = item || ':common' WHERE item IN ('wheat-seed', 'grapes-seed');
     `,
   },
+  {
+    // Farmers: recruited at the Tavern with a grade and two rolled perks; up to 3 work the Garden. A plot now keeps
+    // the growing time it was planted with (the Farmers' cut and the dev speed included); older plots have none.
+    id: '0008_farmers',
+    sql: `
+      CREATE TABLE farmers (
+        id serial PRIMARY KEY,
+        address text NOT NULL,
+        grade smallint NOT NULL,
+        yield_pct smallint NOT NULL,
+        growth_pct smallint NOT NULL,
+        assigned boolean NOT NULL DEFAULT false,
+        created_at timestamptz NOT NULL DEFAULT now()
+      );
+      CREATE INDEX farmers_address ON farmers (address);
+      ALTER TABLE garden_plots ADD COLUMN grow_ms bigint;
+    `,
+  },
 ];
 
 export async function migrate(db: Db) {

@@ -1,4 +1,4 @@
-// Composition root: the game (header, scene, Townhall, Garden) and the trading terminal (in the Exchange building),
+// Composition root: the game (header, scene, Townhall, Garden, Tavern) and the trading terminal (in the Exchange building),
 // each behind its own error boundary so one crashing never takes the other down.
 
 import { useCallback, useEffect, useState } from 'react';
@@ -6,6 +6,7 @@ import { Header } from './game/Header';
 import { EmpireScene, type BuildingId } from './game/scene/EmpireScene';
 import { ExchangeModal } from './game/buildings/ExchangeModal';
 import { GardenModal } from './game/buildings/GardenModal';
+import { TavernModal } from './game/buildings/TavernModal';
 import { TownhallModal } from './game/buildings/TownhallModal';
 import { useTownhall } from './game/hooks/useTownhall';
 import { useDayPhase } from './game/hooks/useDayPhase';
@@ -13,8 +14,8 @@ import { ErrorBoundary } from './shared/ui/ErrorBoundary';
 import { captureReferral } from './trading';
 import './game/game.css';
 
-/** Building screens open from the scene and deep-link by hash (`#exchange`, `#townhall`, `#garden`). */
-const SCREENS = ['exchange', 'townhall', 'garden'] as const;
+/** Building screens open from the scene and deep-link by hash (`#exchange`, `#townhall`, `#garden`, `#tavern`). */
+const SCREENS = ['exchange', 'townhall', 'garden', 'tavern'] as const;
 type Screen = Extract<BuildingId, (typeof SCREENS)[number]> | null;
 const isScreen = (v: string): v is NonNullable<Screen> => (SCREENS as readonly string[]).includes(v);
 const screenFromHash = (): Screen => {
@@ -58,6 +59,9 @@ export function App() {
         </ErrorBoundary>
         <ErrorBoundary name="Garden">
           <GardenModal open={screen === 'garden'} onClose={close} />
+        </ErrorBoundary>
+        <ErrorBoundary name="Tavern">
+          <TavernModal open={screen === 'tavern'} onClose={close} />
         </ErrorBoundary>
       </div>
       <ExchangeModal open={screen === 'exchange'} onClose={close} />

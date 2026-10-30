@@ -17,6 +17,8 @@ export function useGold() {
     onSuccess: (r) => {
       qc.setQueryData(key, r);
       void qc.invalidateQueries({ queryKey: ['me', NETWORK] });
+      // The Garden shows $gold too (seed packs are bought with it).
+      void qc.invalidateQueries({ queryKey: ['garden', NETWORK] });
     },
   });
 

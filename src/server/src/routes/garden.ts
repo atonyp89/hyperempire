@@ -1,5 +1,6 @@
 // The Garden: buy seed packs with $gold, open them into 10 seeds of random grades, plant seeds in a 4x4 field, let
-// them grow on the clock, and harvest ripe plants into the inventory (better seeds yield more). Plant and harvest
+// them grow on the clock, and harvest ripe plants into the inventory (better seeds yield more). Working Farmers
+// cut the growing time of what is planted while they work, and add yield at harvest. Plant and harvest
 // take one or many plots at once; each call is all-or-nothing.
 
 import { and, eq, inArray } from 'drizzle-orm';
@@ -10,6 +11,8 @@ import type { Env } from '../env';
 import { badRequest, conflict } from '../errors';
 import { addItem, itemsOf, takeItem } from '../inventory';
 import { debitGold, goldOf } from '../ledger';
+import { farmerBonus } from '../rules/farmers';
+import { gardenFarmers } from './farmers';
 import { CROPS, cropStage, GARDEN_PLOTS, growTime, isCropId, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, seedItem, yieldOf, type Crop, type CropId } from '../rules/garden';
 import { GRADES, rollGrade, type Grade } from '../rules/mining';
 import type { GardenPlotView, GardenView, HarvestResponse, OpenPacksResponse } from '../contract';
@@ -47,18 +50,30 @@ async function openPacks(tx: Conn, address: string, crop: Crop, qty: number, ran
   return opened;
 }
 
+/** When a plot planted at `plantedAt` ripens: its stored growing time, or the plain one for older plots. */
+const readyAtOf = (crop: Crop, p: { plantedAt: number; growMs: number | null }, speed: number) => p.plantedAt + (p.growMs ?? growTime(crop, speed));
+
 async function view(tx: Conn, address: string, now: number, speed: number): Promise<GardenView> {
   const planted = await tx.select().from(gardenPlots).where(eq(gardenPlots.address, address));
+  const working = await gardenFarmers(tx, address);
   const bySlot = new Map(planted.map((p) => [p.slot, p]));
   const plots = Array.from({ length: GARDEN_PLOTS }, (_, slot): GardenPlotView => {
     const p = bySlot.get(slot);
     if (!p || !isCropId(p.crop)) return { slot, crop: null, grade: null, plantedAt: null, readyAt: null, stage: 0, ripe: false };
     const crop = CROPS[p.crop];
-    const readyAt = p.plantedAt + growTime(crop, speed);
+    const readyAt = readyAtOf(crop, p, speed);
     const stage = cropStage(crop, p.plantedAt, readyAt, now);
     return { slot, crop: crop.id, grade: gradeOf(p.grade), plantedAt: p.plantedAt, readyAt, stage, ripe: stage === crop.stages - 1 };
   });
-  return { now, speed, plots, inventory: await itemsOf(tx, address), gold: await goldOf(tx, address) };
+  return {
+    now,
+    speed,
+    plots,
+    inventory: await itemsOf(tx, address),
+    gold: await goldOf(tx, address),
+    farmers: working.map((f) => ({ id: f.id, grade: GRADES[f.grade] ?? 'common', yieldPct: f.yieldPct, growthPct: f.growthPct, assigned: true })),
+    bonus: farmerBonus(working),
+  };
 }
 
 export const garden = new Hono<Env>()
@@ -108,9 +123,12 @@ export const garden = new Hono<Env>()
     const slots = slotsOf(body);
     const t = now();
     const result = await db.transaction(async (tx) => {
+      // The working Farmers' cut is fixed when the seed goes in.
+      const { growthPct } = farmerBonus(await gardenFarmers(tx, address));
+      const growMs = Math.round(growTime(crop, speed) * (1 - growthPct / 100));
       const added = await tx
         .insert(gardenPlots)
-        .values(slots.map((slot) => ({ address, slot, crop: crop.id, grade: GRADES.indexOf(seed.grade), plantedAt: t })))
+        .values(slots.map((slot) => ({ address, slot, crop: crop.id, grade: GRADES.indexOf(seed.grade), plantedAt: t, growMs })))
         .onConflictDoNothing()
         .returning({ slot: gardenPlots.slot });
       if (added.length !== slots.length) throw conflict('Something is already growing there.', 'plot_taken');
@@ -133,11 +151,13 @@ export const garden = new Hono<Env>()
         .returning();
       if (rows.length !== slots.length) throw conflict('Nothing is growing there.', 'plot_empty');
       const got: Record<string, number> = {};
+      const { yieldPct } = farmerBonus(await gardenFarmers(tx, address));
       for (const p of rows) {
         if (!isCropId(p.crop)) throw conflict('Unknown crop in that plot.', 'plot_empty');
         const crop = CROPS[p.crop];
-        if (cropStage(crop, p.plantedAt, p.plantedAt + growTime(crop, speed), t) < crop.stages - 1) throw conflict(`${crop.name} isn’t ripe yet.`, 'not_ripe');
-        got[crop.id] = (got[crop.id] ?? 0) + yieldOf(crop, gradeOf(p.grade));
+        if (cropStage(crop, p.plantedAt, readyAtOf(crop, p, speed), t) < crop.stages - 1) throw conflict(`${crop.name} isn’t ripe yet.`, 'not_ripe');
+        // The working Farmers' yield bonus applies at harvest, per plant, rounded.
+        got[crop.id] = (got[crop.id] ?? 0) + Math.round(yieldOf(crop, gradeOf(p.grade)) * (1 + yieldPct / 100));
       }
       for (const [item, qty] of Object.entries(got)) await addItem(tx, address, item, qty);
       return { harvested: got, garden: await view(tx, address, t, speed) };

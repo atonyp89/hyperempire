@@ -5,7 +5,7 @@ import { useMe, useSession } from '../shared/session';
 import type { useDayPhase } from './hooks/useDayPhase';
 import { useGold } from './hooks/useGold';
 
-type Props = { referral: string | null; onOpen: (id: 'exchange' | 'townhall') => void; day: ReturnType<typeof useDayPhase> };
+type Props = { referral: string | null; onOpen: (id: 'exchange' | 'townhall' | 'tavern') => void; day: ReturnType<typeof useDayPhase> };
 
 const PHASE_LABEL = { morning: ['☀', 'MORNING'], evening: ['◐', 'EVENING'], night: ['☾', 'NIGHT'] } as const;
 
@@ -16,7 +16,7 @@ export function Header({ referral, onOpen, day }: Props) {
       <nav className="nav" aria-label="Sections">
         <button type="button" className="nav-link" onClick={() => onOpen('townhall')}>TOWNHALL</button>
         <button type="button" className="nav-link" onClick={() => onOpen('exchange')}>EXCHANGE</button>
-        <span className="soon">TAVERN · SOON</span>
+        <button type="button" className="nav-link" onClick={() => onOpen('tavern')}>TAVERN</button>
         <span className="soon">LEADERBOARD · SOON</span>
       </nav>
       <div className="header-right">

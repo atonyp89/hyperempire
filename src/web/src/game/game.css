@@ -334,3 +334,37 @@
   .game .inv-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .game .pack-seeds { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 }
+
+/* Farmers (TavernModal, GardenModal, scene/FarmerWalkers): portraits are the idle sheet's first south frame; a
+   Farmer's grade outlines it like a seed's. Walkers use the knight's sheet layout and frame animation. */
+.game .farmer-portrait { display: inline-block; width: 32px; height: 32px; image-rendering: pixelated; background-repeat: no-repeat; }
+.game .farmer-portrait.inv-icon { position: static; inset: auto; }
+.game .farmer-portrait.big { width: 96px; height: 96px; flex-shrink: 0; }
+.game .tavern-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; padding: 10px; align-items: start; }
+.game .tavern-recruit { display: flex; gap: 12px; align-items: center; }
+.game .farmer-odds td { padding: 6px 10px 6px 0; }
+.game .farmer-roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.game .farmer-card { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 6px; text-align: center; color: inherit; font: inherit; background: var(--slate-900); border: 2px solid var(--ink); }
+.game button.farmer-card { cursor: pointer; }
+.game button.farmer-card:hover { border-color: var(--gold); }
+.game .farmer-card .farmer-portrait { width: 64px; height: 64px; }
+.game .farmer-slots { display: flex; flex-direction: column; gap: 6px; }
+.game .farmer-slot { display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 4px 8px; background: var(--slate-900); border: 2px solid var(--ink); color: inherit; font: inherit; }
+.game .farmer-slot.empty { justify-content: center; color: var(--muted); font-family: var(--pixel); font-size: 10px; letter-spacing: 1px; border-style: dashed; cursor: pointer; }
+.game .farmer-slot.empty:hover { border-color: var(--gold); color: var(--gold); }
+.game .farmer-slot .farmer-portrait { width: 40px; height: 40px; }
+.game .farmer-slot-text { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.game .farmer-reveal .farmer-portrait { width: 128px; height: 128px; }
+.game .farmer-walker {
+  position: absolute; pointer-events: none; image-rendering: pixelated;
+  background: var(--idle) no-repeat; background-size: 400% 800%; background-position-y: calc(var(--row, 0) * 100% / 7);
+  animation: hero-frames 1.6s steps(4) infinite;
+}
+.game .farmer-walker.walking { background-image: var(--walk); animation-duration: 0.8s; }
+.game .farmer-walker.grade-uncommon { --g: var(--grade-uncommon); }
+.game .farmer-walker.grade-rare { --g: var(--grade-rare); }
+.game .farmer-walker.grade-epic { --g: var(--grade-epic); }
+.game .farmer-walker.grade-legendary { --g: var(--grade-legendary); }
+.game .farmer-walker:not(.grade-common) { filter: drop-shadow(1px 0 0 var(--g)) drop-shadow(-1px 0 0 var(--g)) drop-shadow(0 1px 0 var(--g)) drop-shadow(0 -1px 0 var(--g)); }
+@media (prefers-reduced-motion: reduce) { .game .farmer-walker { animation: none; } }
+@media (max-width: 760px) { .game .tavern-grid { grid-template-columns: minmax(0, 1fr); } }

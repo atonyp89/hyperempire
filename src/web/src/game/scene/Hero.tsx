@@ -22,7 +22,7 @@ export type HeroScene = {
 
 /** Sheet rows, in the order of idle.png and walk.png (4 frames of 32x32 per row). */
 export const DIRS = ['south', 'south-west', 'west', 'north-west', 'north', 'north-east', 'east', 'south-east'] as const;
-type Dir = (typeof DIRS)[number];
+export type Dir = (typeof DIRS)[number];
 
 const FRAME = 32;
 /** Drawn a little under 1:1 so the knight sits better next to the buildings. */
@@ -74,9 +74,9 @@ function occlude(occluders: Occluder[], left: number, top: number, w: number, h:
 }
 
 /** A scene's road mask, 1 per walkable pixel, loaded once per mask. Null if it fails to load (then nothing is blocked). */
-type Roads = { w: number; h: number; px: Uint8Array } | null;
+export type Roads = { w: number; h: number; px: Uint8Array } | null;
 const roadMasks = new Map<string, Promise<Roads>>();
-function loadRoads(scene: HeroScene): Promise<Roads> {
+export function loadRoads(scene: HeroScene): Promise<Roads> {
   let p = roadMasks.get(scene.walkable);
   if (!p) {
     p = new Promise<Roads>((resolve) => {
@@ -101,7 +101,7 @@ function loadRoads(scene: HeroScene): Promise<Roads> {
 }
 
 /** True when the feet at (x, y) stand fully on the road. */
-function onRoad(roads: Roads, x: number, y: number) {
+export function onRoad(roads: Roads, x: number, y: number) {
   if (!roads) return true;
   const fy = Math.round(y);
   for (let fx = Math.round(x) - FOOT; fx <= Math.round(x) + FOOT; fx++) {
@@ -118,7 +118,7 @@ const KEYS: Record<string, [number, number]> = {
 };
 
 /** Facing for a movement vector (screen y grows downwards). */
-function facing(dx: number, dy: number): Dir {
+export function facing(dx: number, dy: number): Dir {
   const h = dx < 0 ? 'west' : dx > 0 ? 'east' : '';
   const v = dy < 0 ? 'north' : dy > 0 ? 'south' : '';
   return (v && h ? `${v}-${h}` : v || h) as Dir;

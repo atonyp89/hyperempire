@@ -485,6 +485,55 @@ describe('garden', () => {
   });
 });
 
+describe('farmers', () => {
+  const LEGENDARY = 0.9995, COMMON = 0.1, TOP = 0.999, BOTTOM = 0;
+
+  test('recruiting burns 1,000 $aura and rolls a grade and both perks in its range', async () => {
+    const token = await signIn();
+    dice = [LEGENDARY, TOP, BOTTOM];
+    const { status, json } = await call('POST', '/farmers/recruit', undefined, token);
+    expect(status).toBe(200);
+    expect(json.farmer).toMatchObject({ grade: 'legendary', yieldPct: 50, growthPct: 15, assigned: false });
+    expect((await call('GET', '/me', undefined, token)).json.aura).toBe(4_000);
+    dice = [COMMON, BOTTOM, TOP];
+    expect((await call('POST', '/farmers/recruit', undefined, token)).json.farmer).toMatchObject({ grade: 'common', yieldPct: 1, growthPct: 4 });
+    expect((await call('GET', '/farmers', undefined, token)).json).toMatchObject({ slots: 3, recruitAura: 1_000, bonus: { yieldPct: 0, growthPct: 0 } });
+  });
+
+  test('up to 3 work the Garden; their perks add up', async () => {
+    const token = await signIn();
+    const ids = [];
+    for (let i = 0; i < 4; i++) {
+      dice = [COMMON, TOP, TOP];
+      ids.push((await call('POST', '/farmers/recruit', undefined, token)).json.farmer.id);
+    }
+    for (const id of ids.slice(0, 3)) expect((await call('POST', `/farmers/${id}/assign`, undefined, token)).status).toBe(200);
+    const full = await call('POST', `/farmers/${ids[3]}/assign`, undefined, token);
+    expect([full.status, full.json.error]).toEqual([409, 'garden_full']);
+    expect((await call('GET', '/farmers', undefined, token)).json.bonus).toEqual({ yieldPct: 15, growthPct: 12 });
+    await call('POST', `/farmers/${ids[0]}/unassign`, undefined, token);
+    expect((await call('POST', `/farmers/${ids[3]}/assign`, undefined, token)).status).toBe(200);
+    expect((await call('POST', '/farmers/9999/assign', undefined, token)).status).toBe(404);
+  });
+
+  test('working Farmers cut the growing time at planting and add yield at harvest', async () => {
+    app = createApp({ ...deps, goldFaucet: 1_000 });
+    const token = await signIn();
+    await call('POST', '/gold/faucet', undefined, token);
+    await call('POST', '/garden/buy', { crop: 'wheat', open: true }, token);
+    dice = [LEGENDARY, TOP, TOP];
+    const id = (await call('POST', '/farmers/recruit', undefined, token)).json.farmer.id;
+    await call('POST', `/farmers/${id}/assign`, undefined, token);
+    const garden = (await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slot: 0 }, token)).json;
+    // Legendary, top rolls: +50% yield, −25% growing time: wheat ripens in 2m 15s and 3 becomes 5 (4.5, rounded).
+    expect(garden.plots[0].readyAt).toBe(clock + 135_000);
+    expect(garden.bonus).toEqual({ yieldPct: 50, growthPct: 25 });
+    expect(garden.farmers).toHaveLength(1);
+    clock += 135_000;
+    expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 5 });
+  });
+});
+
 describe('admin', () => {
   const basic = (user: string, password: string, ip?: string) => ({
     authorization: `Basic ${btoa(`${user}:${password}`)}`,

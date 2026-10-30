@@ -27,6 +27,9 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | POST | [`/garden/open`](#post-gardenopen) | Open seed packs into 10 graded seeds each |
 | POST | [`/garden/plant`](#post-gardenplant) | Plant a seed from the inventory |
 | POST | [`/garden/harvest`](#post-gardenharvest) | Harvest ripe plants |
+| GET | [`/farmers`](#get-farmers) | Your Farmers, Garden slots, recruit price, working bonus |
+| POST | [`/farmers/recruit`](#post-farmersrecruit) | Recruit a Farmer for $aura |
+| POST | [`/farmers/:id/assign`](#post-farmersidassign) | Put a Farmer to work in the Garden (or `/unassign`) |
 | GET | [`/exchange`](#get-exchange) | Today's $aura pool, your share, recent days |
 | GET | [`/mastery/:building`](#get-masterybuilding) | A building's Mastery: level, XP, points, perks |
 | POST | [`/mastery/:building/perks`](#post-masterybuildingperks) | Add a perk rank |
@@ -173,6 +176,32 @@ Body: `{ "slot": 3 }` or `{ "slots": [3, 4] }`. Every named plot must be ripe (`
 ```json
 { "harvested": { "wheat": 6 }, "garden": { "…": "the GET /garden view" } }
 ```
+
+
+## Farmers
+
+Recruited at the Tavern; up to 3 work the Garden. Rules in `rules/farmers.ts`: grade with the Miners' odds, then a yield perk and a growth perk rolled within the grade's range (`FARMER_PERKS`). The Garden's view also lists the working Farmers (`farmers`) and their total (`bonus`). Their growth cut is stored on each plot when it's planted (`garden_plots.grow_ms`); the yield bonus applies at harvest.
+
+### `GET /farmers`
+
+```json
+{
+  "farmers": [{ "id": 3, "grade": "rare", "yieldPct": 14, "growthPct": 9, "assigned": true }],
+  "slots": 3,
+  "recruitAura": 1000,
+  "bonus": { "yieldPct": 14, "growthPct": 9 }
+}
+```
+
+`bonus.growthPct` is capped at 60.
+
+### `POST /farmers/recruit`
+
+Burns 1,000 $aura (ledger kind `tavern:farmer`, `402 not_enough_aura` if short) and rolls a Farmer with `Deps.random`. Returns `GET /farmers` plus `farmer`, the new one.
+
+### `POST /farmers/:id/assign`, `POST /farmers/:id/unassign`
+
+Puts a Farmer to work in the Garden or takes it off; returns `GET /farmers`. `409 garden_full` when 3 already work, `404` for someone else's Farmer.
 
 ## Exchange
 

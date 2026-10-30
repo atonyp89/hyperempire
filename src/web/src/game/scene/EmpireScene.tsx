@@ -46,7 +46,7 @@ const plateAt = (b: Building) =>
 
 const BUILDINGS: Building[] = [
   { id: 'townhall', name: 'TOWNHALL', detail: 'LEVEL UP · MASTERY', about: "Your empire's heart. Spend $aura to level up: every building's Mastery can grow as high as your Townhall.", box: fromCrop(106, 9, 100, 73), ready: true, sprite: '/empire/townhall.png' },
-  { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT HEROES', about: 'Recruit heroes and send them on adventures. Coming soon…', box: fromCrop(1, 18, 71, 66), plate: { x: 44, y: 48 }, ready: false, sprite: '/empire/tavern.png' },
+  { id: 'tavern', name: 'TAVERN', detail: 'RECRUIT FARMERS', about: 'Recruit Farmers to tend your Garden. Heroes come later.', box: fromCrop(1, 18, 71, 66), plate: { x: 44, y: 48 }, ready: true, sprite: '/empire/tavern.png' },
   { id: 'exchange', name: 'EXCHANGE', detail: 'TRADE PERPS · EARN $AURA', about: 'Trade Hyperliquid perps. Your builder fees earn a share of the daily $aura pool.', box: fromCrop(248, 11, 60, 70), plate: { x: 278, y: 39 }, ready: true, sprite: '/empire/exchange.png' },
   { id: 'market', name: 'MARKETPLACE', detail: 'BUY · SELL ITEMS', about: 'Trade $gold, crops and items with other players for $aura. Sellers pay a 10% tax. Coming soon…', box: fromCrop(255, 101, 58, 60), plate: { x: 284, y: 112 }, ready: false, sprite: '/empire/market.png' },
   { id: 'garden', name: 'GARDEN', detail: 'PLANT · GROW · HARVEST', about: 'Plant seeds with $gold, watch them grow, and harvest your crops.', box: fromCrop(0, 113, 77, 67), ready: true },

@@ -10,6 +10,9 @@ import { useSession } from '../../shared/session';
 
 /** A "+4" that floats up from a harvested plot and fades. */
 export type HarvestPop = { id: number; slot: number; item: string; qty: number };
+/** A stable empty list, so the Farmers' walking loop isn't restarted on every render. */
+const NO_FARMERS: GardenView['farmers'] = [];
+
 /** How long a pop stays on screen; matches the `harvest-pop` animation in game.css. */
 const POP_MS = 1400;
 
@@ -100,6 +103,9 @@ export function useGarden(enabled = true) {
     now,
     plots,
     gold: data?.view.gold ?? 0,
+    /** Farmers working the Garden, and what their perks add up to. */
+    farmers: data?.view.farmers ?? NO_FARMERS,
+    bonus: data?.view.bonus ?? { yieldPct: 0, growthPct: 0 },
     /** How fast crops grow: 1, or more on the dev server. */
     speed: data?.view.speed ?? 1,
     inventory: data?.view.inventory ?? {},
