@@ -1,0 +1,42 @@
+$schema: https://api.gitbook.com/gitbook-docs.yaml
+version: 1
+site:
+  title: HyperEmpire
+  structure:
+    - type: section
+      key: section-gameplay
+      title: Gameplay
+      path: gameplay
+      default: true
+      children:
+        - type: space
+          key: space-gameplay-guide
+          title: Gameplay guide
+          path: guide
+          default: true
+          content:
+            directory: ./docs/gameplay
+    - type: section
+      key: section-team
+      title: Team docs
+      path: team
+      children:
+        - type: space
+          key: space-economy
+          title: Game economy
+          path: economy
+          default: true
+          content:
+            directory: ./docs/economy
+        - type: space
+          key: space-graphics
+          title: Graphics and design
+          path: graphics
+          content:
+            directory: ./docs/graphics
+        - type: space
+          key: space-backend
+          title: Backend API
+          path: backend
+          content:
+            directory: ./docs/backend
