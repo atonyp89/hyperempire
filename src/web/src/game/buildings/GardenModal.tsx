@@ -1,9 +1,10 @@
 // The Garden screen: a 4x4 field where seeds from the inventory grow on the clock and are harvested back into it.
 // Seeds come in packs bought with $gold; a pack opens into 10 seeds of random grades, and better seeds yield more.
-// The working Farmers get hungry: the Kitchen tab mills wheat into flour and bakes flour into bread to feed them.
+// The working Farmers get hungry and lose happiness: the Kitchen tab mills wheat into flour and bakes flour into
+// bread to feed them, and ferments grapes into wine to cheer them up.
 
-import { useEffect, useState } from 'react';
-import { CROPS, cropPrice, GRADES, growTime, HUNGER_FULL, MAX_CRAFTS, RECIPES, sellGold, PACK_SEEDS, packGold, packItem, SEED_YIELD, yieldOf, type CropId, type FarmerView, type Recipe } from '@server/contract';
+import { useEffect, useState, type ReactNode } from 'react';
+import { CROPS, cropPrice, GRADES, growTime, HAPPINESS_FULL, HAPPY_AT, HUNGER_FULL, MAX_CRAFTS, moodOf, RECIPES, sellGold, PACK_SEEDS, packGold, packItem, SEED_YIELD, yieldOf, type CropId, type FarmerView, type Recipe } from '@server/contract';
 import { fmtAura } from '../../shared/format';
 import { BuildingModal } from '../../shared/ui/BuildingModal';
 import { useGarden, type Garden } from '../hooks/useGarden';
@@ -11,7 +12,7 @@ import { itemInfo } from '../lib/items';
 import { Inventory, type Stack } from '../ui/Inventory';
 import { Overlay } from '../ui/Overlay';
 import { useFarmers, type Farmers } from '../hooks/useFarmers';
-import { farmerName, farmerPerks, farmerPortrait, HUNGRY_AT, hungerNow } from '../lib/farmers';
+import { farmerName, farmerPerks, farmerPortrait, happinessNow, HUNGRY_AT, hungerNow, perkScaleOf } from '../lib/farmers';
 import { GardenField, timeLeft } from './GardenField';
 
 type Props = { open: boolean; onClose: () => void };
@@ -83,13 +84,15 @@ function Field({ g }: { g: Garden }) {
   const inTab = (t: Tab) => stacks.filter((x) => TABS.find((d) => d.id === t)!.kinds.includes(itemInfo(x.id).kind));
   const shown = inTab(tab);
   const f = useFarmers();
-  const bread = g.inventory.bread ?? 0;
-  // When a working Farmer's hunger runs out here, fetch again so the server's view (dead, no bonus) shows.
-  const starved = f.working.some((x) => !x.dead && x.diesAt != null && x.diesAt <= f.now);
+  const held = { bread: g.inventory.bread ?? 0, wine: g.inventory.wine ?? 0 };
+  // When a working Farmer starves or changes mood here, fetch again so the server's view (dead, its bonus) shows.
+  const changed = f.working.some(
+    (x) => !x.dead && ((x.diesAt != null && x.diesAt <= f.now) || perkScaleOf(false, happinessNow(x, f.at, f.now, f.speed)) !== x.perkScale),
+  );
   const { refresh } = f;
   useEffect(() => {
-    if (starved) refresh();
-  }, [starved, refresh]);
+    if (changed) refresh();
+  }, [changed, refresh]);
   // The seed the player selected in the inventory, while they still hold one.
   const picked = seeds.find((s) => s.id === pickedId) ?? null;
   const seed = picked ? itemInfo(picked.id) : null;
@@ -131,7 +134,7 @@ function Field({ g }: { g: Garden }) {
             {Array.from({ length: f.slots }, (_, i) => {
               const x = f.working[i];
               return x ? (
-                <FarmerSlot key={x.id} x={x} f={f} bread={bread} />
+                <FarmerSlot key={x.id} x={x} f={f} held={held} />
               ) : (
                 <button key={`empty-${i}`} type="button" className="farmer-slot empty" onClick={() => setPicking(true)}>
                   + ADD A FARMER
@@ -141,7 +144,8 @@ function Field({ g }: { g: Garden }) {
           </div>
           <div className="small muted">
             Their growth cut applies to what you plant while they work; the yield bonus applies at harvest. Working Farmers eat 1 bread a day and die
-            when hunger runs out; resting ones don’t get hungry.
+            when hunger runs out, and drink 1 wine every 3 days: an unhappy Farmer gives half its perks, a miserable one none. Resting Farmers don’t
+            change.
           </div>
         </section>
 
@@ -204,7 +208,7 @@ function Field({ g }: { g: Garden }) {
             ) : tab === 'harvest' ? (
               'What you harvest lands here. Select a crop to sell it to the NPC for $gold; the Marketplace comes later.'
             ) : (
-              'Mill wheat into flour and bake flour into bread, your Farmers’ food. Each try can fail and lose what it used.'
+              'Mill wheat into flour and bake flour into bread, your Farmers’ food; ferment grapes into wine to keep them happy. Each try can fail and lose what it used.'
             )}
           </div>
         </section>
@@ -258,11 +262,16 @@ function Field({ g }: { g: Garden }) {
   );
 }
 
-/** A working Farmer: its perks, a hunger bar counting down, and FEED (one bread) or REVIVE (for $aura) once dead. */
-function FarmerSlot({ x, f, bread }: { x: FarmerView; f: Farmers; bread: number }) {
+/**
+ * A working Farmer: the perks it gives now, bars for hunger and happiness counting down, FEED (one bread) and WINE
+ * (one wine), or REVIVE (for $aura) once dead.
+ */
+function FarmerSlot({ x, f, held }: { x: FarmerView; f: Farmers; held: { bread: number; wine: number } }) {
   const hunger = x.dead ? 0 : hungerNow(x, f.now, f.speed);
+  const happiness = happinessNow(x, f.at, f.now, f.speed);
   const dead = hunger <= 0;
   const hungry = !dead && hunger < HUNGRY_AT;
+  const mood = moodOf(happiness);
   const name = farmerName(x);
   return (
     <div className={`farmer-slot grade-${x.grade} ${dead ? 'dead' : ''}`} title={`${name}: ${farmerPerks(x)}`}>
@@ -272,31 +281,69 @@ function FarmerSlot({ x, f, bread }: { x: FarmerView; f: Farmers; bread: number 
           {name}
           {dead && <span className="dead-tag"> · DEAD</span>}
         </span>
-        <span className="small mono">{dead ? 'Adds nothing until revived' : farmerPerks(x)}</span>
-        <span className={`hunger-bar ${hungry ? 'low' : ''}`} role="meter" aria-label="Hunger" aria-valuemin={0} aria-valuemax={HUNGER_FULL} aria-valuenow={Math.round(hunger)}>
-          <span style={{ width: `${(hunger / HUNGER_FULL) * 100}%` }} />
+        <span className="small mono">
+          {dead ? 'Adds nothing until revived' : mood === 'miserable' ? <span className="sad">No perks until cheered up</span> : farmerPerks(x, perkScaleOf(false, happiness))}
+          {!dead && mood === 'unhappy' && <span className="sad"> (half perks)</span>}
         </span>
-        {!dead && x.diesAt != null && <span className={`small ${hungry ? 'hungry' : 'muted'}`}>{hungry ? 'Hungry! ' : ''}Food for {timeLeft(x.diesAt - f.now)}</span>}
+        <Stat label="Hunger" icon="bread" value={hunger} full={HUNGER_FULL} low={hungry}>
+          {!dead && x.diesAt != null && <span className={hungry ? 'hungry' : 'muted'}>{hungry ? 'Hungry! ' : ''}Food for {timeLeft(x.diesAt - f.now)}</span>}
+        </Stat>
+        {!dead && (
+          <Stat label="Happiness" icon="wine" value={happiness} full={HAPPINESS_FULL} low={happiness < HAPPY_AT}>
+            <span className={mood === 'happy' ? 'muted' : 'sad'}>{mood === 'happy' ? 'Happy' : mood === 'unhappy' ? 'Unhappy' : 'Miserable'}</span>
+          </Stat>
+        )}
       </span>
       {dead ? (
         <button type="button" className="btn small primary" onClick={() => f.revive(x.id)}>
           REVIVE · <span className="gem" aria-hidden="true" /> {fmtAura(x.reviveAura)}
         </button>
       ) : (
-        <button type="button" className="btn small feed-btn" disabled={bread < 1 || hunger >= HUNGER_FULL} onClick={() => f.feed(x.id)} title={bread < 1 ? 'Bake bread in the Kitchen tab' : `Feed 1 bread (${bread} held)`}>
-          <span className="feed-icon" style={itemInfo('bread').icon} aria-hidden="true" />
-          FEED
-        </button>
+        <span className="feed-btns">
+          <GiveButton item="bread" label="FEED" have={held.bread} full={hunger >= HUNGER_FULL} onClick={() => f.feed(x.id, 'bread')} />
+          <GiveButton item="wine" label="WINE" have={held.wine} full={happiness >= HAPPINESS_FULL} onClick={() => f.feed(x.id, 'wine')} />
+        </span>
       )}
       {f.dev && !dead && (
-        <button type="button" className="pack-close small" onClick={() => f.drain(x.id)} title="Dev: drain 25 hunger">
-          −25
-        </button>
+        <span className="feed-btns">
+          <button type="button" className="pack-close small" onClick={() => f.drain(x.id, 'hunger')} title="Dev: drain 25 hunger">
+            −25 food
+          </button>
+          <button type="button" className="pack-close small" onClick={() => f.drain(x.id, 'happiness')} title="Dev: drain 25 happiness">
+            −25 joy
+          </button>
+        </span>
       )}
       <button type="button" className="pack-close" onClick={() => f.assign(x.id, false)} aria-label={`Send ${name} to rest`}>
         ✕
       </button>
     </div>
+  );
+}
+
+/** One of a Farmer's stats: a small icon, a bar that turns red when low, and a line under it. */
+function Stat({ label, icon, value, full, low, children }: { label: string; icon: string; value: number; full: number; low: boolean; children?: ReactNode }) {
+  return (
+    <span className="farmer-stat">
+      <span className="feed-icon small" style={itemInfo(icon).icon} aria-hidden="true" />
+      <span className="farmer-stat-body">
+        <span className={`hunger-bar ${low ? 'low' : ''}`} role="meter" aria-label={label} aria-valuemin={0} aria-valuemax={full} aria-valuenow={Math.round(value)}>
+          <span style={{ width: `${(value / full) * 100}%` }} />
+        </span>
+        <span className="small">{children}</span>
+      </span>
+    </span>
+  );
+}
+
+/** Give a Farmer one bread or wine: off when none is held (make it in the Kitchen tab) or the stat is full. */
+function GiveButton({ item, label, have, full, onClick }: { item: string; label: string; have: number; full: boolean; onClick: () => void }) {
+  const name = itemInfo(item).name.toLowerCase();
+  return (
+    <button type="button" className="btn small feed-btn" disabled={have < 1 || full} onClick={onClick} title={have < 1 ? `Make ${name} in the Kitchen tab` : `Give 1 ${name} (${have} held)`}>
+      <span className="feed-icon" style={itemInfo(item).icon} aria-hidden="true" />
+      {label}
+    </button>
   );
 }
 

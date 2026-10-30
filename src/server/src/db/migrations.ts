@@ -190,6 +190,14 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
       UPDATE farmers SET hunger_since = (extract(epoch FROM now()) * 1000)::bigint WHERE assigned;
     `,
   },
+  {
+    // Happiness: drains alongside hunger while a Farmer works, so both share one timestamp. Every Farmer starts happy.
+    id: '0010_happiness',
+    sql: `
+      ALTER TABLE farmers ADD COLUMN happiness double precision NOT NULL DEFAULT 100;
+      ALTER TABLE farmers RENAME COLUMN hunger_since TO stats_since;
+    `,
+  },
 ];
 
 export async function migrate(db: Db) {

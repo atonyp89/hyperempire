@@ -28,9 +28,10 @@ export function useFarmers(enabled = true) {
     onSuccess: store,
   });
 
-  /** Feed one bread, revive for $aura, or (dev only) drain hunger. */
+  /** Feed one bread or wine, revive for $aura, or (dev only) drain hunger or happiness. */
   const actM = useMutation({
-    mutationFn: (v: { id: number; act: 'feed' | 'revive' | 'drain' }) => session.call<FarmersView>(`/farmers/${v.id}/${v.act}`, { method: 'POST' }),
+    mutationFn: (v: { id: number; act: 'feed' | 'revive' | 'drain'; body?: object }) =>
+      session.call<FarmersView>(`/farmers/${v.id}/${v.act}`, { method: 'POST', body: v.body }),
     onSuccess: store,
   });
 
@@ -48,6 +49,8 @@ export function useFarmers(enabled = true) {
     bonus: v?.bonus ?? { yieldPct: 0, growthPct: 0 },
     /** Server time now (the view's clock plus what has passed here since), and the game speed, for hunger. */
     now: v ? v.now + (Date.now() - q.dataUpdatedAt) : Date.now(),
+    /** Server time the Farmers' stats are as of. */
+    at: v?.now ?? Date.now(),
     speed: v?.speed ?? 1,
     /** Dev tools (draining hunger) are on: the in-browser dev server. */
     dev: v?.dev ?? false,
@@ -57,9 +60,10 @@ export function useFarmers(enabled = true) {
     // Clicks during a request are ignored rather than disabling every control (see useGarden).
     recruit: () => !busy && recruitM.mutate(),
     assign: (id: number, on: boolean) => !busy && assignM.mutate({ id, on }),
-    feed: (id: number) => !busy && actM.mutate({ id, act: 'feed' }),
+    /** Give one bread (hunger) or wine (happiness). */
+    feed: (id: number, item: 'bread' | 'wine') => !busy && actM.mutate({ id, act: 'feed', body: { item } }),
     revive: (id: number) => !busy && actM.mutate({ id, act: 'revive' }),
-    drain: (id: number) => !busy && actM.mutate({ id, act: 'drain' }),
+    drain: (id: number, stat: 'hunger' | 'happiness') => !busy && actM.mutate({ id, act: 'drain', body: { stat } }),
     /** Fetch again, e.g. when a Farmer's hunger runs out and the server now counts it dead. */
     refresh: () => {
       void qc.invalidateQueries({ queryKey: key });

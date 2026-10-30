@@ -2,7 +2,7 @@
 // them grow on the clock, and harvest ripe plants into the inventory (better seeds yield more). Working Farmers
 // cut the growing time of what is planted while they work, and add yield at harvest. Plant and harvest
 // take one or many plots at once; each call is all-or-nothing. The Kitchen turns wheat into flour and flour into
-// bread (Farmers' food); each try can fail and lose its input.
+// bread (Farmers' food), and grapes into wine (their cheer); each try can fail and lose its input.
 
 import { and, eq, inArray } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -12,8 +12,7 @@ import type { Env } from '../env';
 import { badRequest, conflict } from '../errors';
 import { addItem, itemsOf, takeItem } from '../inventory';
 import { creditGold, debitGold, goldOf } from '../ledger';
-import { farmerBonus } from '../rules/farmers';
-import { farmerView, gardenFarmers, workingFarmers } from './farmers';
+import { farmerView, gardenBonus, workingFarmers } from './farmers';
 import { isRecipeId, MAX_CRAFTS, RECIPES } from '../rules/food';
 import { CROPS, cropStage, GARDEN_PLOTS, growTime, isCropId, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, seedItem, sellGold, yieldOf, type Crop, type CropId } from '../rules/garden';
 import { GRADES, rollGrade, type Grade } from '../rules/mining';
@@ -74,7 +73,7 @@ async function view(tx: Conn, address: string, now: number, speed: number): Prom
     inventory: await itemsOf(tx, address),
     gold: await goldOf(tx, address),
     farmers: working.map((f) => farmerView(f, now, speed)),
-    bonus: farmerBonus(await gardenFarmers(tx, address, now, speed)),
+    bonus: await gardenBonus(tx, address, now, speed),
   };
 }
 
@@ -126,7 +125,7 @@ export const garden = new Hono<Env>()
     const t = now();
     const result = await db.transaction(async (tx) => {
       // The working Farmers' cut is fixed when the seed goes in.
-      const { growthPct } = farmerBonus(await gardenFarmers(tx, address, t, speed));
+      const { growthPct } = await gardenBonus(tx, address, t, speed);
       const growMs = Math.round(growTime(crop, speed) * (1 - growthPct / 100));
       const added = await tx
         .insert(gardenPlots)
@@ -153,7 +152,7 @@ export const garden = new Hono<Env>()
         .returning();
       if (rows.length !== slots.length) throw conflict('Nothing is growing there.', 'plot_empty');
       const got: Record<string, number> = {};
-      const { yieldPct } = farmerBonus(await gardenFarmers(tx, address, t, speed));
+      const { yieldPct } = await gardenBonus(tx, address, t, speed);
       for (const p of rows) {
         if (!isCropId(p.crop)) throw conflict('Unknown crop in that plot.', 'plot_empty');
         const crop = CROPS[p.crop];
@@ -183,7 +182,7 @@ export const garden = new Hono<Env>()
     });
     return c.json(result);
   })
-  // Kitchen: `qty` tries of a recipe (flour from wheat, bread from flour). Every try takes its input up front and
+  // Kitchen: `qty` tries of a recipe (flour from wheat, bread from flour, wine from grapes). Every try takes its input up front and
   // succeeds with the recipe's chance, making one; a failed try loses its input.
   .post('/craft', async (c) => {
     const { db, now, random, gameSpeed: speed = 1 } = c.var.deps;

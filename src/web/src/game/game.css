@@ -377,3 +377,8 @@
 .game .feed-icon { display: inline-block; width: 20px; height: 20px; image-rendering: pixelated; background-repeat: no-repeat; }
 .game .craft-io { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .game .pack-close.small { font-size: 11px; }
+.game .sad { color: var(--gold-2); }
+.game .farmer-stat { display: flex; align-items: center; gap: 4px; }
+.game .farmer-stat-body { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.game .feed-icon.small { width: 14px; height: 14px; flex-shrink: 0; }
+.game .feed-btns { display: flex; flex-direction: column; gap: 4px; flex-shrink: 0; }

@@ -7,7 +7,7 @@ import { fmtAura } from '../../shared/format';
 import { useMe } from '../../shared/session';
 import { BuildingModal } from '../../shared/ui/BuildingModal';
 import { useFarmers, type Farmers } from '../hooks/useFarmers';
-import { farmerName, farmerPerks, farmerPortrait, hungerNow } from '../lib/farmers';
+import { farmerName, farmerPerks, farmerPortrait, happinessNow, hungerNow } from '../lib/farmers';
 import { Overlay } from '../ui/Overlay';
 
 type Props = { open: boolean; onClose: () => void };
@@ -106,7 +106,8 @@ function Recruit({ f }: { f: Farmers }) {
                   </>
                 ) : (
                   <span className="small muted">
-                    {x.assigned ? 'In the Garden' : 'Resting'} · {Math.round(hungerNow(x, f.now, f.speed))}% fed
+                    {x.assigned ? 'In the Garden' : 'Resting'} · {Math.round(hungerNow(x, f.now, f.speed))}% fed ·{' '}
+                    {Math.round(happinessNow(x, f.at, f.now, f.speed))}% happy
                   </span>
                 )}
               </div>

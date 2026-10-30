@@ -10,7 +10,7 @@ import { schema, type Db } from './db';
 import { migrate } from './db/migrations';
 import type { BuilderFill, Deps, Fill } from './deps';
 import { DAY_MS, dayOf } from './rules/exchange';
-import { MEAL_MS, wheatPerBread } from './rules/food';
+import { CHEER_MS, grapesPerWine, MEAL_MS, wheatPerBread } from './rules/food';
 import { CROPS, cropPrice, expectedYield, PACK_SEEDS, packGold } from './rules/garden';
 import { BLOCK_MS, GENESIS, WALK_BLOCKS } from './rules/mining';
 
@@ -661,9 +661,57 @@ describe('food', () => {
     const revived = (await call('POST', `/farmers/${id}/revive`, undefined, token)).json;
     expect(revived.farmers[0]).toMatchObject({ dead: false, assigned: false });
     expect(revived.farmers[0].hunger).toBeCloseTo(100 / 3, 6);
+    expect([revived.farmers[0].happiness, revived.farmers[0].mood]).toEqual([50, 'happy']);
     expect((await call('GET', '/me', undefined, token)).json.aura).toBe(5_000 - 1_000 - 250);
     const again = await call('POST', `/farmers/${id}/revive`, undefined, token);
     expect([again.status, again.json.error]).toEqual([409, 'alive']);
+  });
+
+  /** Grapes from 6 common vines (240), on top of `ready`'s wheat. */
+  const grapes = async (token: string) => {
+    await call('POST', '/garden/buy', { crop: 'grapes', open: true }, token);
+    await call('POST', '/garden/plant', { seed: 'grapes-seed:common', slots: [0, 1, 2, 3, 4, 5] }, token);
+    clock += 6 * 60_000;
+    return (await call('POST', '/garden/harvest', { slots: [0, 1, 2, 3, 4, 5] }, token)).json.garden.inventory.grapes;
+  };
+
+  test('the Kitchen ferments 10 grapes into wine, 75% of the time', async () => {
+    expect(grapesPerWine()).toBeCloseTo(13.33, 2);
+    const token = await ready();
+    expect(await grapes(token)).toBe(240);
+    dice = [0.1, 0.74, 0.75, 0.9];
+    const made = (await call('POST', '/garden/craft', { recipe: 'wine', qty: 4 }, token)).json;
+    expect(made.crafted).toEqual({ recipe: 'wine', tries: 4, made: 2 });
+    expect([made.garden.inventory.grapes, made.garden.inventory.wine]).toEqual([200, 2]);
+  });
+
+  test('working Farmers lose happiness over 6 days; unhappy ones give half their perks, miserable ones none', async () => {
+    const token = await ready({ devTools: true });
+    dice = [0.1, 0.999, 0.999];
+    const id = await working(token);
+    const bonus = async () => (await call('GET', '/garden', undefined, token)).json.bonus;
+    clock += CHEER_MS / 6;
+    expect((await farmer(token, id)).happiness).toBeCloseTo(500 / 6, 6);
+    // Down to 50: still happy, full perks (+5% yield, −4% growth).
+    const drain = (stat = 'happiness') => call('POST', `/farmers/${id}/drain`, { stat }, token);
+    await drain();
+    await drain();
+    await drain();
+    expect((await farmer(token, id)).mood).toBe('unhappy');
+    expect(await bonus()).toEqual({ yieldPct: 2.5, growthPct: 2 });
+    await drain();
+    expect(await farmer(token, id)).toMatchObject({ happiness: 0, mood: 'miserable', perkScale: 0, dead: false });
+    expect(await bonus()).toEqual({ yieldPct: 0, growthPct: 0 });
+    // Wine: +50, back to happy and full perks.
+    await grapes(token);
+    await call('POST', '/garden/craft', { recipe: 'wine', qty: 3 }, token);
+    const cheered = (await call('POST', `/farmers/${id}/feed`, { item: 'wine' }, token)).json.farmers[0];
+    expect([cheered.happiness, cheered.mood, cheered.perkScale]).toEqual([50, 'happy', 1]);
+    expect(await bonus()).toEqual({ yieldPct: 5, growthPct: 4 });
+    await call('POST', `/farmers/${id}/feed`, { item: 'wine' }, token);
+    const full = await call('POST', `/farmers/${id}/feed`, { item: 'wine' }, token);
+    expect([full.status, full.json.error]).toEqual([409, 'full']);
+    expect((await call('POST', `/farmers/${id}/feed`, { item: 'wheat' }, token)).status).toBe(400);
   });
 
   test('draining hunger is a dev tool only', async () => {

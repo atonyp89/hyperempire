@@ -195,7 +195,7 @@ export const inventory = pgTable(
   (t) => [primaryKey({ columns: [t.address, t.item] })],
 );
 
-/** A Farmer: grade (index into GRADES), its two rolled perks in whole percent, whether it works the Garden, and its hunger. */
+/** A Farmer: grade (index into GRADES), its two rolled perks in whole percent, whether it works the Garden, its hunger and happiness. */
 export const farmers = pgTable(
   'farmers',
   {
@@ -205,9 +205,13 @@ export const farmers = pgTable(
     yieldPct: smallint('yield_pct').notNull(),
     growthPct: smallint('growth_pct').notNull(),
     assigned: boolean('assigned').notNull().default(false),
-    /** 0-100 as of `hungerSince` (ms); it drains from then while the Farmer works. Null while resting. 0 is dead. */
+    /**
+     * Hunger and happiness, 0-100, as of `statsSince` (ms); both drain from then while the Farmer works, and
+     * `statsSince` is null while it rests. Hunger 0 is dead; happiness 0 is miserable.
+     */
     hunger: doublePrecision('hunger').notNull().default(100),
-    hungerSince: bigint('hunger_since', { mode: 'number' }),
+    happiness: doublePrecision('happiness').notNull().default(100),
+    statsSince: bigint('stats_since', { mode: 'number' }),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index('farmers_address').on(t.address)],

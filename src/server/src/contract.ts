@@ -2,6 +2,7 @@
 // server module the web app imports (besides local.ts, which runs the server in the browser), so the two stay
 // in step and the web app never reaches into server internals.
 
+import type { Mood } from './rules/food';
 import type { CropId } from './rules/garden';
 import type { Grade, PoolId, PoolKind } from './rules/mining';
 
@@ -9,8 +10,8 @@ export * from './rules/empire';
 export { DAILY_EMISSION, marginalShare } from './rules/exchange';
 export { GOLD_FAUCET } from './rules/gold';
 export { FARMER_PERKS, FARMER_RECRUIT_AURA, FARMER_SLOTS, MAX_GROWTH_CUT } from './rules/farmers';
-export { BREAD_HUNGER, HUNGER_FULL, hungerAt, isRecipeId, MAX_CRAFTS, MEAL_MS, RECIPES, REVIVE_AURA, REVIVE_HUNGER, wheatPerBread } from './rules/food';
-export type { Recipe, RecipeId } from './rules/food';
+export { BREAD_HUNGER, CHEER_MS, grapesPerWine, HAPPINESS_FULL, HAPPY_AT, HUNGER_FULL, hungerAt, isRecipeId, MAX_CRAFTS, MEAL_MS, MOOD_PERKS, moodOf, RECIPES, REVIVE_AURA, REVIVE_HAPPINESS, REVIVE_HUNGER, wheatPerBread, WINE_HAPPINESS } from './rules/food';
+export type { Mood, Recipe, RecipeId } from './rules/food';
 export { CROPS, cropOfPack, cropPrice, cropStage, expectedYield, SELL_ROI, sellGold, GARDEN_COLS, GARDEN_PLOTS, GARDEN_ROWS, growTime, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, SEED_YIELD, seedItem, yieldOf } from './rules/garden';
 export type { Crop, CropId } from './rules/garden';
 export { EXCHANGE_PERKS, MASTERY_PERKS, WHALE_DAILY_VOLUME, XP_PER_USD_FEE, xpForLevel, xpToNext } from './rules/mastery';
@@ -61,9 +62,10 @@ export type GardenView = {
 };
 
 /**
- * A Farmer: grade and its two rolled perks in whole percent (+yield, −growing time), and its hunger. `hunger` is at
- * the view's `now`; `diesAt` is when a working Farmer reaches 0 (null while resting or dead), so the client can
- * count it down. A dead Farmer adds no perks until it's revived for `reviveAura`.
+ * A Farmer: grade, its two rolled perks in whole percent (+yield, −growing time), its hunger and happiness (0-100,
+ * at the view's `now`; both drain while it works) and the mood its happiness gives. `perkScale` is how much of its
+ * perks count now: 1 happy, 0.5 unhappy, 0 miserable or dead. `diesAt` is when a working Farmer's hunger reaches 0
+ * (null while resting or dead), so the client can count it down. A dead Farmer is revived for `reviveAura`.
  */
 export type FarmerView = {
   id: number;
@@ -72,14 +74,17 @@ export type FarmerView = {
   growthPct: number;
   assigned: boolean;
   hunger: number;
+  happiness: number;
+  mood: Mood;
+  perkScale: number;
   diesAt: number | null;
   dead: boolean;
   reviveAura: number;
 };
 export type FarmerBonus = { yieldPct: number; growthPct: number };
 /**
- * Every Farmer the player has, how many can work the Garden, the recruit price, the working Farmers' bonus (dead
- * ones left out), the server's clock and game speed, and whether dev tools (draining hunger) are on.
+ * Every Farmer the player has, how many can work the Garden, the recruit price, the working Farmers' bonus (each by
+ * its `perkScale`, so dead ones add nothing), the server's clock and game speed, and whether dev tools (draining hunger) are on.
  */
 export type FarmersView = { farmers: FarmerView[]; slots: number; recruitAura: number; bonus: FarmerBonus; now: number; speed: number; dev: boolean };
 export type HarvestResponse = { harvested: Record<string, number>; garden: GardenView };

@@ -30,10 +30,13 @@ export function rollFarmer(r1: number, r2: number, r3: number): { grade: Grade; 
   return { grade, yieldPct: between(p.yield, r2), growthPct: between(p.growth, r3) };
 }
 
-/** What the Garden's working Farmers add up to: +yield and −growing time, in whole percent (growth capped). */
-export function farmerBonus(farmers: { yieldPct: number; growthPct: number }[]) {
+/**
+ * What the Garden's working Farmers add up to: +yield and −growing time, in percent (growth capped). Each Farmer's
+ * perks count by its `scale` (its mood: 1 happy, 0.5 unhappy, 0 miserable; 1 when left out).
+ */
+export function farmerBonus(farmers: { yieldPct: number; growthPct: number; scale?: number }[]) {
   return {
-    yieldPct: farmers.reduce((s, f) => s + f.yieldPct, 0),
-    growthPct: Math.min(MAX_GROWTH_CUT, farmers.reduce((s, f) => s + f.growthPct, 0)),
+    yieldPct: farmers.reduce((s, f) => s + f.yieldPct * (f.scale ?? 1), 0),
+    growthPct: Math.min(MAX_GROWTH_CUT, farmers.reduce((s, f) => s + f.growthPct * (f.scale ?? 1), 0)),
   };
 }
