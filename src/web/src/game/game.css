@@ -367,3 +367,13 @@
 .game .farmer-walker:not(.grade-common) { filter: drop-shadow(1px 0 0 var(--g)) drop-shadow(-1px 0 0 var(--g)) drop-shadow(0 1px 0 var(--g)) drop-shadow(0 -1px 0 var(--g)); }
 @media (prefers-reduced-motion: reduce) { .game .farmer-walker { animation: none; } }
 @media (max-width: 760px) { .game .tavern-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Hunger and the Kitchen */
+.game .hunger-bar { display: block; height: 6px; margin-top: 2px; background: var(--slate-800); border: 1px solid var(--ink); }
+.game .hunger-bar > span { display: block; height: 100%; background: var(--up); }
+.game .hunger-bar.low > span { background: var(--down); }
+.game .hungry, .game .dead-tag { color: var(--down); }
+.game .farmer-slot.dead .farmer-portrait { filter: grayscale(1) brightness(0.6); }
+.game .feed-btn { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.game .feed-icon { display: inline-block; width: 20px; height: 20px; image-rendering: pixelated; background-repeat: no-repeat; }
+.game .craft-io { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.game .pack-close.small { font-size: 11px; }

@@ -28,9 +28,13 @@ Every endpoint of the HyperEmpire API, with the shapes it takes and returns. The
 | POST | [`/garden/plant`](#post-gardenplant) | Plant a seed from the inventory |
 | POST | [`/garden/harvest`](#post-gardenharvest) | Harvest ripe plants |
 | POST | [`/garden/sell`](#post-gardensell) | Sell crops to the NPC for $gold |
+| POST | [`/garden/craft`](#post-gardencraft) | Kitchen: mill wheat into flour, bake flour into bread |
 | GET | [`/farmers`](#get-farmers) | Your Farmers, Garden slots, recruit price, working bonus |
 | POST | [`/farmers/recruit`](#post-farmersrecruit) | Recruit a Farmer for $aura |
 | POST | [`/farmers/:id/assign`](#post-farmersidassign) | Put a Farmer to work in the Garden (or `/unassign`) |
+| POST | [`/farmers/:id/feed`](#post-farmersidfeed) | Feed a Farmer one bread |
+| POST | [`/farmers/:id/revive`](#post-farmersidrevive) | Bring a dead Farmer back for $aura |
+| POST | [`/farmers/:id/drain`](#post-farmersiddrain) | Dev only: take 25 off a Farmer's hunger |
 | GET | [`/exchange`](#get-exchange) | Today's $aura pool, your share, recent days |
 | GET | [`/mastery/:building`](#get-masterybuilding) | A building's Mastery: level, XP, points, perks |
 | POST | [`/mastery/:building/perks`](#post-masterybuildingperks) | Add a perk rank |
@@ -188,22 +192,37 @@ Body: `{ "item": "wheat", "qty": 54 }`. Sells harvested crops to the NPC for `cr
 { "sold": { "item": "wheat", "qty": 54, "gold": 16 }, "garden": { "…": "the GET /garden view" } }
 ```
 
+### `POST /garden/craft`
+
+Body: `{ "recipe": "flour", "qty": 21 }` (1–100 tries, default 1). Recipes in `rules/food.ts` (`RECIPES`): `flour` takes 5 `wheat` a try, `bread` takes 2 `flour`; each try succeeds 80% of the time (`Deps.random`) and makes one, and a failed try loses its input. All the input is taken up front: `409 not_enough_items` if there isn't enough for every try, `400` for an unknown recipe or a bad count.
+
+```json
+{ "crafted": { "recipe": "flour", "tries": 21, "made": 18 }, "garden": { "…": "the GET /garden view" } }
+```
+
 ## Farmers
 
 Recruited at the Tavern; up to 3 work the Garden. Rules in `rules/farmers.ts`: grade with the Miners' odds, then a yield perk and a growth perk rolled within the grade's range (`FARMER_PERKS`). The Garden's view also lists the working Farmers (`farmers`) and their total (`bonus`). Their growth cut is stored on each plot when it's planted (`garden_plots.grow_ms`); the yield bonus applies at harvest.
+
+Hunger (rules in `rules/food.ts`): 100 is full, 0 is dead. It drains only while a Farmer works, from 100 to 0 in 3 days (`MEAL_MS`, divided by `Deps.gameSpeed`); resting freezes it. The table keeps `hunger` as of `hunger_since` (null while resting). A dead Farmer keeps its Garden slot but adds no perks, isn't in `bonus` and can't be assigned until revived.
 
 ### `GET /farmers`
 
 ```json
 {
-  "farmers": [{ "id": 3, "grade": "rare", "yieldPct": 14, "growthPct": 9, "assigned": true }],
+  "farmers": [
+    { "id": 3, "grade": "rare", "yieldPct": 14, "growthPct": 9, "assigned": true, "hunger": 58.3, "diesAt": 1793544000000, "dead": false, "reviveAura": 1000 }
+  ],
   "slots": 3,
   "recruitAura": 1000,
-  "bonus": { "yieldPct": 14, "growthPct": 9 }
+  "bonus": { "yieldPct": 14, "growthPct": 9 },
+  "now": 1793368957000,
+  "speed": 1,
+  "dev": false
 }
 ```
 
-`bonus.growthPct` is capped at 60.
+`bonus.growthPct` is capped at 60. `hunger` is as of `now`; `diesAt` is when a working Farmer reaches 0 (null while resting or dead), for counting down. `dev` says whether `/drain` exists.
 
 ### `POST /farmers/recruit`
 
@@ -211,7 +230,19 @@ Burns 1,000 $aura (ledger kind `tavern:farmer`, `402 not_enough_aura` if short) 
 
 ### `POST /farmers/:id/assign`, `POST /farmers/:id/unassign`
 
-Puts a Farmer to work in the Garden or takes it off; returns `GET /farmers`. `409 garden_full` when 3 already work, `404` for someone else's Farmer.
+Puts a Farmer to work in the Garden or takes it off; returns `GET /farmers`. `409 garden_full` when 3 already work, `409 dead` for a dead Farmer, `404` for someone else's Farmer.
+
+### `POST /farmers/:id/feed`
+
+Takes one `bread` and adds a day's hunger (33.3), up to 100; returns `GET /farmers`. `409 full` at 100, `409 dead` for a dead Farmer, `409 not_enough_items` without bread.
+
+### `POST /farmers/:id/revive`
+
+Burns the Farmer's `reviveAura` (common 250, uncommon 500, rare 1,000, epic 2,500, legendary 10,000; ledger kind `tavern:revive`, `402 not_enough_aura` if short). It comes back with a day's hunger (33.3), working or resting as before. `409 alive` if it isn't dead.
+
+### `POST /farmers/:id/drain`
+
+Dev only (`Deps.devTools`, on in the in-browser dev server; `404` elsewhere): takes 25 off the Farmer's hunger, to test warnings, death and revive.
 
 ## Exchange
 

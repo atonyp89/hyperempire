@@ -1,6 +1,6 @@
 # Crops
 
-The Garden's crops: wheat and grapes, each with three growth stages (16×16) for the field and two inventory icons.
+The Garden's crops: wheat and grapes, each with three growth stages (16×16) for the field and two inventory icons; plus the Kitchen's flour and bread icons.
 
 | What | File | Look |
 | --- | --- | --- |
@@ -44,6 +44,10 @@ PixelLab objects: sprout `69902638-5b48-4df1-8a1b-1216c86c1052`, young `3de99b61
 ## Seed packs (Oct 29, 2026)
 
 `src/web/public/empire/items/wheat-pack.png` and `grapes-pack.png` (32×32): cream paper envelopes with the crop printed on the front. `create_image_pro` 32×32, `max_colors` 16, with the wheat icons as the style image: "a sealed paper seed packet, a small cream-coloured paper envelope with a folded top edge, showing a simple printed picture of golden wheat stalks (or a bunch of purple grapes) on its front…". Both sheets came back shifted half a cell; the 64 tiles were stitched into `../items/<crop>-pack-icon-candidates/sheet.png`, rolled 16 px and cut into `cut/`. Picked #0 of each. Gallery assets: wheat `6c55a173-11ec-59a5-8c9e-c2efbf8a403c`, grapes `bf499978-dbc3-5899-972f-3b729a29fc50`.
+
+## Food: flour and bread (Oct 30, 2026)
+
+The Kitchen's items, 32×32: `src/web/public/empire/items/flour.png` (an open cream sack heaped with flour, tied with string) and `bread.png` (a round golden loaf with three cuts). `create_image_pro` 32×32, `max_colors` 16, with the wheat sheaf icon as the style image: "inventory item icon for a cozy farming RPG: a small cloth sack of flour, pale cream-white canvas sack tied at the top with brown string, a little white flour dust spilling at its base…" and "…a freshly baked round loaf of bread, golden-brown crust with three diagonal scored cuts on top…", both ending "clean crisp pixel art, thick dark outline, flat cel shading, no dithering". These sheets were not shifted; each candidate was downloaded on its own into `../items/<item>-icon-candidates/cut/`, with `contact.png` (8×8, #0 top left) for picking. Picked flour #15 and bread #1. Gallery assets: flour `fd47bded-f02b-5b26-a4ca-6a0edd7f22b5`, bread `7d1b715d-534f-5a55-a92a-2f5fd008365d`.
 
 ## Wheat v1 (replaced)
 

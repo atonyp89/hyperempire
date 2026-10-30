@@ -10,6 +10,7 @@ import { schema, type Db } from './db';
 import { migrate } from './db/migrations';
 import type { BuilderFill, Deps, Fill } from './deps';
 import { DAY_MS, dayOf } from './rules/exchange';
+import { MEAL_MS, wheatPerBread } from './rules/food';
 import { CROPS, cropPrice, expectedYield, PACK_SEEDS, packGold } from './rules/garden';
 import { BLOCK_MS, GENESIS, WALK_BLOCKS } from './rules/mining';
 
@@ -570,6 +571,109 @@ describe('farmers', () => {
     expect(garden.farmers).toHaveLength(1);
     clock += 135_000;
     expect((await call('POST', '/garden/harvest', { slot: 0 }, token)).json.harvested).toEqual({ wheat: 45 });
+  });
+});
+
+describe('food', () => {
+  const DAY = MEAL_MS / 3;
+  /** Signed in with `wheat` harvested from one pack of common seeds (300), and optionally bread baked from it. */
+  const ready = async (extra: Partial<Deps> = {}) => {
+    app = createApp({ ...deps, goldFaucet: 1_000, ...extra });
+    const token = await signIn();
+    await call('POST', '/gold/faucet', undefined, token);
+    await call('POST', '/garden/buy', { crop: 'wheat', open: true }, token);
+    await call('POST', '/garden/plant', { seed: 'wheat-seed:common', slots: [...Array(10).keys()] }, token);
+    clock += 3 * 60_000;
+    await call('POST', '/garden/harvest', { slots: [...Array(10).keys()] }, token);
+    return token;
+  };
+  const bake = async (token: string, bread: number) => {
+    await call('POST', '/garden/craft', { recipe: 'flour', qty: bread * 2 }, token);
+    return (await call('POST', '/garden/craft', { recipe: 'bread', qty: bread }, token)).json.garden.inventory;
+  };
+  const working = async (token: string) => {
+    const id = (await call('POST', '/farmers/recruit', undefined, token)).json.farmer.id;
+    await call('POST', `/farmers/${id}/assign`, undefined, token);
+    return id;
+  };
+  const farmer = async (token: string, id: number) => (await call('GET', '/farmers', undefined, token)).json.farmers.find((f: any) => f.id === id);
+
+  test('the Kitchen mills 5 wheat into flour and bakes 2 flour into bread; a failed try loses its input', async () => {
+    expect(wheatPerBread()).toBeCloseTo(15.625, 10);
+    const token = await ready();
+    dice = [0.1, 0.5, 0.79, 0.8, 0.99];
+    const milled = (await call('POST', '/garden/craft', { recipe: 'flour', qty: 5 }, token)).json;
+    expect(milled.crafted).toEqual({ recipe: 'flour', tries: 5, made: 3 });
+    expect([milled.garden.inventory.wheat, milled.garden.inventory.flour]).toEqual([275, 3]);
+    dice = [0.9];
+    const baked = (await call('POST', '/garden/craft', { recipe: 'bread', qty: 1 }, token)).json;
+    expect(baked.crafted.made).toBe(0);
+    expect([baked.garden.inventory.flour, baked.garden.inventory.bread]).toEqual([1, undefined]);
+    const short = await call('POST', '/garden/craft', { recipe: 'bread', qty: 1 }, token);
+    expect([short.status, short.json.error]).toEqual([409, 'not_enough_items']);
+    expect((await call('POST', '/garden/craft', { recipe: 'cake', qty: 1 }, token)).status).toBe(400);
+    expect((await call('POST', '/garden/craft', { recipe: 'flour', qty: 101 }, token)).status).toBe(400);
+    expect((await call('GET', '/garden', undefined, token)).json.inventory.wheat).toBe(275);
+  });
+
+  test('working Farmers get hungry over 3 days, resting ones don’t; bread fills a day, up to full', async () => {
+    const token = await ready();
+    expect(await bake(token, 2)).toMatchObject({ bread: 2 });
+    const id = (await call('POST', '/farmers/recruit', undefined, token)).json.farmer.id;
+    clock += DAY;
+    expect(await farmer(token, id)).toMatchObject({ hunger: 100, diesAt: null, dead: false, reviveAura: 250 });
+    const full = await call('POST', `/farmers/${id}/feed`, undefined, token);
+    expect([full.status, full.json.error]).toEqual([409, 'full']);
+    await call('POST', `/farmers/${id}/assign`, undefined, token);
+    expect((await farmer(token, id)).diesAt).toBe(clock + MEAL_MS);
+    clock += DAY;
+    expect((await farmer(token, id)).hunger).toBeCloseTo(200 / 3, 6);
+    // Resting freezes hunger.
+    await call('POST', `/farmers/${id}/unassign`, undefined, token);
+    clock += 5 * DAY;
+    expect((await farmer(token, id)).hunger).toBeCloseTo(200 / 3, 6);
+    await call('POST', `/farmers/${id}/assign`, undefined, token);
+    clock += DAY;
+    const fed = (await call('POST', `/farmers/${id}/feed`, undefined, token)).json;
+    expect(fed.farmers[0].hunger).toBeCloseTo(200 / 3, 6);
+    expect((await call('POST', `/farmers/${id}/feed`, undefined, token)).json.farmers[0].hunger).toBe(100);
+    const none = await call('POST', `/farmers/${id}/feed`, undefined, token);
+    expect(none.status).toBe(409);
+  });
+
+  test('at 0 a Farmer dies and adds nothing; $aura revives it with a day of hunger', async () => {
+    const token = await ready();
+    dice = [0.1, 0.999, 0.999];
+    const id = await working(token);
+    expect((await call('GET', '/garden', undefined, token)).json.bonus).toEqual({ yieldPct: 5, growthPct: 4 });
+    clock += MEAL_MS;
+    expect(await farmer(token, id)).toMatchObject({ hunger: 0, dead: true, diesAt: null });
+    const g = (await call('GET', '/garden', undefined, token)).json;
+    expect([g.bonus, g.farmers[0].dead]).toEqual([{ yieldPct: 0, growthPct: 0 }, true]);
+    await call('POST', '/garden/craft', { recipe: 'flour', qty: 2 }, token);
+    await call('POST', '/garden/craft', { recipe: 'bread', qty: 1 }, token);
+    const feed = await call('POST', `/farmers/${id}/feed`, undefined, token);
+    expect([feed.status, feed.json.error]).toEqual([409, 'dead']);
+    // Sent to rest, it stays dead and can't go back to work.
+    await call('POST', `/farmers/${id}/unassign`, undefined, token);
+    const back = await call('POST', `/farmers/${id}/assign`, undefined, token);
+    expect([back.status, back.json.error]).toEqual([409, 'dead']);
+    const revived = (await call('POST', `/farmers/${id}/revive`, undefined, token)).json;
+    expect(revived.farmers[0]).toMatchObject({ dead: false, assigned: false });
+    expect(revived.farmers[0].hunger).toBeCloseTo(100 / 3, 6);
+    expect((await call('GET', '/me', undefined, token)).json.aura).toBe(5_000 - 1_000 - 250);
+    const again = await call('POST', `/farmers/${id}/revive`, undefined, token);
+    expect([again.status, again.json.error]).toEqual([409, 'alive']);
+  });
+
+  test('draining hunger is a dev tool only', async () => {
+    let token = await ready();
+    let id = await working(token);
+    expect((await call('POST', `/farmers/${id}/drain`, undefined, token)).status).toBe(404);
+    token = await ready({ devTools: true });
+    id = await working(token);
+    const drained = (await call('POST', `/farmers/${id}/drain`, undefined, token)).json;
+    expect([drained.dev, drained.farmers.at(-1).hunger]).toEqual([true, 75]);
   });
 });
 

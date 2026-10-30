@@ -32,9 +32,11 @@ const pct = (v: number, of: number) => `${(v / of) * 100}%`;
 /** "Rare " before a crop's name, nothing for common. */
 const gradeWord = (g: string | null) => (g && g !== 'common' ? `${g[0].toUpperCase()}${g.slice(1)} ` : '');
 
-/** "2m 05s" until `ms` from now. */
+/** "2m 05s", "3h 05m" or "2d 4h" until `ms` from now. */
 export const timeLeft = (ms: number) => {
   const s = Math.max(0, Math.ceil(ms / 1000));
+  if (s >= 86_400) return `${Math.floor(s / 86_400)}d ${Math.floor((s % 86_400) / 3600)}h`;
+  if (s >= 3600) return `${Math.floor(s / 3600)}h ${String(Math.floor((s % 3600) / 60)).padStart(2, '0')}m`;
   return s >= 60 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${s}s`;
 };
 

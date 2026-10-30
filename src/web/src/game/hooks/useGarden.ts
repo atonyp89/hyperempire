@@ -1,10 +1,10 @@
-// The Garden, kept by the HyperEmpire API: what grows in each plot, the inventory (seed packs, graded seeds and
-// harvest), and $gold for buying packs. The server decides every stage; between fetches this hook ticks each plant forward on the server's clock, so plants grow
+// The Garden, kept by the HyperEmpire API: what grows in each plot, the inventory (seed packs, graded seeds,
+// harvest and the Kitchen's flour and bread), and $gold for buying packs. The server decides every stage; between fetches this hook ticks each plant forward on the server's clock, so plants grow
 // on screen without polling.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { CROPS, cropStage, yieldOf, type CropId, type GardenPlotView, type GardenView, type HarvestResponse, type OpenPacksResponse, type SellResponse } from '@server/contract';
+import { CROPS, cropStage, yieldOf, type CraftResponse, type CropId, type GardenPlotView, type GardenView, type HarvestResponse, type OpenPacksResponse, type RecipeId, type SellResponse } from '@server/contract';
 import { NETWORK } from '../../shared/network';
 import { useSession } from '../../shared/session';
 
@@ -71,6 +71,10 @@ export function useGarden(enabled = true) {
     mutationFn: (v: { item: string; qty: number }) => session.call<SellResponse>('/garden/sell', { method: 'POST', body: v }),
     onSuccess: (r) => store(r.garden),
   });
+  const craftM = useMutation({
+    mutationFn: (v: { recipe: RecipeId; qty: number }) => session.call<CraftResponse>('/garden/craft', { method: 'POST', body: v }),
+    onSuccess: (r) => store(r.garden),
+  });
   const harvestM = useMutation({
     mutationFn: (slots: number[]) => session.call<HarvestResponse>('/garden/harvest', { method: 'POST', body: { slots } }),
     onSuccess: (r) => store(r.garden),
@@ -98,19 +102,24 @@ export function useGarden(enabled = true) {
     [data, now],
   );
 
-  const busy = buyM.isPending || shopM.isPending || openM.isPending || plantM.isPending || harvestM.isPending || sellM.isPending;
+  // Dead Farmers keep their slot but don't walk the road. Memoised so the walking loop isn't restarted every render.
+  const walkers = useMemo(() => (data?.view.farmers ?? NO_FARMERS).filter((f) => !f.dead), [data]);
+
+  const busy = buyM.isPending || shopM.isPending || openM.isPending || plantM.isPending || harvestM.isPending || sellM.isPending || craftM.isPending;
 
   return {
     session,
     ready: !!data,
     loading: q.isLoading,
     busy,
-    error: (buyM.error ?? shopM.error ?? openM.error ?? plantM.error ?? harvestM.error ?? sellM.error ?? q.error)?.message ?? null,
+    error: (buyM.error ?? shopM.error ?? openM.error ?? plantM.error ?? harvestM.error ?? sellM.error ?? craftM.error ?? q.error)?.message ?? null,
     now,
     plots,
     gold: data?.view.gold ?? 0,
     /** Farmers working the Garden, and what their perks add up to. */
     farmers: data?.view.farmers ?? NO_FARMERS,
+    /** The working Farmers still alive, who walk the Garden's road. */
+    walkers,
     bonus: data?.view.bonus ?? { yieldPct: 0, growthPct: 0 },
     /** How fast crops grow: 1, or more on the dev server. */
     speed: data?.view.speed ?? 1,
@@ -137,6 +146,9 @@ export function useGarden(enabled = true) {
     /** Sell `qty` of a harvested crop to the NPC; `lastSale` then says what it paid. */
     sell: (item: string, qty: number) => !busy && sellM.mutate({ item, qty }),
     lastSale: sellM.data?.sold ?? null,
+    /** Kitchen: `qty` tries of a recipe; `lastCraft` then says how many worked. */
+    craft: (recipe: RecipeId, qty: number) => !busy && craftM.mutate({ recipe, qty }),
+    lastCraft: craftM.data?.crafted ?? null,
   };
 }
 

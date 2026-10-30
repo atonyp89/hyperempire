@@ -1,16 +1,17 @@
 // The Garden screen: a 4x4 field where seeds from the inventory grow on the clock and are harvested back into it.
 // Seeds come in packs bought with $gold; a pack opens into 10 seeds of random grades, and better seeds yield more.
+// The working Farmers get hungry: the Kitchen tab mills wheat into flour and bakes flour into bread to feed them.
 
-import { useState } from 'react';
-import { CROPS, cropPrice, GRADES, growTime, sellGold, PACK_SEEDS, packGold, packItem, SEED_YIELD, yieldOf, type CropId } from '@server/contract';
+import { useEffect, useState } from 'react';
+import { CROPS, cropPrice, GRADES, growTime, HUNGER_FULL, MAX_CRAFTS, RECIPES, sellGold, PACK_SEEDS, packGold, packItem, SEED_YIELD, yieldOf, type CropId, type FarmerView, type Recipe } from '@server/contract';
 import { fmtAura } from '../../shared/format';
 import { BuildingModal } from '../../shared/ui/BuildingModal';
 import { useGarden, type Garden } from '../hooks/useGarden';
 import { itemInfo } from '../lib/items';
 import { Inventory, type Stack } from '../ui/Inventory';
 import { Overlay } from '../ui/Overlay';
-import { useFarmers } from '../hooks/useFarmers';
-import { farmerName, farmerPerks, farmerPortrait } from '../lib/farmers';
+import { useFarmers, type Farmers } from '../hooks/useFarmers';
+import { farmerName, farmerPerks, farmerPortrait, HUNGRY_AT, hungerNow } from '../lib/farmers';
 import { GardenField, timeLeft } from './GardenField';
 
 type Props = { open: boolean; onClose: () => void };
@@ -51,8 +52,14 @@ function SignIn({ g }: { g: Garden }) {
 
 const CROP_LIST = Object.values(CROPS);
 
-/** Packs first, then seeds (best grade first), then crops; within a kind, by crop name. */
-const KIND_ORDER = { pack: 0, seed: 1, crop: 2, other: 3 } as const;
+/** Packs first, then seeds (best grade first), then crops, then food; within a kind, by crop name. */
+const KIND_ORDER = { pack: 0, seed: 1, crop: 2, food: 3, other: 4 } as const;
+type Tab = 'seeds' | 'harvest' | 'kitchen';
+const TABS: { id: Tab; label: string; kinds: string[] }[] = [
+  { id: 'seeds', label: 'SEEDS', kinds: ['pack', 'seed'] },
+  { id: 'harvest', label: 'HARVEST', kinds: ['crop', 'other'] },
+  { id: 'kitchen', label: 'KITCHEN', kinds: ['food'] },
+];
 function order(a: Stack, b: Stack) {
   const [x, y] = [itemInfo(a.id), itemInfo(b.id)];
   return (
@@ -71,12 +78,18 @@ function Field({ g }: { g: Garden }) {
   const [sellId, setSellId] = useState<string | null>(null);
   const [shop, setShop] = useState(false);
   const [picking, setPicking] = useState(false);
-  const [tab, setTab] = useState<'seeds' | 'harvest'>('seeds');
-  // Seeds tab: packs and seeds; Harvest tab: everything else (crops).
-  const isSeedTab = (id: string) => ['pack', 'seed'].includes(itemInfo(id).kind);
-  const shown = stacks.filter((x) => isSeedTab(x.id) === (tab === 'seeds'));
-  const count = (seedTab: boolean) => stacks.filter((x) => isSeedTab(x.id) === seedTab).reduce((n, x) => n + x.qty, 0);
+  const [tab, setTab] = useState<Tab>('seeds');
+  // Seeds tab: packs and seeds; Harvest tab: crops; Kitchen tab: flour and bread.
+  const inTab = (t: Tab) => stacks.filter((x) => TABS.find((d) => d.id === t)!.kinds.includes(itemInfo(x.id).kind));
+  const shown = inTab(tab);
   const f = useFarmers();
+  const bread = g.inventory.bread ?? 0;
+  // When a working Farmer's hunger runs out here, fetch again so the server's view (dead, no bonus) shows.
+  const starved = f.working.some((x) => !x.dead && x.diesAt != null && x.diesAt <= f.now);
+  const { refresh } = f;
+  useEffect(() => {
+    if (starved) refresh();
+  }, [starved, refresh]);
   // The seed the player selected in the inventory, while they still hold one.
   const picked = seeds.find((s) => s.id === pickedId) ?? null;
   const seed = picked ? itemInfo(picked.id) : null;
@@ -104,7 +117,7 @@ function Field({ g }: { g: Garden }) {
         onPlant={(slot) => picked && g.plant(picked.id, [slot])}
         onHarvest={(slot) => g.harvest([slot])}
         pops={g.pops}
-        farmers={g.farmers}
+        farmers={g.walkers}
       />
       <div className="garden-side">
         <section className="panel garden-panel" aria-label="Farmers">
@@ -118,16 +131,7 @@ function Field({ g }: { g: Garden }) {
             {Array.from({ length: f.slots }, (_, i) => {
               const x = f.working[i];
               return x ? (
-                <div key={x.id} className={`farmer-slot grade-${x.grade}`} title={`${farmerName(x)}: ${farmerPerks(x)}`}>
-                  <span className="farmer-portrait inv-icon" style={farmerPortrait} aria-hidden="true" />
-                  <span className="farmer-slot-text">
-                    <span className={`strong small grade-text-${x.grade}`}>{farmerName(x)}</span>
-                    <span className="small mono">{farmerPerks(x)}</span>
-                  </span>
-                  <button type="button" className="pack-close" onClick={() => f.assign(x.id, false)} aria-label={`Send ${farmerName(x)} to rest`}>
-                    ✕
-                  </button>
-                </div>
+                <FarmerSlot key={x.id} x={x} f={f} bread={bread} />
               ) : (
                 <button key={`empty-${i}`} type="button" className="farmer-slot empty" onClick={() => setPicking(true)}>
                   + ADD A FARMER
@@ -135,14 +139,17 @@ function Field({ g }: { g: Garden }) {
               );
             })}
           </div>
-          <div className="small muted">Their growth cut applies to what you plant while they work; the yield bonus applies at harvest.</div>
+          <div className="small muted">
+            Their growth cut applies to what you plant while they work; the yield bonus applies at harvest. Working Farmers eat 1 bread a day and die
+            when hunger runs out; resting ones don’t get hungry.
+          </div>
         </section>
 
         <section className="panel garden-panel" aria-label="Inventory">
           <div className="inv-tabs" role="tablist" aria-label="Inventory">
-            {(['seeds', 'harvest'] as const).map((t) => (
-              <button key={t} type="button" role="tab" aria-selected={tab === t} className={`ex-tab ${tab === t ? 'on' : ''}`} onClick={() => setTab(t)}>
-                {t === 'seeds' ? 'SEEDS' : 'HARVEST'} · {fmtAura(count(t === 'seeds'))}
+            {TABS.map((t) => (
+              <button key={t.id} type="button" role="tab" aria-selected={tab === t.id} className={`ex-tab ${tab === t.id ? 'on' : ''}`} onClick={() => setTab(t.id)}>
+                {t.label} · {fmtAura(inTab(t.id).reduce((n, x) => n + x.qty, 0))}
               </button>
             ))}
           </div>
@@ -181,6 +188,7 @@ function Field({ g }: { g: Garden }) {
             </div>
           )}
           {tab === 'harvest' && selling && <SellBar g={g} item={selling.id} qty={selling.qty} />}
+          {tab === 'kitchen' && Object.values(RECIPES).map((r) => <CraftBar key={r.id} g={g} recipe={r} />)}
           {tab === 'seeds' && (
             <button type="button" className="btn shop-open" onClick={() => setShop(true)}>
               <span className="shop-icon" style={itemInfo(packItem('wheat')).icon} aria-hidden="true" />
@@ -193,8 +201,10 @@ function Field({ g }: { g: Garden }) {
                 Select a seed to plant it, then use the buttons or click an empty plot; click a ripe plant to harvest. Better seeds yield more: ×
                 {SEED_YIELD.uncommon} uncommon up to ×{SEED_YIELD.legendary} legendary.
               </>
-            ) : (
+            ) : tab === 'harvest' ? (
               'What you harvest lands here. Select a crop to sell it to the NPC for $gold; the Marketplace comes later.'
+            ) : (
+              'Mill wheat into flour and bake flour into bread, your Farmers’ food. Each try can fail and lose what it used.'
             )}
           </div>
         </section>
@@ -219,10 +229,10 @@ function Field({ g }: { g: Garden }) {
               ✕
             </button>
           </div>
-          {f.farmers.some((x) => !x.assigned) ? (
+          {f.farmers.some((x) => !x.assigned && !x.dead) ? (
             <div className="farmer-roster">
               {f.farmers
-                .filter((x) => !x.assigned)
+                .filter((x) => !x.assigned && !x.dead)
                 .map((x) => (
                   <button
                     key={x.id}
@@ -240,10 +250,96 @@ function Field({ g }: { g: Garden }) {
                 ))}
             </div>
           ) : (
-            <div className="small muted">No resting Farmers. Recruit them at the Tavern in town.</div>
+            <div className="small muted">No resting Farmers. Recruit them at the Tavern in town, where dead ones can be revived.</div>
           )}
         </Overlay>
       )}
+    </div>
+  );
+}
+
+/** A working Farmer: its perks, a hunger bar counting down, and FEED (one bread) or REVIVE (for $aura) once dead. */
+function FarmerSlot({ x, f, bread }: { x: FarmerView; f: Farmers; bread: number }) {
+  const hunger = x.dead ? 0 : hungerNow(x, f.now, f.speed);
+  const dead = hunger <= 0;
+  const hungry = !dead && hunger < HUNGRY_AT;
+  const name = farmerName(x);
+  return (
+    <div className={`farmer-slot grade-${x.grade} ${dead ? 'dead' : ''}`} title={`${name}: ${farmerPerks(x)}`}>
+      <span className="farmer-portrait inv-icon" style={farmerPortrait} aria-hidden="true" />
+      <span className="farmer-slot-text">
+        <span className={`strong small grade-text-${x.grade}`}>
+          {name}
+          {dead && <span className="dead-tag"> · DEAD</span>}
+        </span>
+        <span className="small mono">{dead ? 'Adds nothing until revived' : farmerPerks(x)}</span>
+        <span className={`hunger-bar ${hungry ? 'low' : ''}`} role="meter" aria-label="Hunger" aria-valuemin={0} aria-valuemax={HUNGER_FULL} aria-valuenow={Math.round(hunger)}>
+          <span style={{ width: `${(hunger / HUNGER_FULL) * 100}%` }} />
+        </span>
+        {!dead && x.diesAt != null && <span className={`small ${hungry ? 'hungry' : 'muted'}`}>{hungry ? 'Hungry! ' : ''}Food for {timeLeft(x.diesAt - f.now)}</span>}
+      </span>
+      {dead ? (
+        <button type="button" className="btn small primary" onClick={() => f.revive(x.id)}>
+          REVIVE · <span className="gem" aria-hidden="true" /> {fmtAura(x.reviveAura)}
+        </button>
+      ) : (
+        <button type="button" className="btn small feed-btn" disabled={bread < 1 || hunger >= HUNGER_FULL} onClick={() => f.feed(x.id)} title={bread < 1 ? 'Bake bread in the Kitchen tab' : `Feed 1 bread (${bread} held)`}>
+          <span className="feed-icon" style={itemInfo('bread').icon} aria-hidden="true" />
+          FEED
+        </button>
+      )}
+      {f.dev && !dead && (
+        <button type="button" className="pack-close small" onClick={() => f.drain(x.id)} title="Dev: drain 25 hunger">
+          −25
+        </button>
+      )}
+      <button type="button" className="pack-close" onClick={() => f.assign(x.id, false)} aria-label={`Send ${name} to rest`}>
+        ✕
+      </button>
+    </div>
+  );
+}
+
+/** A Kitchen step: what it takes and makes, its chance, and buttons for 1 try or as many as the input allows. */
+function CraftBar({ g, recipe }: { g: Garden; recipe: Recipe }) {
+  const have = g.inventory[recipe.input] ?? 0;
+  const max = Math.min(MAX_CRAFTS, Math.floor(have / recipe.inputQty));
+  const input = itemInfo(recipe.input);
+  const last = g.lastCraft?.recipe === recipe.id ? g.lastCraft : null;
+  const verb = recipe.verb.toUpperCase();
+  return (
+    <div className="seed-bar craft-bar">
+      <span className="craft-io" aria-hidden="true">
+        <span className="seed-bar-icon inv-icon" style={input.icon} />
+        <span className="muted">→</span>
+        <span className="seed-bar-icon inv-icon" style={itemInfo(recipe.id).icon} />
+      </span>
+      <span className="seed-bar-text">
+        <span className="strong">
+          {recipe.inputQty} {input.name.toLowerCase()} → 1 {recipe.name.toLowerCase()}
+        </span>
+        <span className="small muted">
+          {last ? (
+            <span className={last.made === last.tries ? 'gold' : ''}>
+              {last.made} of {last.tries} worked
+            </span>
+          ) : (
+            <>
+              {Math.round(recipe.chance * 100)}% chance · you have {fmtAura(have)} {input.name.toLowerCase()}
+            </>
+          )}
+        </span>
+      </span>
+      <span className="seed-bar-actions">
+        <button type="button" className="btn primary" disabled={max < 1} onClick={() => g.craft(recipe.id, 1)}>
+          {verb} 1
+        </button>
+        {max >= 2 && (
+          <button type="button" className="btn primary" onClick={() => g.craft(recipe.id, max)}>
+            {verb} {max}
+          </button>
+        )}
+      </span>
     </div>
   );
 }

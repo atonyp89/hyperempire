@@ -20,7 +20,7 @@ export type LocalOptions = { admin?: AdminCredentials; builder?: Builder };
 
 /** Simulated players, so the local Mine isn't empty. A real server has none. */
 const SIMULATED_POWER = { 'aura:shared': 2_000, 'aura:rush': 2_000 } as const;
-/** Garden plants grow this much faster while developing: wheat ripens in 18 s instead of 3 minutes. */
+/** Garden plants grow and villagers get hungry this much faster while developing: wheat ripens in 18 s instead of 3 minutes. */
 const DEV_GAME_SPEED = 10;
 /** How long a tab waits for the owner tab to answer before giving up. */
 const RELAY_TIMEOUT_MS = 15_000;
@@ -66,6 +66,7 @@ async function start(network: Network, opts: LocalOptions): Promise<LocalServer>
         simulatedPower: SIMULATED_POWER,
         goldFaucet: GOLD_FAUCET,
         gameSpeed: DEV_GAME_SPEED,
+        devTools: true,
         admin: opts.admin,
       });
       return (request: Request) => Promise.resolve(app.fetch(request));

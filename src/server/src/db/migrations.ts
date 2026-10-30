@@ -180,6 +180,16 @@ export const MIGRATIONS: { id: string; sql: string }[] = [
       ALTER TABLE garden_plots ADD COLUMN grow_ms bigint;
     `,
   },
+  {
+    // Hunger: Farmers get hungry while they work and die at 0. Every Farmer starts full; working ones start
+    // draining now.
+    id: '0009_hunger',
+    sql: `
+      ALTER TABLE farmers ADD COLUMN hunger double precision NOT NULL DEFAULT 100;
+      ALTER TABLE farmers ADD COLUMN hunger_since bigint;
+      UPDATE farmers SET hunger_since = (extract(epoch FROM now()) * 1000)::bigint WHERE assigned;
+    `,
+  },
 ];
 
 export async function migrate(db: Db) {

@@ -1,7 +1,8 @@
 // The Garden: buy seed packs with $gold, open them into 10 seeds of random grades, plant seeds in a 4x4 field, let
 // them grow on the clock, and harvest ripe plants into the inventory (better seeds yield more). Working Farmers
 // cut the growing time of what is planted while they work, and add yield at harvest. Plant and harvest
-// take one or many plots at once; each call is all-or-nothing.
+// take one or many plots at once; each call is all-or-nothing. The Kitchen turns wheat into flour and flour into
+// bread (Farmers' food); each try can fail and lose its input.
 
 import { and, eq, inArray } from 'drizzle-orm';
 import { Hono } from 'hono';
@@ -12,10 +13,11 @@ import { badRequest, conflict } from '../errors';
 import { addItem, itemsOf, takeItem } from '../inventory';
 import { creditGold, debitGold, goldOf } from '../ledger';
 import { farmerBonus } from '../rules/farmers';
-import { gardenFarmers } from './farmers';
+import { farmerView, gardenFarmers, workingFarmers } from './farmers';
+import { isRecipeId, MAX_CRAFTS, RECIPES } from '../rules/food';
 import { CROPS, cropStage, GARDEN_PLOTS, growTime, isCropId, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, seedItem, sellGold, yieldOf, type Crop, type CropId } from '../rules/garden';
 import { GRADES, rollGrade, type Grade } from '../rules/mining';
-import type { GardenPlotView, GardenView, HarvestResponse, OpenPacksResponse, SellResponse } from '../contract';
+import type { CraftResponse, GardenPlotView, GardenView, HarvestResponse, OpenPacksResponse, SellResponse } from '../contract';
 
 /** The plots a request names: `slots` (a list) or `slot` (one), each 0-15, no repeats. */
 function slotsOf(body: { slot?: unknown; slots?: unknown }): number[] {
@@ -55,7 +57,7 @@ const readyAtOf = (crop: Crop, p: { plantedAt: number; growMs: number | null }, 
 
 async function view(tx: Conn, address: string, now: number, speed: number): Promise<GardenView> {
   const planted = await tx.select().from(gardenPlots).where(eq(gardenPlots.address, address));
-  const working = await gardenFarmers(tx, address);
+  const working = await workingFarmers(tx, address);
   const bySlot = new Map(planted.map((p) => [p.slot, p]));
   const plots = Array.from({ length: GARDEN_PLOTS }, (_, slot): GardenPlotView => {
     const p = bySlot.get(slot);
@@ -71,8 +73,8 @@ async function view(tx: Conn, address: string, now: number, speed: number): Prom
     plots,
     inventory: await itemsOf(tx, address),
     gold: await goldOf(tx, address),
-    farmers: working.map((f) => ({ id: f.id, grade: GRADES[f.grade] ?? 'common', yieldPct: f.yieldPct, growthPct: f.growthPct, assigned: true })),
-    bonus: farmerBonus(working),
+    farmers: working.map((f) => farmerView(f, now, speed)),
+    bonus: farmerBonus(await gardenFarmers(tx, address, now, speed)),
   };
 }
 
@@ -124,7 +126,7 @@ export const garden = new Hono<Env>()
     const t = now();
     const result = await db.transaction(async (tx) => {
       // The working Farmers' cut is fixed when the seed goes in.
-      const { growthPct } = farmerBonus(await gardenFarmers(tx, address));
+      const { growthPct } = farmerBonus(await gardenFarmers(tx, address, t, speed));
       const growMs = Math.round(growTime(crop, speed) * (1 - growthPct / 100));
       const added = await tx
         .insert(gardenPlots)
@@ -151,7 +153,7 @@ export const garden = new Hono<Env>()
         .returning();
       if (rows.length !== slots.length) throw conflict('Nothing is growing there.', 'plot_empty');
       const got: Record<string, number> = {};
-      const { yieldPct } = farmerBonus(await gardenFarmers(tx, address));
+      const { yieldPct } = farmerBonus(await gardenFarmers(tx, address, t, speed));
       for (const p of rows) {
         if (!isCropId(p.crop)) throw conflict('Unknown crop in that plot.', 'plot_empty');
         const crop = CROPS[p.crop];
@@ -178,6 +180,26 @@ export const garden = new Hono<Env>()
       const gold = sellGold(crop, qty);
       await creditGold(tx, address, gold, 'garden:sell');
       return { sold: { item: crop.id, qty, gold }, garden: await view(tx, address, now(), speed) };
+    });
+    return c.json(result);
+  })
+  // Kitchen: `qty` tries of a recipe (flour from wheat, bread from flour). Every try takes its input up front and
+  // succeeds with the recipe's chance, making one; a failed try loses its input.
+  .post('/craft', async (c) => {
+    const { db, now, random, gameSpeed: speed = 1 } = c.var.deps;
+    const address = c.var.address;
+    const body = await c.req.json().catch(() => ({}));
+    const id: unknown = body.recipe;
+    if (!isRecipeId(id)) throw badRequest('Unknown recipe.');
+    const recipe = RECIPES[id];
+    const tries = body.qty ?? 1;
+    if (!Number.isInteger(tries) || tries < 1 || tries > MAX_CRAFTS) throw badRequest(`1 to ${MAX_CRAFTS} at a time.`);
+    const result = await db.transaction(async (tx): Promise<CraftResponse> => {
+      await takeItem(tx, address, recipe.input, tries * recipe.inputQty, recipe.input);
+      let made = 0;
+      for (let i = 0; i < tries; i++) if (random() < recipe.chance) made++;
+      await addItem(tx, address, recipe.id, made);
+      return { crafted: { recipe: recipe.id, tries, made }, garden: await view(tx, address, now(), speed) };
     });
     return c.json(result);
   });

@@ -9,6 +9,8 @@ export * from './rules/empire';
 export { DAILY_EMISSION, marginalShare } from './rules/exchange';
 export { GOLD_FAUCET } from './rules/gold';
 export { FARMER_PERKS, FARMER_RECRUIT_AURA, FARMER_SLOTS, MAX_GROWTH_CUT } from './rules/farmers';
+export { BREAD_HUNGER, HUNGER_FULL, hungerAt, isRecipeId, MAX_CRAFTS, MEAL_MS, RECIPES, REVIVE_AURA, REVIVE_HUNGER, wheatPerBread } from './rules/food';
+export type { Recipe, RecipeId } from './rules/food';
 export { CROPS, cropOfPack, cropPrice, cropStage, expectedYield, SELL_ROI, sellGold, GARDEN_COLS, GARDEN_PLOTS, GARDEN_ROWS, growTime, MAX_PACKS, PACK_SEEDS, packGold, packItem, parseSeed, SEED_YIELD, seedItem, yieldOf } from './rules/garden';
 export type { Crop, CropId } from './rules/garden';
 export { EXCHANGE_PERKS, MASTERY_PERKS, WHALE_DAILY_VOLUME, XP_PER_USD_FEE, xpForLevel, xpToNext } from './rules/mastery';
@@ -58,14 +60,33 @@ export type GardenView = {
   bonus: FarmerBonus;
 };
 
-/** A Farmer: grade and its two rolled perks in whole percent (+yield, −growing time). */
-export type FarmerView = { id: number; grade: Grade; yieldPct: number; growthPct: number; assigned: boolean };
+/**
+ * A Farmer: grade and its two rolled perks in whole percent (+yield, −growing time), and its hunger. `hunger` is at
+ * the view's `now`; `diesAt` is when a working Farmer reaches 0 (null while resting or dead), so the client can
+ * count it down. A dead Farmer adds no perks until it's revived for `reviveAura`.
+ */
+export type FarmerView = {
+  id: number;
+  grade: Grade;
+  yieldPct: number;
+  growthPct: number;
+  assigned: boolean;
+  hunger: number;
+  diesAt: number | null;
+  dead: boolean;
+  reviveAura: number;
+};
 export type FarmerBonus = { yieldPct: number; growthPct: number };
-/** Every Farmer the player has, how many can work the Garden, the recruit price and the working Farmers' bonus. */
-export type FarmersView = { farmers: FarmerView[]; slots: number; recruitAura: number; bonus: FarmerBonus };
+/**
+ * Every Farmer the player has, how many can work the Garden, the recruit price, the working Farmers' bonus (dead
+ * ones left out), the server's clock and game speed, and whether dev tools (draining hunger) are on.
+ */
+export type FarmersView = { farmers: FarmerView[]; slots: number; recruitAura: number; bonus: FarmerBonus; now: number; speed: number; dev: boolean };
 export type HarvestResponse = { harvested: Record<string, number>; garden: GardenView };
 /** What a sale gave: the crop, how many, and the $gold paid. */
 export type SellResponse = { sold: { item: string; qty: number; gold: number }; garden: GardenView };
+/** A Kitchen step: how many tries ran and how many succeeded (each success makes one of `recipe`). */
+export type CraftResponse = { crafted: { recipe: string; tries: number; made: number }; garden: GardenView };
 /** The seeds the opened packs gave, as item ids in the order they were rolled. */
 export type OpenPacksResponse = { opened: string[]; garden: GardenView };
 

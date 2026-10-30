@@ -238,7 +238,7 @@ Miners and Picks share five grades. Mythic is kept for heroes.
 
 ### Upkeep
 
-- **Hunger:** Miners are people and get hungry. Each has energy from 0 to 100 that drains while it mines; a full meal lasts about 24 hours, and at 0 it stops until fed. Feeding costs $aura and grows with grade (a day's food: Common 20, Uncommon 60, Rare 220, Epic 1,000, Legendary 6,000).
+- **Hunger:** Miners are people and get hungry. Each has energy from 0 to 100 that drains while it mines; a full meal lasts about 24 hours, and at 0 it stops until fed. Feeding costs $aura and grows with grade (a day's food: Common 20, Uncommon 60, Rare 220, Epic 1,000, Legendary 6,000). *Planned change (Oct 30, 2026):* Miners will eat bread like Farmers do (see [Food and hunger](#food-and-hunger)) instead of $aura food; the $aura prices here are the old design.
 - **Durability:** a Pick wears down every block it mines (about 1 day for a Common, 7 for a Legendary). A broken Pick stays equipped with no bonus until the Workshop repairs it for $aura; cost grows with grade and wear.
 - **Tuning rule:** a grade's daily upkeep is about 30–40% of what it is expected to earn at the network power we target, so mining pays but always needs topping up. Recalculated whenever block rewards change.
 
@@ -324,9 +324,10 @@ Plant seeds, wait, harvest. A light daily check-in loop for traders and low/mid 
 | Growing | On the clock, no upkeep: sprout → young → ripe, evenly spaced. Wheat ripens in 3 minutes (a test value) |
 | Harvest | Ripe plants only; each gives its crop by seed grade into the inventory and empties its plot |
 | Selling to the NPC | Select a crop in the Harvest tab: sell 10 or all for $gold, the total rounded down. Wheat pays ~0.304 $gold each, grapes ~0.570 |
+| Kitchen | A third inventory tab: mill wheat into flour and bake flour into bread, the Farmers' food (see [Food and hunger](#food-and-hunger)) |
 | Planting | Select a seed in the inventory: a bar shows its growing time and yield (with the Farmers' bonus) and PLANT 1, plus PLANT X when X ≥ 2 more fit (X = empty plots, up to the seeds held). Clicking an empty plot also plants the selected seed; clicking a ripe plant harvests it |
-| Inventory | Square slots, one stackable item per slot, in two tabs: Seeds (packs and seeds, with the seed shop) and Harvest (crops). Clicking a seed picks it for planting. Each harvested plot floats its "+N" and the crop's icon up and fades |
-| Dev speed | The in-browser dev server grows crops 10× faster (wheat in 18 s); mining blocks and Exchange days keep real time |
+| Inventory | Square slots, one stackable item per slot, in three tabs: Seeds (packs and seeds, with the seed shop), Harvest (crops) and Kitchen (flour and bread). Clicking a seed picks it for planting. Each harvested plot floats its "+N" and the crop's icon up and fades |
+| Dev speed | The in-browser dev server grows crops and drains hunger 10× faster (wheat in 18 s, a full meal in 7h 12m), and each working Farmer gets a −25 button that drains hunger; mining blocks and Exchange days keep real time |
 
 Next: more crops, selling crops for $gold (and on the Marketplace), Garden Mastery XP from harvests (Green thumb speeds growth), and real growing times.
 
@@ -356,7 +357,42 @@ Farmers tend the Garden. They are recruited at the Tavern for 1,000 $aura (burne
 - **Working the Garden:** up to 3 Farmers at once; their perks add up. The growing-time cut is capped at −60% in total.
 - **When perks apply:** the growing-time cut is fixed when a seed is planted (crops already in the ground keep theirs); the yield bonus applies at harvest, per plant, rounded.
 - **In the scene:** working Farmers wander the Garden's road; a Farmer above common has a thin outline in its grade's colour.
-- **Next:** more Tavern recruits (heroes), Farmer upkeep or levels, and a Tavern Mastery.
+- **Upkeep:** working Farmers get hungry and eat bread; see [Food and hunger](#food-and-hunger).
+- **Next:** more Tavern recruits (heroes), Farmer levels, and a Tavern Mastery.
+
+### Food and hunger
+
+**Built (Oct 30, 2026).** Villagers are people: they get hungry, eat bread, and die if they go without. Only Farmers eat so far; Miners will eat the same bread when the Mine ships.
+
+| | Rule |
+| --- | --- |
+| Hunger | 100 (full) to 0 (dead). It drains only while a Farmer works, from 100 to 0 in **3 days**; resting Farmers don't get hungry, so spare Farmers cost nothing |
+| Bread | One bread restores a third (a day), up to 100, so a working Farmer eats **1 bread a day** and can be stocked 3 days ahead. Grade doesn't change how much it eats |
+| Death | At 0 a Farmer dies: it keeps its Garden slot but adds no yield or growth cut, stops walking the road, and can't be fed or put to work |
+| Revive | $aura, burned: Common 250, Uncommon 500, Rare 1,000, Epic 2,500, Legendary 10,000. Every price is far below what recruiting another of that grade takes on average (a Legendary is 1 in 1,000 recruits). It comes back with a day's hunger |
+| On screen | Each working Farmer's slot shows a hunger bar, "Food for 2d 4h" and FEED (one bread); under a day it turns red with "Hungry!". A dead Farmer is greyed with REVIVE. The Tavern lists every Farmer's hunger and revives dead ones |
+
+**The Kitchen** (a tab of the Garden's inventory) makes bread in two steps. Every try takes its input and succeeds with its chance; a failed try loses the input. Mill and bake 1 at a time, or as many as the input allows (up to 100).
+
+| Step | Takes | Makes | Success |
+| --- | --- | --- | --- |
+| Mill | 5 wheat | 1 flour | 80% |
+| Bake | 2 flour | 1 bread | 80% |
+
+On average a bread takes 5 / 0.8 × 2 / 0.8 = **15.6 wheat**, about 4.7 $gold at the NPC's price.
+
+**Why these numbers (it mustn't bankrupt players).** The Garden's profit is thin on purpose: crops sell for 1.1× what seeds cost, so a pack earns back 10%, plus the Farmers' yield bonus. Food has to fit inside that margin. A casual player who replants all 16 plots with wheat twice a day, with 3 common Farmers:
+
+| Per day | Wheat | $gold |
+| --- | --- | --- |
+| Seeds (32) | | −320 |
+| Harvest (36.2 per seed on average) | ~1,160 | +352 |
+| 3 common Farmers (+3% yield each) | ~+104 | +32 |
+| Profit before food | | ~64 |
+| Food: 3 bread (~47 wheat) | −47 | −14 |
+| **Profit after food** | | **~50** |
+
+Food is about 4% of the harvest and 22% of the profit. A player who replants only once a day still comes out ahead (~32 − 14 = 18 $gold). For a casual player the growing-time cut adds nothing, since check-ins, not growing time, set the pace; only yield counts. All of these are test values next to the test growing times, and need retuning when real growing times are set.
 
 ## Crafting, gear and materials (later)
 
@@ -447,7 +483,8 @@ Built in `src/web` (Vite + React + wagmi + the Hyperliquid TS SDK):
 - [ ] Daily emission cap per empire, in $aura
 - [ ] Legal review of rewards tied to leveraged trading, and region restrictions
 - [ ] Mining: launch rush pools or shared only; first block reward sizes
-- [ ] Mining: recruit, craft, food and repair prices; walking time between pools; pity on or off
+- [ ] Mining: recruit, craft and repair prices; walking time between pools; pity on or off
+- [ ] Food: retune hunger, recipe and revive numbers once real growing times are set
 - [ ] Mining: funding and payout of real-asset rewards (BTC and others), and whether their rush pools ever launch
 - [ ] Game backend vs on-chain: when, if ever, $aura balances and Miners move on-chain
 - [ ] Phase order after mining (heroes, Garden and gear, creators)

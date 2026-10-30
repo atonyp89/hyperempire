@@ -1,12 +1,13 @@
 // The Tavern: recruit Farmers for $aura. Each recruit rolls a grade (the Miners' odds) and two perks within the
-// grade's range, then joins the roster; Farmers are put to work in the Garden. Heroes come here later.
+// grade's range, then joins the roster; Farmers are put to work in the Garden. A Farmer that starved is revived
+// here for $aura. Heroes come here later.
 
 import { FARMER_PERKS, GRADES } from '@server/contract';
 import { fmtAura } from '../../shared/format';
 import { useMe } from '../../shared/session';
 import { BuildingModal } from '../../shared/ui/BuildingModal';
 import { useFarmers, type Farmers } from '../hooks/useFarmers';
-import { farmerName, farmerPerks, farmerPortrait } from '../lib/farmers';
+import { farmerName, farmerPerks, farmerPortrait, hungerNow } from '../lib/farmers';
 import { Overlay } from '../ui/Overlay';
 
 type Props = { open: boolean; onClose: () => void };
@@ -96,7 +97,18 @@ function Recruit({ f }: { f: Farmers }) {
                 <span className="farmer-portrait inv-icon" style={farmerPortrait} aria-hidden="true" />
                 <span className={`strong grade-text-${x.grade}`}>{farmerName(x)}</span>
                 <span className="small mono">{farmerPerks(x)}</span>
-                <span className="small muted">{x.assigned ? 'In the Garden' : 'Resting'}</span>
+                {x.dead ? (
+                  <>
+                    <span className="small dead-tag">Dead</span>
+                    <button type="button" className="btn small primary" disabled={aura < x.reviveAura} onClick={() => f.revive(x.id)}>
+                      REVIVE · <span className="gem" aria-hidden="true" /> {fmtAura(x.reviveAura)}
+                    </button>
+                  </>
+                ) : (
+                  <span className="small muted">
+                    {x.assigned ? 'In the Garden' : 'Resting'} · {Math.round(hungerNow(x, f.now, f.speed))}% fed
+                  </span>
+                )}
               </div>
             ))}
           </div>
